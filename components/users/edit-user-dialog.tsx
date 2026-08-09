@@ -15,8 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { updateUserAction } from "@/app/actions/users";
-import { Pencil } from "lucide-react";
+import { changeUserPasswordAction, updateUserAction } from "@/app/actions/users";
+import { Check, Clipboard, KeyRound, Pencil, WandSparkles } from "lucide-react";
 
 interface EditUserDialogProps {
     user: any;
@@ -27,6 +27,9 @@ export function EditUserDialog({ user, roles }: EditUserDialogProps) {
     const [open, setOpen] = useState(false);
     const [firstName, setFirstName] = useState(user.firstName || "");
     const [lastName, setLastName] = useState(user.lastName || "");
+    const [newPassword, setNewPassword] = useState("");
+    const [passwordConfirmation, setPasswordConfirmation] = useState("");
+    const [copied, setCopied] = useState(false);
 
     // Initialize selected roles from user's current roles
     const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
@@ -49,6 +52,9 @@ export function EditUserDialog({ user, roles }: EditUserDialogProps) {
             setFirstName(user.firstName || "");
             setLastName(user.lastName || "");
             setSelectedRoles(user.userRoles?.map((ur: any) => ur.role.id) || []);
+            setNewPassword("");
+            setPasswordConfirmation("");
+            setCopied(false);
             setError("");
         }
     }, [open, user]);
@@ -58,11 +64,28 @@ export function EditUserDialog({ user, roles }: EditUserDialogProps) {
         setLoading(true);
         setError("");
 
-        const result = await updateUserAction(user.id, {
+        if (newPassword || passwordConfirmation) {
+            if (newPassword.length < 8) {
+                setError("La contraseña debe tener al menos 8 caracteres");
+                setLoading(false);
+                return;
+            }
+            if (newPassword !== passwordConfirmation) {
+                setError("Las contraseñas no coinciden");
+                setLoading(false);
+                return;
+            }
+        }
+
+        let result = await updateUserAction(user.id, {
             firstName,
             lastName,
             roleIds: selectedRoles
         });
+
+        if (!result.error && (newPassword || passwordConfirmation)) {
+            result = await changeUserPasswordAction(user.id, newPassword, passwordConfirmation);
+        }
 
         if (result.error) {
             setError(result.error);
@@ -70,6 +93,30 @@ export function EditUserDialog({ user, roles }: EditUserDialogProps) {
             setOpen(false);
         }
         setLoading(false);
+    };
+
+    const generatePassword = () => {
+        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*?";
+        const values = new Uint32Array(20);
+        crypto.getRandomValues(values);
+        const password = Array.from(values, (value) => alphabet[value % alphabet.length]).join("");
+
+        setNewPassword(password);
+        setPasswordConfirmation(password);
+        setCopied(false);
+        setError("");
+    };
+
+    const copyPassword = async () => {
+        if (!newPassword) return;
+
+        try {
+            await navigator.clipboard.writeText(newPassword);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+        } catch {
+            setError("No se pudo copiar la contraseña");
+        }
     };
 
     const toggleRole = (id: string) => {
@@ -153,6 +200,61 @@ export function EditUserDialog({ user, roles }: EditUserDialogProps) {
                                     ))
                                 )}
                             </div>
+                        </div>
+
+                        <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                            <div className="flex items-start gap-3">
+                                <KeyRound className="mt-0.5 h-4 w-4 text-primary" />
+                                <div>
+                                    <p className="text-sm font-medium">Cambiar contraseña</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Opcional. Genera una contraseña segura o escribe una propia.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <Input
+                                    id="edit-password"
+                                    type="text"
+                                    autoComplete="new-password"
+                                    placeholder="Nueva contraseña"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    className="font-mono"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={generatePassword}
+                                    title="Generar contraseña segura"
+                                    aria-label="Generar contraseña segura"
+                                >
+                                    <WandSparkles className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={copyPassword}
+                                    disabled={!newPassword}
+                                    title="Copiar contraseña"
+                                    aria-label="Copiar contraseña"
+                                >
+                                    {copied ? <Check className="h-4 w-4 text-green-600" /> : <Clipboard className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                            <Input
+                                id="edit-password-confirmation"
+                                type="password"
+                                autoComplete="new-password"
+                                placeholder="Repetir contraseña"
+                                value={passwordConfirmation}
+                                onChange={(e) => setPasswordConfirmation(e.target.value)}
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                                Mínimo 8 caracteres. Guarda los cambios para aplicar la nueva contraseña.
+                            </p>
                         </div>
                     </div>
                     <DialogFooter className="gap-2">

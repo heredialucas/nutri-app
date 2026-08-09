@@ -2,6 +2,7 @@
 
 import { userService } from "@/services/user-service";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser, hasPermission, isAdminUser } from "@/lib/auth";
 
 export async function getUsersAction() {
     try {
@@ -42,5 +43,34 @@ export async function deleteUserAction(id: string) {
         return { success: true };
     } catch (error) {
         return { error: "Error al eliminar usuario" };
+    }
+}
+
+export async function changeUserPasswordAction(
+    userId: string,
+    password: string,
+    passwordConfirmation: string,
+) {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser || (!isAdminUser(currentUser) && !hasPermission(currentUser, "users.manage"))) {
+        return { error: "No autorizado" };
+    }
+
+    if (!userId) return { error: "Usuario requerido" };
+    if (password.length < 8) {
+        return { error: "La contraseña debe tener al menos 8 caracteres" };
+    }
+    if (password !== passwordConfirmation) {
+        return { error: "Las contraseñas no coinciden" };
+    }
+
+    try {
+        await userService.updatePassword(userId, password);
+        revalidatePath("/dashboard/users");
+        return { success: true };
+    } catch (error) {
+        console.error(error);
+        return { error: "Error al cambiar la contraseña" };
     }
 }
