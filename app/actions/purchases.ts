@@ -48,6 +48,16 @@ export async function getPurchaseOrder(id: string) {
     }
 }
 
+export async function getReceivablePurchasesByExpediente(expedienteId: string) {
+    const user = await getCurrentUser();
+    if (!user || !hasPermission(user, "receipts.manage")) {
+        throw new Error("No tienes permisos para consultar recepciones");
+    }
+
+    const orders = await purchaseService.getReceivablePurchasesByExpediente(expedienteId);
+    return serializePrisma(orders);
+}
+
 export async function createPurchaseOrder(data: {
     supplierId: string;
     warehouseId: string;

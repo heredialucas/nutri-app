@@ -203,6 +203,7 @@ model PurchaseOrderItem {
   updatedAt       DateTime      @updatedAt
   product         Product       @relation(fields: [productId], references: [id])
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  receiptItems    PurchaseReceiptItem[]
 
   @@map("purchase_order_items")
 }
@@ -391,6 +392,7 @@ model PurchaseReceipt {
 model PurchaseReceiptItem {
   id           String               @id @default(uuid()) @db.Uuid
   receiptId    String               @db.Uuid
+  purchaseOrderItemId String?       @db.Uuid
   productId    String               @db.Uuid
   quantity     Int
   createdAt    DateTime             @default(now())
@@ -398,7 +400,10 @@ model PurchaseReceiptItem {
   unitPrice    Decimal              @default(0) @db.Decimal(10, 2)
   priceHistory ProductPriceHistory?
   product      Product              @relation(fields: [productId], references: [id])
+  purchaseOrderItem PurchaseOrderItem? @relation(fields: [purchaseOrderItemId], references: [id])
   receipt      PurchaseReceipt      @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@unique([receiptId, purchaseOrderItemId])
 
   @@map("purchase_receipt_items")
 }
@@ -435,6 +440,7 @@ enum WarehouseType {
 /// Status of purchase orders
 enum PurchaseOrderStatus {
   DRAFT
+  PARTIALLY_RECEIVED
   RECEIVED
   CANCELLED
 }

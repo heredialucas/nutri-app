@@ -6,7 +6,7 @@ export const receiptService = {
      * Get all purchase receipts
      */
     async getReceipts(filters?: { expedienteId?: string; purchaseOrderId?: string }) {
-        const where: Prisma.PurchaseReceiptWhereInput = {};
+        const where: Prisma.PurchaseReceiptWhereInput = { deletedAt: null };
 
         if (filters?.expedienteId) {
             where.expedienteId = filters.expedienteId;
@@ -52,7 +52,7 @@ export const receiptService = {
      */
     async getReceipt(id: string) {
         const receipt = await prisma.purchaseReceipt.findUnique({
-            where: { id },
+            where: { id, deletedAt: null },
             include: {
                 purchaseOrder: {
                     include: {
@@ -66,6 +66,7 @@ export const receiptService = {
                 items: {
                     include: {
                         product: true,
+                        purchaseOrderItem: true,
                     }
                 }
             },
@@ -307,6 +308,189 @@ export const receiptService = {
                 } : null,
             };
         });
+    },
+
+    async createAccumulatedReceipt(data: {
+        purchaseOrderId: string;
+        expedienteId: string;
+        receiptNumber: string;
+        date: Date;
+        imageUrl?: string;
+        userId: string;
+        items: Array<{
+            purchaseOrderItemId: string;
+            productId: string;
+            quantity: number;
+        }>;
+    }) {
+        return prisma.$transaction(async (tx) => {
+            const order = await tx.purchaseOrder.findUnique({
+                where: { id: data.purchaseOrderId },
+                include: { items: { include: { product: true } }, supplier: true },
+            });
+            if (!order || order.deletedAt || order.status === "CANCELLED") {
+                throw new Error("La orden de compra no está disponible");
+            }
+            if (order.expedienteId !== data.expedienteId) {
+                throw new Error("La orden no pertenece al expediente seleccionado");
+            }
+            if (!data.items.length) throw new Error("Selecciona al menos un producto recibido");
+
+            const existingReceipt = await tx.purchaseReceipt.findFirst({
+                where: {
+                    receiptNumber: data.receiptNumber,
+                    purchaseOrderId: data.purchaseOrderId,
+                    expedienteId: data.expedienteId,
+                    deletedAt: null,
+                },
+                include: { items: true },
+            });
+            if (existingReceipt?.status === "COMPLETED") {
+                throw new Error("Este remito ya está cerrado y no admite nuevos ingresos");
+            }
+
+            const receivedByItem = new Map<string, number>();
+            for (const item of data.items) {
+                if (item.quantity <= 0) throw new Error("Las cantidades recibidas deben ser mayores que cero");
+                const orderItem = order.items.find(candidate => candidate.id === item.purchaseOrderItemId);
+                if (!orderItem || orderItem.productId !== item.productId) {
+                    throw new Error("Uno de los productos no pertenece a la orden seleccionada");
+                }
+                const alreadySelected = receivedByItem.get(item.purchaseOrderItemId) || 0;
+                const pendingQty = orderItem.quantity - orderItem.receivedQty - alreadySelected;
+                if (item.quantity > pendingQty) {
+                    throw new Error(`No se pueden recibir ${item.quantity} unidades de ${orderItem.product.name}. Solo quedan ${pendingQty}.`);
+                }
+                receivedByItem.set(item.purchaseOrderItemId, alreadySelected + item.quantity);
+            }
+
+            const incomingTotal = data.items.reduce((sum, item) => {
+                const orderItem = order.items.find(candidate => candidate.id === item.purchaseOrderItemId)!;
+                return sum + item.quantity * Number(orderItem.unitPrice);
+            }, 0);
+
+            const receipt = existingReceipt
+                ? await tx.purchaseReceipt.update({
+                    where: { id: existingReceipt.id },
+                    data: {
+                        date: data.date,
+                        imageUrl: data.imageUrl || existingReceipt.imageUrl,
+                        totalAmount: Number(existingReceipt.totalAmount) + incomingTotal,
+                    },
+                    include: { items: true },
+                })
+                : await tx.purchaseReceipt.create({
+                    data: {
+                        purchaseOrderId: order.id,
+                        warehouseId: null,
+                        receiptNumber: data.receiptNumber,
+                        date: data.date,
+                        imageUrl: data.imageUrl,
+                        totalAmount: incomingTotal,
+                        expedienteId: order.expedienteId,
+                        supplierId: order.supplierId,
+                        items: {
+                            create: [],
+                        },
+                    },
+                    include: { items: true },
+                });
+
+            for (const item of data.items) {
+                const orderItem = order.items.find(candidate => candidate.id === item.purchaseOrderItemId)!;
+                const currentReceiptItem = receipt.items.find(candidate => candidate.purchaseOrderItemId === item.purchaseOrderItemId);
+                const receiptItem = currentReceiptItem
+                    ? await tx.purchaseReceiptItem.update({
+                        where: { id: currentReceiptItem.id },
+                        data: { quantity: { increment: item.quantity } },
+                    })
+                    : await tx.purchaseReceiptItem.create({
+                        data: {
+                            receiptId: receipt.id,
+                            purchaseOrderItemId: orderItem.id,
+                            productId: orderItem.productId,
+                            quantity: item.quantity,
+                            unitPrice: orderItem.unitPrice,
+                        },
+                    });
+
+                await tx.purchaseOrderItem.update({
+                    where: { id: orderItem.id },
+                    data: { receivedQty: { increment: item.quantity } },
+                });
+
+                if (!currentReceiptItem) {
+                    await tx.productPriceHistory.create({
+                        data: {
+                            productId: orderItem.productId,
+                            receiptItemId: receiptItem.id,
+                            supplierId: order.supplierId,
+                            unitPrice: orderItem.unitPrice,
+                            quantity: item.quantity,
+                            receiptDate: data.date,
+                        },
+                    });
+                } else {
+                    const history = await tx.productPriceHistory.findUnique({
+                        where: { receiptItemId: receiptItem.id },
+                    });
+                    if (history) {
+                        await tx.productPriceHistory.update({
+                            where: { receiptItemId: receiptItem.id },
+                            data: { quantity: { increment: item.quantity }, receiptDate: data.date },
+                        });
+                    }
+                }
+
+                await tx.warehouseStock.upsert({
+                    where: {
+                        warehouseId_productId: {
+                            warehouseId: order.warehouseId,
+                            productId: orderItem.productId,
+                        },
+                    },
+                    create: { warehouseId: order.warehouseId, productId: orderItem.productId, quantity: item.quantity },
+                    update: { quantity: { increment: item.quantity } },
+                });
+
+                await tx.stockMovement.create({
+                    data: {
+                        productId: orderItem.productId,
+                        warehouseId: order.warehouseId,
+                        type: "IN",
+                        quantity: item.quantity,
+                        reason: `Recepción ${data.receiptNumber} · ${order.orderNumber}`,
+                        userId: data.userId,
+                        sourceType: "RECEIPT",
+                        sourceId: receipt.id,
+                        expedienteId: data.expedienteId,
+                    },
+                });
+            }
+
+            const updatedItems = await tx.purchaseOrderItem.findMany({ where: { purchaseOrderId: order.id } });
+            const allReceived = updatedItems.every(item => item.receivedQty >= item.quantity);
+            const hasReceived = updatedItems.some(item => item.receivedQty > 0);
+            await tx.purchaseOrder.update({
+                where: { id: order.id },
+                data: {
+                    status: allReceived ? "RECEIVED" : hasReceived ? "PARTIALLY_RECEIVED" : "DRAFT",
+                    receivedDate: hasReceived ? new Date() : null,
+                },
+            });
+
+            if (allReceived) {
+                await tx.purchaseReceipt.update({
+                    where: { id: receipt.id },
+                    data: { status: "COMPLETED" },
+                });
+            }
+
+            return tx.purchaseReceipt.findUnique({
+                where: { id: receipt.id },
+                include: { purchaseOrder: { include: { supplier: true, warehouse: true } }, expediente: true, items: { include: { product: true } } },
+            });
+        }, { maxWait: 10000, timeout: 30000 });
     },
 
     /**
@@ -576,7 +760,7 @@ export const receiptService = {
     },
 
     /**
-     * Close an entire receipt group (all receipts sharing the same receiptNumber)
+     * Close one physical receipt. Later additions to a closed receipt are rejected.
      */
     async completeReceipt(id: string) {
         const receipt = await prisma.purchaseReceipt.findUnique({
@@ -584,13 +768,14 @@ export const receiptService = {
         });
 
         if (!receipt) throw new Error("Remito no encontrado");
+        if (receipt.status === "COMPLETED") return { count: 0 };
 
-        const allCompleted = await prisma.purchaseReceipt.updateMany({
-            where: { receiptNumber: receipt.receiptNumber, status: "ACTIVE" },
+        await prisma.purchaseReceipt.update({
+            where: { id: receipt.id },
             data: { status: "COMPLETED" },
         });
 
-        return { count: allCompleted.count };
+        return { count: 1 };
     },
 
     /**
@@ -598,7 +783,7 @@ export const receiptService = {
      */
     async getGroupItems(receiptNumber: string) {
         const receipts = await prisma.purchaseReceipt.findMany({
-            where: { receiptNumber },
+            where: { receiptNumber, deletedAt: null },
             include: {
                 items: {
                     include: { product: true }
@@ -620,7 +805,7 @@ export const receiptService = {
      */
     async getReceiptGroupStatus(receiptNumber: string) {
         const receipts = await prisma.purchaseReceipt.findMany({
-            where: { receiptNumber },
+            where: { receiptNumber, deletedAt: null },
             select: { status: true },
         });
 

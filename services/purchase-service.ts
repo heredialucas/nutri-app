@@ -124,6 +124,64 @@ export const purchaseService = {
         };
     },
 
+    async getReceivablePurchasesByExpediente(expedienteId: string) {
+        const orders = await prisma.purchaseOrder.findMany({
+            where: {
+                expedienteId,
+                deletedAt: null,
+                status: { not: "CANCELLED" },
+            },
+            include: {
+                supplier: true,
+                warehouse: true,
+                receipts: {
+                    where: { deletedAt: null, status: "ACTIVE" },
+                    select: {
+                        id: true,
+                        receiptNumber: true,
+                        date: true,
+                        imageUrl: true,
+                    },
+                    orderBy: { date: "desc" },
+                },
+                items: {
+                    include: { product: true },
+                    orderBy: { product: { name: "asc" } },
+                },
+            },
+            orderBy: { createdAt: "asc" },
+        });
+
+        return orders
+            .map(order => ({
+                id: order.id,
+                orderNumber: order.orderNumber,
+                supplier: order.supplier,
+                warehouse: order.warehouse,
+                receipts: order.receipts.map(receipt => ({
+                    id: receipt.id,
+                    receiptNumber: receipt.receiptNumber,
+                    date: receipt.date,
+                    imageUrl: receipt.imageUrl,
+                })),
+                status: order.status,
+                items: order.items
+                    .map(item => ({
+                        id: item.id,
+                        purchaseOrderItemId: item.id,
+                        productId: item.productId,
+                        productName: item.product.name,
+                        sku: item.product.sku,
+                        orderedQty: item.quantity,
+                        receivedQty: item.receivedQty,
+                        pendingQty: Math.max(item.quantity - item.receivedQty, 0),
+                        unitPrice: Number(item.unitPrice),
+                    }))
+                    .filter(item => item.pendingQty > 0),
+            }))
+            .filter(order => order.items.length > 0);
+    },
+
     async createPurchaseOrder(data: {
         supplierId: string;
         warehouseId: string;
@@ -154,7 +212,7 @@ export const purchaseService = {
                 ...orderData,
                 orderNumber,
                 totalAmount,
-                status: "RECEIVED",
+                status: "DRAFT",
                 expedienteId,
                 items: {
                     create: items,
@@ -265,7 +323,11 @@ export const purchaseService = {
                     }
 
                     if (!productId) {
-                        productId = findImportedMatch(productIds, item.productName);
+                        // Product descriptions often differ only by a critical
+                        // measurement (for example 4 L vs 20 L). Never use fuzzy
+                        // matching here; an unresolved product must be created or
+                        // reviewed, not silently assigned to another presentation.
+                        productId = productIds.get(normalizeImportedValue(item.productName));
                     }
 
                     if (!productId) {
@@ -308,7 +370,7 @@ export const purchaseService = {
                         createdById: data.createdById,
                         expedienteId: data.expedienteId,
                         totalAmount,
-                        status: "RECEIVED",
+                        status: "DRAFT",
                         notes: data.sourceFileName
                             ? `Importada desde ${data.sourceFileName}`
                             : "Importada desde cuadro comparativo",

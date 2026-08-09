@@ -42,6 +42,11 @@ export const uploadPresets = {
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'] as string[],
     resource_type: 'auto' as const,
   },
+  receipts: {
+    folder: 'inventory-control/receipts',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'] as string[],
+    resource_type: 'auto' as const,
+  },
 };
 
 export type UploadPresetType = keyof typeof uploadPresets;

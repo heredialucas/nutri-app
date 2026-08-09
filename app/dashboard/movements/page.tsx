@@ -16,6 +16,7 @@ import {
 import { Activity, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import Link from "next/link";
 
 export const metadata = {
     title: "Movimientos de Stock | Control de Inventario",
@@ -119,6 +120,11 @@ export default async function MovementsPage() {
                                                 <span className="ml-2">{movement.reason}</span>
                                             </div>
                                         )}
+                                        {movement.sourceType === "RECEIPT" && (
+                                            <Link href={`/dashboard/receipts/${movement.sourceId}`} className="col-span-2 font-medium text-primary hover:underline">
+                                                Ver remito de origen
+                                            </Link>
+                                        )}
                                         <div className="col-span-2 text-xs text-muted-foreground">
                                             {formatDistanceToNow(new Date(movement.createdAt), { addSuffix: true, locale: es })}
                                         </div>
@@ -168,8 +174,13 @@ export default async function MovementsPage() {
                                             {movement.warehouse?.name || "N/A"}
                                         </TableCell>
                                         <TableCell className="text-sm">{movement.user.email}</TableCell>
-                                        <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                                            {movement.reason || "-"}
+                                    <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
+                                            <div>{movement.reason || "-"}</div>
+                                            {movement.sourceType === "RECEIPT" && (
+                                                <Link href={`/dashboard/receipts/${movement.sourceId}`} className="text-xs font-medium text-primary hover:underline">
+                                                    Ver remito
+                                                </Link>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-sm text-muted-foreground">
                                             {formatDistanceToNow(new Date(movement.createdAt), { addSuffix: true, locale: es })}

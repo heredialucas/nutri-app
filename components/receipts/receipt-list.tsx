@@ -79,9 +79,10 @@ export function ReceiptList({ receipts, canManage }: ReceiptListProps) {
         }
     }, [router]);
 
-    // Group receipts by receiptNumber
+    // Keep the same physical remito together without mixing equal numbers
+    // from different orders or expedientes.
     const groups = receipts.reduce<Record<string, ReceiptGroup>>((acc, r) => {
-        const key = r.receiptNumber;
+        const key = [r.receiptNumber, r.purchaseOrderId || "direct", r.expedienteId || "none"].join("|");
         if (!acc[key]) {
             acc[key] = {
                 receiptNumber: key,
@@ -216,8 +217,8 @@ export function ReceiptList({ receipts, canManage }: ReceiptListProps) {
                                                 </Link>
                                                 {canManage && (
                                                     <>
-                                                        <Link href={`/dashboard/receipts/${firstId}/edit`}>
-                                                            <Button variant="ghost" size="icon" title="Editar remito">
+                                                        <Link href="/dashboard/receipts/new">
+                                                            <Button variant="ghost" size="icon" title="Agregar ingreso al remito">
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>
                                                         </Link>
@@ -360,9 +361,9 @@ export function ReceiptList({ receipts, canManage }: ReceiptListProps) {
                                         {canManage && (
                                             <>
                                                 <Button variant="outline" size="sm" asChild>
-                                                    <Link href={`/dashboard/receipts/${firstId}/edit`}>
+                                                    <Link href="/dashboard/receipts/new">
                                                         <Edit className="h-4 w-4 mr-1" />
-                                                        Editar
+                                                        Agregar ingreso
                                                     </Link>
                                                 </Button>
                                                 <AlertDialog>

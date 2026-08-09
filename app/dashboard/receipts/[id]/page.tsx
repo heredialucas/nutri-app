@@ -1,6 +1,5 @@
 import { getCurrentUser, hasPermission } from "@/lib/auth";
 import { getReceipt, completeReceipt } from "@/app/actions/receipts";
-import { receiptService } from "@/services/receipt-service";
 import { UnauthorizedAccess } from "@/components/unauthorized-access";
 import { redirect, notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -23,9 +22,16 @@ export default async function ReceiptDetailsPage({ params }: { params: Promise<{
     const receipt = await getReceipt(id);
     if (!receipt) notFound();
 
-    // Get group-level status and items (all receipts sharing this receiptNumber)
-    const groupStatus = await receiptService.getReceiptGroupStatus(receipt.receiptNumber);
-    const groupItems = await receiptService.getGroupItems(receipt.receiptNumber);
+    // A receipt is one physical document. Its item quantities are accumulated
+    // when the same remito is received in multiple deliveries.
+    const groupStatus = { allCompleted: receipt.status === "COMPLETED", total: 1 };
+    const groupItems = receipt.items.map((item: any) => ({
+        productId: item.productId,
+        name: item.product.name,
+        sku: item.product.sku,
+        quantity: item.quantity,
+        price: Number(item.unitPrice),
+    }));
 
     // Aggregate items by productId, summing quantities
     const aggregatedItems = Object.values(
@@ -83,7 +89,7 @@ export default async function ReceiptDetailsPage({ params }: { params: Promise<{
                             <Button
                                 variant="default"
                                 className="w-full sm:w-auto"
-                                title="Marca este remito como completamente recibido. Todos los ingresos bajo este número se marcarán como completados."
+                                title="Cierra este remito. Luego no se podrán agregar nuevas cantidades."
                             >
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
                                 Marcar Completado
@@ -91,11 +97,11 @@ export default async function ReceiptDetailsPage({ params }: { params: Promise<{
                         </form>
                     )}
                     {canManage && (
-                        <Link href={`/dashboard/receipts/${receipt.id}/edit`}>
+                        <Link href="/dashboard/receipts/new">
                             <Button variant="outline" className="w-full sm:w-auto">
                                 <Plus className="mr-2 h-4 w-4" />
                                 <span className="sm:hidden">Editar</span>
-                                <span className="hidden sm:inline">Editar Remito</span>
+                                <span className="hidden sm:inline">Agregar ingreso</span>
                             </Button>
                         </Link>
                     )}

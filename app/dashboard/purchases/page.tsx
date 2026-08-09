@@ -21,7 +21,11 @@ import { es } from "date-fns/locale";
 const getPurchaseOrderStatusLabel = (status: string) => {
     switch (status) {
         case "RECEIVED":
-            return "Confirmada";
+            return "Recibida completa";
+        case "PARTIALLY_RECEIVED":
+            return "Recibida parcial";
+        case "DRAFT":
+            return "Pendiente de recepción";
         case "CANCELLED":
             return "Cancelada";
         default:
@@ -36,6 +40,8 @@ export const metadata = {
 
 const statusColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
     RECEIVED: "default",
+    PARTIALLY_RECEIVED: "outline",
+    DRAFT: "secondary",
     CANCELLED: "destructive",
 };
 
@@ -47,7 +53,7 @@ export default async function PurchasesPage() {
     }
 
     const allOrders = await getPurchaseOrders();
-    const receivedOrders = allOrders.filter((o) => o.status === "RECEIVED");
+    const receivedOrders = allOrders.filter((o) => o.status === "RECEIVED" || o.status === "PARTIALLY_RECEIVED");
     const canManage = hasPermission(user, "purchases.manage");
 
     return (
@@ -73,7 +79,7 @@ export default async function PurchasesPage() {
                 <div className="overflow-x-auto">
                     <TabsList className="inline-flex w-max">
                         <TabsTrigger value="all">Todas ({allOrders.length})</TabsTrigger>
-                        <TabsTrigger value="received">Confirmadas ({receivedOrders.length})</TabsTrigger>
+                        <TabsTrigger value="received">Recepción ({receivedOrders.length})</TabsTrigger>
                     </TabsList>
                 </div>
 

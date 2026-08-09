@@ -21,7 +21,11 @@ import { es } from "date-fns/locale";
 const getPurchaseOrderStatusLabel = (status: string) => {
     switch (status) {
         case "RECEIVED":
-            return "Confirmada";
+            return "Recibida completa";
+        case "PARTIALLY_RECEIVED":
+            return "Recibida parcial";
+        case "DRAFT":
+            return "Pendiente de recepción";
         case "CANCELLED":
             return "Cancelada";
         default:
@@ -166,13 +170,17 @@ export default async function PurchaseOrderDetailPage({
                                             <span className="ml-2">{item.quantity}</span>
                                         </div>
                                         <div>
-                                            <span className="text-muted-foreground">Recibida:</span>
+                            <span className="text-muted-foreground">Recibida:</span>
                                             <span className={`ml-2 ${item.receivedQty === item.quantity ? "text-green-600 font-medium" :
                                                 item.receivedQty > 0 ? "text-orange-600 font-medium" :
                                                     "text-muted-foreground"
                                                 }`}>
                                                 {item.receivedQty}
                                             </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-muted-foreground">Pendiente:</span>
+                                            <span className="ml-2 font-medium text-primary">{Math.max(item.quantity - item.receivedQty, 0)}</span>
                                         </div>
                                         <div className="col-span-2">
                                             <span className="text-muted-foreground">Precio Unitario:</span>
@@ -193,6 +201,7 @@ export default async function PurchaseOrderDetailPage({
                                     <TableHead>SKU</TableHead>
                                     <TableHead className="text-right">Cantidad</TableHead>
                                     <TableHead className="text-right">Recibida</TableHead>
+                                    <TableHead className="text-right">Pendiente</TableHead>
                                     <TableHead className="text-right">Precio Unitario</TableHead>
                                     <TableHead className="text-right">Total</TableHead>
                                 </TableRow>
@@ -212,6 +221,7 @@ export default async function PurchaseOrderDetailPage({
                                                 {item.receivedQty}
                                             </span>
                                         </TableCell>
+                                        <TableCell className="text-right font-medium text-primary">{Math.max(item.quantity - item.receivedQty, 0)}</TableCell>
                                         <TableCell className="text-right">${Number(item.unitPrice).toFixed(2)}</TableCell>
                                         <TableCell className="text-right font-medium">
                                             ${(item.quantity * Number(item.unitPrice)).toFixed(2)}

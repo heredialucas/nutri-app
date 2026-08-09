@@ -56,14 +56,14 @@ export const expedienteService = {
             where,
             include: {
                 category: true,
-                _count: {
-                    select: {
-                        purchases: true,
-                        deliveries: true,
-                        transfers: true,
-                        movements: true,
+                    _count: {
+                        select: {
+                            purchases: { where: { deletedAt: null } },
+                            deliveries: { where: { deletedAt: null } },
+                            transfers: { where: { deletedAt: null } },
+                            movements: { where: { deletedAt: null } },
+                        },
                     },
-                },
             },
             orderBy: { createdAt: "desc" },
         });
@@ -73,11 +73,12 @@ export const expedienteService = {
      * Get a single expediente with full deep relations (The "Full" view)
      */
     async getExpediente(id: string) {
-        return await prisma.expediente.findUnique({
-            where: { id },
+        return await prisma.expediente.findFirst({
+            where: { id, deletedAt: null },
             include: {
                 category: true,
                 purchases: {
+                    where: { deletedAt: null },
                     include: {
                         supplier: true,
                         items: {
@@ -85,11 +86,12 @@ export const expedienteService = {
                                 product: true
                             }
                         },
-                        receipts: true
+                        receipts: { where: { deletedAt: null } }
                     },
                     orderBy: { createdAt: 'desc' }
                 },
                 deliveries: {
+                    where: { deletedAt: null },
                     include: {
                         institution: true,
                         items: {
@@ -101,6 +103,7 @@ export const expedienteService = {
                     orderBy: { createdAt: 'desc' }
                 },
                 transfers: {
+                    where: { deletedAt: null },
                     include: {
                         fromWarehouse: true,
                         toWarehouse: true,
@@ -109,6 +112,7 @@ export const expedienteService = {
                     orderBy: { createdAt: 'desc' }
                 },
                 movements: {
+                    where: { deletedAt: null },
                     include: {
                         product: true,
                         warehouse: true,
@@ -125,6 +129,7 @@ export const expedienteService = {
                     orderBy: { createdAt: 'desc' }
                 },
                 receipts: {
+                    where: { deletedAt: null },
                     include: {
                         purchaseOrder: {
                             include: {
@@ -232,43 +237,29 @@ export const expedienteService = {
 
             // 6. Reverse stock for each StockMovement, then soft-delete them
             if (expediente.movements.length > 0) {
+                const stockDeltas = new Map<string, { warehouseId: string; productId: string; delta: number }>();
                 for (const movement of expediente.movements) {
-                    if (movement.warehouseId) {
-                        const signedQty =
-                            movement.type === "OUT"
-                                ? movement.quantity
-                                : -movement.quantity;
+                    if (!movement.warehouseId) continue;
+                    const key = `${movement.warehouseId}:${movement.productId}`;
+                    const current = stockDeltas.get(key) || {
+                        warehouseId: movement.warehouseId,
+                        productId: movement.productId,
+                        delta: 0,
+                    };
+                    current.delta += movement.type === "OUT" ? movement.quantity : -movement.quantity;
+                    stockDeltas.set(key, current);
+                }
 
-                        // Validar stock suficiente si es decremento
-                        if (signedQty < 0) {
-                            const ws = await tx.warehouseStock.findUnique({
-                                where: {
-                                    warehouseId_productId: {
-                                        warehouseId: movement.warehouseId,
-                                        productId: movement.productId,
-                                    },
-                                },
-                            });
-                            const currentStock = ws?.quantity || 0;
-                            if (currentStock < -signedQty) {
-                                throw new Error(
-                                    `Stock insuficiente al eliminar expediente. Producto: ${movement.productId}. Stock actual: ${currentStock}, necesario: ${-signedQty}`
-                                );
-                            }
-                        }
-
-                        await tx.warehouseStock.update({
-                            where: {
-                                warehouseId_productId: {
-                                    warehouseId: movement.warehouseId,
-                                    productId: movement.productId,
-                                },
-                            },
-                            data: {
-                                quantity: { increment: signedQty },
-                            },
-                        });
-                    }
+                for (const { warehouseId, productId, delta } of stockDeltas.values()) {
+                    const currentStock = await tx.warehouseStock.findUnique({
+                        where: { warehouseId_productId: { warehouseId, productId } },
+                    });
+                    const nextQuantity = Math.max((currentStock?.quantity || 0) + delta, 0);
+                    await tx.warehouseStock.upsert({
+                        where: { warehouseId_productId: { warehouseId, productId } },
+                        create: { warehouseId, productId, quantity: nextQuantity },
+                        update: { quantity: nextQuantity },
+                    });
                 }
 
                 await tx.stockMovement.updateMany({
@@ -284,7 +275,7 @@ export const expedienteService = {
             });
 
             return { success: true };
-        });
+        }, { maxWait: 10000, timeout: 30000 });
     },
 
     /**

@@ -14,7 +14,7 @@ export const traceabilityService = {
         endDate?: Date;
         reason?: string;
     }) {
-        const where: Prisma.StockMovementWhereInput = {};
+        const where: Prisma.StockMovementWhereInput = { deletedAt: null };
 
         if (filters?.productId) {
             where.productId = filters.productId;

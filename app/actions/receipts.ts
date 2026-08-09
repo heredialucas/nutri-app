@@ -59,6 +59,36 @@ export async function createReceipt(data: {
     return serializePrisma(result);
 }
 
+export async function createAccumulatedReceipt(data: {
+    purchaseOrderId: string;
+    expedienteId: string;
+    receiptNumber: string;
+    date: Date;
+    imageUrl?: string;
+    items: Array<{
+        purchaseOrderItemId: string;
+        productId: string;
+        quantity: number;
+    }>;
+}) {
+    const user = await getCurrentUser();
+    if (!user || !hasPermission(user, "receipts.manage")) {
+        throw new Error("No tienes permisos para registrar ingresos");
+    }
+
+    const result = await receiptService.createAccumulatedReceipt({
+        ...data,
+        userId: user.id,
+    });
+    revalidatePath("/dashboard/receipts");
+    revalidatePath("/dashboard/inventory");
+    revalidatePath("/dashboard/movements");
+    revalidatePath(`/dashboard/purchases/${data.purchaseOrderId}`);
+    revalidatePath("/dashboard/purchases");
+    revalidatePath(`/dashboard/expedientes/${data.expedienteId}`);
+    return serializePrisma(result);
+}
+
 export async function updateReceipt(id: string, data: {
     receiptNumber?: string;
     date?: Date;
@@ -95,6 +125,8 @@ export async function completeReceipt(id: string) {
     const result = await receiptService.completeReceipt(id);
     revalidatePath("/dashboard/receipts");
     revalidatePath("/dashboard/inventory");
+    revalidatePath("/dashboard/purchases");
+    revalidatePath("/dashboard/expedientes");
     return result;
 }
 
