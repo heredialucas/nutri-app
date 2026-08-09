@@ -17,7 +17,10 @@ export default async function AdminProductsPage() {
     }
 
     const canManage = hasPermission(user, "adminProducts.manage");
-    const { products, warehouses } = await getProductsWithWarehouseStock();
+    const canRestore = isSuperAdmin(user);
+    const { products: allProducts, warehouses } = await getProductsWithWarehouseStock();
+    // Solo el administrador principal puede consultar productos eliminados para restaurarlos.
+    const products = canRestore ? allProducts : allProducts.filter((product: any) => !product.isDeleted);
 
     return (
         <div className="flex flex-col gap-8">
@@ -69,7 +72,7 @@ export default async function AdminProductsPage() {
                     products={products} 
                     warehouses={warehouses} 
                     canManage={canManage} 
-                    canRestore={isSuperAdmin(user)}
+                    canRestore={canRestore}
                 />
             </div>
         </div>
