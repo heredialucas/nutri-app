@@ -19,8 +19,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Search, AlertTriangle, Package } from "lucide-react";
-import { updateMinStockAction, clearWarehouseStockAction } from "@/app/actions/inventory";
+import { Search, AlertTriangle, Package, Trash2, RotateCcw } from "lucide-react";
+import { updateMinStockAction, clearWarehouseStockAction, deleteProductAction, restoreProductAction } from "@/app/actions/inventory";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -63,9 +63,10 @@ interface AdminProductListProps {
     products: Product[];
     warehouses: Warehouse[];
     canManage: boolean;
+    canRestore: boolean;
 }
 
-export function AdminProductList({ products, warehouses, canManage }: AdminProductListProps) {
+export function AdminProductList({ products, warehouses, canManage, canRestore }: AdminProductListProps) {
     const [search, setSearch] = useState("");
     const [locationFilter, setLocationFilter] = useState<string>("all");
     const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -73,6 +74,8 @@ export function AdminProductList({ products, warehouses, canManage }: AdminProdu
     const [minStockValue, setMinStockValue] = useState<number>(0);
     const [loading, setLoading] = useState<string | null>(null);
     const [clearingStock, setClearingStock] = useState<string | null>(null);
+    const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
+    const [restoringProduct, setRestoringProduct] = useState<string | null>(null);
     const [confirmProduct, setConfirmProduct] = useState<{ id: string; name: string; warehouses: StockByWarehouse[]; totalStock: number } | null>(null);
 
     const handleClearClick = (product: Product) => {
@@ -160,6 +163,38 @@ export function AdminProductList({ products, warehouses, canManage }: AdminProdu
             console.error("Error saving minStock:", error);
         } finally {
             setLoading(null);
+        }
+    };
+
+    const handleDeleteProduct = async (product: Product) => {
+        if (!confirm(`¿Eliminar lógicamente el producto "${product.name}"? Podrá restaurarse desde la base de datos.`)) return;
+
+        setDeletingProduct(product.id);
+        try {
+            const result = await deleteProductAction(product.id);
+            if (result.error) {
+                alert(result.error);
+                return;
+            }
+            window.location.reload();
+        } finally {
+            setDeletingProduct(null);
+        }
+    };
+
+    const handleRestoreProduct = async (product: Product) => {
+        if (!confirm(`¿Restaurar el producto "${product.name}"?`)) return;
+
+        setRestoringProduct(product.id);
+        try {
+            const result = await restoreProductAction(product.id);
+            if (result.error) {
+                alert(result.error);
+                return;
+            }
+            window.location.reload();
+        } finally {
+            setRestoringProduct(null);
         }
     };
 
@@ -345,6 +380,18 @@ export function AdminProductList({ products, warehouses, canManage }: AdminProdu
                                                     {clearingStock === product.id ? "Limpiando..." : "Limpiar stock"}
                                                 </Button>
                                             )}
+                                            {canManage && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleDeleteProduct(product)}
+                                                    disabled={deletingProduct === product.id}
+                                                    className="text-red-600 border-red-300 hover:bg-red-50"
+                                                >
+                                                    <Trash2 className="mr-1 h-3.5 w-3.5" />
+                                                    {deletingProduct === product.id ? "Eliminando..." : "Eliminar"}
+                                                </Button>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -370,6 +417,7 @@ export function AdminProductList({ products, warehouses, canManage }: AdminProdu
                                     <TableHead className="text-center">Stock Total</TableHead>
                                     <TableHead>Ubicación</TableHead>
                                     <TableHead className="text-center">Mín</TableHead>
+                                    <TableHead className="text-center">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -383,6 +431,19 @@ export function AdminProductList({ products, warehouses, canManage }: AdminProdu
                                         <TableCell className="text-center">{product.totalStock}</TableCell>
                                     <TableCell>{getStockByWarehouse(product.stockByWarehouse)}</TableCell>
                                         <TableCell className="text-center">{product.minStock}</TableCell>
+                                        <TableCell className="text-center">
+                                            {canRestore && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleRestoreProduct(product)}
+                                                    disabled={restoringProduct === product.id}
+                                                >
+                                                    <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                                                    {restoringProduct === product.id ? "Restaurando..." : "Restaurar"}
+                                                </Button>
+                                            )}
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

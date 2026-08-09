@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { inventoryService } from "@/services/inventory-service";
-import { getCurrentUser, hasPermission } from "@/lib/auth";
+import { getCurrentUser, hasPermission, isSuperAdmin } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { serializePrisma } from "@/lib/utils";
@@ -391,18 +391,39 @@ export async function restockProductAction(formData: FormData) {
 
 export async function deleteProductAction(id: string) {
     const user = await getCurrentUser();
-    if (!user || !hasPermission(user, "inventory.manage")) {
+    if (!user || !hasPermission(user, "adminProducts.manage")) {
         return { error: "No tienes permisos para eliminar" };
     }
 
     try {
         await inventoryService.deleteProduct(id);
     } catch (error) {
-        return { error: "Error al eliminar producto (puede tener movimientos asociados)" };
+        return { error: error instanceof Error ? error.message : "Error al eliminar producto" };
     }
 
     revalidatePath("/dashboard/inventory");
+    revalidatePath("/dashboard/administracion/productos");
+    revalidatePath("/dashboard/movements");
+    revalidatePath("/dashboard/reports");
     return { success: true };
+}
+
+export async function restoreProductAction(id: string) {
+    const user = await getCurrentUser();
+    if (!user || !isSuperAdmin(user)) {
+        return { error: "Solo el administrador principal puede restaurar productos" };
+    }
+
+    try {
+        await inventoryService.restoreProduct(id);
+        revalidatePath("/dashboard/inventory");
+        revalidatePath("/dashboard/administracion/productos");
+        revalidatePath("/dashboard/movements");
+        revalidatePath("/dashboard/reports");
+        return { success: true };
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : "Error al restaurar producto" };
+    }
 }
 
 export async function createCategoryAction(formData: FormData) {

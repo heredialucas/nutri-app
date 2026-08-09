@@ -79,7 +79,7 @@ export const traceabilityService = {
         const [movements, transfers, purchaseItems, deliveryItems, product] = await Promise.all([
             // Stock movements
             prisma.stockMovement.findMany({
-                where: { productId },
+                where: { productId, deletedAt: null },
                 include: {
                     warehouse: {
                         select: {
@@ -97,7 +97,7 @@ export const traceabilityService = {
 
             // Transferencias de depósito
             prisma.warehouseTransfer.findMany({
-                where: { productId },
+                where: { productId, deletedAt: null },
                 include: {
                     fromWarehouse: {
                         select: {
@@ -115,7 +115,7 @@ export const traceabilityService = {
 
             // Purchase order items
             prisma.purchaseOrderItem.findMany({
-                where: { productId },
+                where: { productId, purchaseOrder: { deletedAt: null } },
                 include: {
                     purchaseOrder: {
                         include: {
@@ -137,7 +137,7 @@ export const traceabilityService = {
 
             // Delivery items
             prisma.deliveryItem.findMany({
-                where: { productId },
+                where: { productId, delivery: { deletedAt: null } },
                 include: {
                     delivery: {
                         include: {
@@ -456,7 +456,7 @@ export const traceabilityService = {
         endDate?: Date;
         warehouseId?: string;
     }) {
-        const where: Prisma.StockMovementWhereInput = {};
+        const where: Prisma.StockMovementWhereInput = { deletedAt: null, product: { deletedAt: null } };
 
         if (filters?.startDate || filters?.endDate) {
             where.createdAt = {};

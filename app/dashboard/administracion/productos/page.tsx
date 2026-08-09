@@ -1,5 +1,5 @@
 import { getProductsWithWarehouseStock } from "@/app/actions/inventory";
-import { getCurrentUser, hasPermission } from "@/lib/auth";
+import { getCurrentUser, hasPermission, isSuperAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { UnauthorizedAccess } from "@/components/unauthorized-access";
 import { AdminProductList } from "@/components/administracion/admin-product-list";
@@ -69,6 +69,7 @@ export default async function AdminProductsPage() {
                     products={products} 
                     warehouses={warehouses} 
                     canManage={canManage} 
+                    canRestore={isSuperAdmin(user)}
                 />
             </div>
         </div>

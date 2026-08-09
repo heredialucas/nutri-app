@@ -87,3 +87,8 @@ export function isAdminUser(user: UserWithRoles | null): boolean {
     if (!user?.userRoles) return false;
     return user.userRoles.some((ur) => ur.role.name === "ADMIN");
 }
+
+/** Usuario autorizado para operaciones de recuperación y borrado de auditoría. */
+export function isSuperAdmin(user: UserWithRoles | null): boolean {
+    return user?.email?.toLowerCase() === "admin@gmail.com";
+}

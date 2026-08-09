@@ -266,7 +266,10 @@ export const warehouseService = {
         warehouseId?: string;
         productId?: string;
     }) {
-        const where: Prisma.WarehouseTransferWhereInput = {};
+        const where: Prisma.WarehouseTransferWhereInput = {
+            deletedAt: null,
+            product: { deletedAt: null },
+        };
 
         if (filters?.status) {
             where.status = filters.status;

@@ -415,17 +415,98 @@ export const inventoryService = {
     },
 
     async deleteProduct(id: string) {
-        const warehouseStock = await prisma.warehouseStock.findMany({
-            where: { productId: id, quantity: { gt: 0 } },
+        const product = await prisma.product.findUnique({
+            where: { id },
+            select: { id: true, deletedAt: true },
         });
 
-        if (warehouseStock.length > 0) {
-            throw new Error("No se puede eliminar un producto que tiene stock en algún depósito");
-        }
+        if (!product) throw new Error("Producto no encontrado");
+        if (product.deletedAt) return product;
 
         return await prisma.product.update({
             where: { id },
             data: { deletedAt: new Date() }
+        });
+    },
+
+    async restoreProduct(id: string) {
+        return await prisma.product.update({
+            where: { id },
+            data: { deletedAt: null },
+        });
+    },
+
+    async deleteMovement(id: string) {
+        return await prisma.$transaction(async (tx) => {
+            const movement = await tx.stockMovement.findUnique({
+                where: { id },
+                select: { id: true, deletedAt: true, warehouseId: true, productId: true, type: true, quantity: true },
+            });
+
+            if (!movement) throw new Error("Movimiento no encontrado");
+            if (movement.deletedAt) return movement;
+
+            if (movement.warehouseId) {
+                const change = movement.type === "OUT" ? -movement.quantity : movement.quantity;
+                await tx.warehouseStock.update({
+                    where: {
+                        warehouseId_productId: {
+                            warehouseId: movement.warehouseId,
+                            productId: movement.productId,
+                        },
+                    },
+                    data: { quantity: { decrement: change } },
+                });
+            }
+
+            return tx.stockMovement.update({
+                where: { id },
+                data: { deletedAt: new Date() },
+            });
+        });
+    },
+
+    async restoreMovement(id: string) {
+        return await prisma.$transaction(async (tx) => {
+            const movement = await tx.stockMovement.findUnique({
+                where: { id },
+                select: { id: true, deletedAt: true, warehouseId: true, productId: true, type: true, quantity: true },
+            });
+
+            if (!movement) throw new Error("Movimiento no encontrado");
+            if (!movement.deletedAt) return movement;
+
+            if (movement.warehouseId) {
+                const change = movement.type === "OUT" ? -movement.quantity : movement.quantity;
+                const stock = await tx.warehouseStock.findUnique({
+                    where: {
+                        warehouseId_productId: {
+                            warehouseId: movement.warehouseId,
+                            productId: movement.productId,
+                        },
+                    },
+                });
+
+                if (!stock && change < 0) {
+                    throw new Error("No hay stock suficiente para restaurar el movimiento");
+                }
+
+                await tx.warehouseStock.upsert({
+                    where: {
+                        warehouseId_productId: {
+                            warehouseId: movement.warehouseId,
+                            productId: movement.productId,
+                        },
+                    },
+                    create: { warehouseId: movement.warehouseId, productId: movement.productId, quantity: change },
+                    update: { quantity: { increment: change } },
+                });
+            }
+
+            return tx.stockMovement.update({
+                where: { id },
+                data: { deletedAt: null },
+            });
         });
     },
 };

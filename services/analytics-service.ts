@@ -33,7 +33,7 @@ export const analyticsService = {
             pendingDeliveries,
         ] = await Promise.all([
             // Total products
-            prisma.product.count(),
+            prisma.product.count({ where: { deletedAt: null } }),
 
             // Total warehouses
             prisma.warehouse.count({ where: { isActive: true } }),
@@ -47,6 +47,8 @@ export const analyticsService = {
             // Recent movements (last 7 days)
             prisma.stockMovement.count({
                 where: {
+                    deletedAt: null,
+                    product: { deletedAt: null },
                     createdAt: {
                         gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
                     },
@@ -81,7 +83,7 @@ export const analyticsService = {
 
         // Calculate total stock value (only items with stock > 0)
         const warehouseStock = await prisma.warehouseStock.findMany({
-            where: { quantity: { gt: 0 } },
+            where: { quantity: { gt: 0 }, product: { deletedAt: null } },
             include: {
                 product: {
                     select: { price: true },
@@ -112,7 +114,7 @@ export const analyticsService = {
      */
     async getStockByCategory() {
         const warehouseStock = await prisma.warehouseStock.findMany({
-            where: { quantity: { gt: 0 } },
+            where: { quantity: { gt: 0 }, product: { deletedAt: null } },
             include: {
                 product: {
                     include: { category: true },
@@ -148,7 +150,7 @@ export const analyticsService = {
             where: { isActive: true },
             include: {
                 stockItems: {
-                    where: { quantity: { gt: 0 } },
+                    where: { quantity: { gt: 0 }, product: { deletedAt: null } },
                     include: {
                         product: {
                             select: {
@@ -180,6 +182,8 @@ export const analyticsService = {
 
         const movements = await prisma.stockMovement.findMany({
             where: {
+                deletedAt: null,
+                product: { deletedAt: null },
                 createdAt: {
                     gte: startDate,
                 },
@@ -212,6 +216,8 @@ export const analyticsService = {
         const movements = await prisma.stockMovement.groupBy({
             by: ["productId"],
             where: {
+                deletedAt: null,
+                product: { deletedAt: null },
                 createdAt: {
                     gte: startDate,
                 },
@@ -235,8 +241,8 @@ export const analyticsService = {
 
         const productsData = await Promise.all(
             movements.map(async (m) => {
-                const product = await prisma.product.findUnique({
-                    where: { id: m.productId },
+                const product = await prisma.product.findFirst({
+                    where: { id: m.productId, deletedAt: null },
                     include: {
                         warehouseStock: true,
                     },
@@ -292,6 +298,7 @@ export const analyticsService = {
     async getRecentActivity(limit: number = 10) {
         const [movements, transfers, purchases, deliveries] = await Promise.all([
             prisma.stockMovement.findMany({
+                where: { deletedAt: null, product: { deletedAt: null } },
                 take: limit,
                 orderBy: { createdAt: "desc" },
                 include: {
@@ -308,6 +315,7 @@ export const analyticsService = {
                 },
             }),
             prisma.warehouseTransfer.findMany({
+                where: { deletedAt: null, product: { deletedAt: null } },
                 take: limit,
                 orderBy: { createdAt: "desc" },
                 include: {
@@ -319,6 +327,7 @@ export const analyticsService = {
                 },
             }),
             prisma.purchaseOrder.findMany({
+                where: { deletedAt: null },
                 take: limit,
                 orderBy: { createdAt: "desc" },
                 include: {
@@ -330,6 +339,7 @@ export const analyticsService = {
                 },
             }),
             prisma.delivery.findMany({
+                where: { deletedAt: null },
                 take: limit,
                 orderBy: { createdAt: "desc" },
                 include: {

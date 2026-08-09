@@ -1,4 +1,4 @@
-import { getCurrentUser, hasPermission } from "@/lib/auth";
+import { getCurrentUser, hasPermission, isSuperAdmin } from "@/lib/auth";
 import { getStockMovements } from "@/app/actions/traceability";
 import { getWarehouses } from "@/app/actions/warehouses";
 import { getProducts } from "@/app/actions/inventory";
@@ -17,6 +17,7 @@ import { Activity, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
+import { MovementAction } from "@/components/movements/movement-action";
 
 export const metadata = {
     title: "Movimientos de Stock | Control de Inventario",
@@ -34,6 +35,7 @@ export default async function MovementsPage() {
     const movements = await getStockMovements();
     const warehouses = await getWarehouses();
     const products = await getProducts();
+    const canManage = isSuperAdmin(user);
 
     return (
         <div className="space-y-6">
@@ -128,6 +130,9 @@ export default async function MovementsPage() {
                                         <div className="col-span-2 text-xs text-muted-foreground">
                                             {formatDistanceToNow(new Date(movement.createdAt), { addSuffix: true, locale: es })}
                                         </div>
+                                        <div className="col-span-2 flex justify-end">
+                                            <MovementAction id={movement.id} canManage={canManage} />
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -146,6 +151,7 @@ export default async function MovementsPage() {
                                     <TableHead>Usuario</TableHead>
                                     <TableHead>Motivo</TableHead>
                                     <TableHead>Fecha</TableHead>
+                                    {canManage && <TableHead className="text-right">Acciones</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -185,6 +191,11 @@ export default async function MovementsPage() {
                                         <TableCell className="text-sm text-muted-foreground">
                                             {formatDistanceToNow(new Date(movement.createdAt), { addSuffix: true, locale: es })}
                                         </TableCell>
+                                        {canManage && (
+                                            <TableCell className="text-right">
+                                                <MovementAction id={movement.id} canManage={canManage} />
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))}
                             </TableBody>
