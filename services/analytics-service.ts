@@ -36,7 +36,7 @@ export const analyticsService = {
             prisma.product.count({ where: { deletedAt: null } }),
 
             // Total warehouses
-            prisma.warehouse.count({ where: { isActive: true } }),
+            prisma.warehouse.count({ where: { isActive: true, deletedAt: null } }),
 
             // Total suppliers
             prisma.supplier.count({ where: { isActive: true } }),
@@ -147,7 +147,7 @@ export const analyticsService = {
      */
     async getStockByWarehouse() {
         const warehouses = await prisma.warehouse.findMany({
-            where: { isActive: true },
+            where: { isActive: true, deletedAt: null },
             include: {
                 stockItems: {
                     where: { quantity: { gt: 0 }, product: { deletedAt: null } },
