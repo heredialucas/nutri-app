@@ -76,6 +76,39 @@ export async function createPurchaseOrder(data: {
     }
 }
 
+export async function createPurchaseOrdersFromImport(data: {
+    warehouseId: string;
+    expedienteId: string;
+    sourceFileName?: string;
+    groups: Array<{
+        supplierName: string;
+        items: Array<{
+            productId?: string;
+            productName: string;
+            quantity: number;
+            unitPrice: number;
+        }>;
+    }>;
+}) {
+    const user = await getCurrentUser();
+    if (!user || !hasPermission(user, "purchases.manage")) {
+        throw new Error("No tienes permisos para crear órdenes de compra");
+    }
+
+    try {
+        const orders = await purchaseService.createPurchaseOrdersFromImport({
+            ...data,
+            createdById: user.id,
+        });
+        revalidatePath("/dashboard/purchases");
+        revalidatePath(`/dashboard/expedientes/${data.expedienteId}`);
+        return serializePrisma(orders);
+    } catch (error: any) {
+        console.error("Error creating imported purchase orders:", error);
+        throw new Error(error.message || "Error al crear las órdenes importadas");
+    }
+}
+
 export async function updatePurchaseOrder(
     id: string,
     data: {

@@ -1,5 +1,25 @@
 import prisma from "@/lib/prisma";
 import { Prisma, PurchaseOrderStatus } from "@prisma/client";
+import { createImportedProductSku, normalizeImportedValue } from "@/services/purchase-workbook-parser";
+
+function findImportedMatch(entries: Map<string, string>, value: string) {
+    const normalized = normalizeImportedValue(value);
+    const exact = entries.get(normalized);
+    if (exact) return exact;
+
+    const ignoredWords = new Set(["SA", "SAS", "SRL", "DE", "EL", "LA", "Y"]);
+    const targetTokens = new Set(normalized.split(" ").filter(token => token.length > 2 && !ignoredWords.has(token)));
+    if (targetTokens.size < 2) return undefined;
+
+    let best: { id: string; score: number } | undefined;
+    for (const [candidate, id] of entries) {
+        const candidateTokens = new Set(candidate.split(" ").filter(token => token.length > 2 && !ignoredWords.has(token)));
+        const shared = [...targetTokens].filter(token => candidateTokens.has(token)).length;
+        const score = shared / Math.max(targetTokens.size, candidateTokens.size);
+        if (score >= 0.7 && (!best || score > best.score)) best = { id, score };
+    }
+    return best?.id;
+}
 
 export const purchaseService = {
     // ==================== PURCHASE ORDER CRUD ====================
@@ -163,6 +183,140 @@ export const purchaseService = {
                 }
             }))
         };
+    },
+
+    async createPurchaseOrdersFromImport(data: {
+        warehouseId: string;
+        expedienteId: string;
+        createdById: string;
+        sourceFileName?: string;
+        groups: Array<{
+            supplierName: string;
+            items: Array<{
+                productId?: string;
+                productName: string;
+                quantity: number;
+                unitPrice: number;
+            }>;
+        }>;
+    }) {
+        return prisma.$transaction(async (tx) => {
+            const expediente = await tx.expediente.findFirst({
+                where: { id: data.expedienteId, status: "ABIERTO", deletedAt: null },
+            });
+            if (!expediente) throw new Error("El expediente no existe o no está abierto");
+
+            const warehouse = await tx.warehouse.findFirst({
+                where: { id: data.warehouseId, isActive: true, deletedAt: null },
+            });
+            if (!warehouse) throw new Error("El almacén no existe o está inactivo");
+
+            const suppliers = await tx.supplier.findMany({ where: { deletedAt: null } });
+            const products = await tx.product.findMany({ where: { deletedAt: null } });
+            const supplierIds = new Map<string, string>();
+            const productIds = new Map<string, string>();
+
+            for (const supplier of suppliers) {
+                supplierIds.set(normalizeImportedValue(supplier.name), supplier.id);
+            }
+            for (const product of products) {
+                productIds.set(normalizeImportedValue(product.name), product.id);
+            }
+
+            let orderSequence = await tx.purchaseOrder.count();
+            const createdOrders = [];
+
+            for (const group of data.groups) {
+                const supplierName = group.supplierName.trim();
+                if (!supplierName || group.items.length === 0) continue;
+
+                let supplierId = findImportedMatch(supplierIds, supplierName);
+                if (!supplierId) {
+                    const baseCode = `IMP-${normalizeImportedValue(supplierName).replace(/\s+/g, "-").slice(0, 35) || "PROVEEDOR"}`;
+                    let code = baseCode;
+                    let suffix = 1;
+                    while (await tx.supplier.findUnique({ where: { code } })) {
+                        code = `${baseCode}-${suffix++}`;
+                    }
+                    const supplier = await tx.supplier.create({
+                        data: {
+                            name: supplierName,
+                            code,
+                            notes: "Creado automáticamente desde un cuadro comparativo",
+                        },
+                    });
+                    supplierId = supplier.id;
+                    supplierIds.set(normalizeImportedValue(supplierName), supplierId);
+                }
+
+                const orderItems = [];
+                for (const item of group.items) {
+                    if (!item.productName || item.quantity <= 0 || item.unitPrice < 0) {
+                        throw new Error(`El producto ${item.productName || "sin nombre"} tiene datos inválidos`);
+                    }
+
+                    let productId = item.productId;
+                    if (productId) {
+                        const exists = products.some(product => product.id === productId);
+                        if (!exists) productId = undefined;
+                    }
+
+                    if (!productId) {
+                        productId = findImportedMatch(productIds, item.productName);
+                    }
+
+                    if (!productId) {
+                        const baseSku = createImportedProductSku(item.productName);
+                        let sku = baseSku;
+                        let suffix = 1;
+                        while (await tx.product.findUnique({ where: { sku } })) {
+                            sku = `${baseSku}-${suffix++}`;
+                        }
+                        const product = await tx.product.create({
+                            data: {
+                                sku,
+                                name: item.productName,
+                                price: item.unitPrice,
+                                supplierId,
+                            },
+                        });
+                        productId = product.id;
+                        productIds.set(normalizeImportedValue(item.productName), productId);
+                    }
+
+                    orderItems.push({
+                        productId,
+                        quantity: Math.round(item.quantity),
+                        unitPrice: item.unitPrice,
+                    });
+                }
+
+                const totalAmount = orderItems.reduce(
+                    (sum, item) => sum + item.quantity * item.unitPrice,
+                    0,
+                );
+                orderSequence += 1;
+                const order = await tx.purchaseOrder.create({
+                    data: {
+                        orderNumber: `OC-${String(orderSequence).padStart(6, "0")}`,
+                        supplierId,
+                        warehouseId: data.warehouseId,
+                        createdById: data.createdById,
+                        expedienteId: data.expedienteId,
+                        totalAmount,
+                        status: "RECEIVED",
+                        notes: data.sourceFileName
+                            ? `Importada desde ${data.sourceFileName}`
+                            : "Importada desde cuadro comparativo",
+                        items: { create: orderItems },
+                    },
+                    include: { supplier: true, items: true },
+                });
+                createdOrders.push(order);
+            }
+
+            return createdOrders;
+        });
     },
 
     /**

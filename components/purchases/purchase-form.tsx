@@ -15,13 +15,15 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Save, ArrowLeft, Loader2, ShoppingCart, Package, FileText, Building2, Calendar, Upload } from "lucide-react";
+import { Plus, Trash2, Save, ArrowLeft, Loader2, ShoppingCart, Package, FileText, FileSpreadsheet, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { createPurchaseOrder } from "@/app/actions/purchases";
+import { createPurchaseOrder, createPurchaseOrdersFromImport } from "@/app/actions/purchases";
 import Link from "next/link";
 import { QuickProductDialog } from "@/components/inventory/quick-product-dialog";
 import { QuickSupplierDialog } from "@/components/suppliers/quick-supplier-dialog";
 import { QuickExpedienteDialog } from "@/components/expedientes/quick-expediente-dialog";
+import { PurchaseImportReview } from "@/components/purchases/purchase-import-review";
+import { ImportedWorkbookLine, parsePurchaseWorkbook } from "@/services/purchase-workbook-parser";
 
 interface PurchaseOrderFormProps {
     suppliers: any[];
@@ -60,13 +62,94 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
 
     const [selectedProductId, setSelectedProductId] = useState("");
     const [items, setItems] = useState<OrderItem[]>([]);
+    const [mode, setMode] = useState<"import" | "manual">("import");
+    const [importLines, setImportLines] = useState<ImportedWorkbookLine[]>([]);
+    const [importFileName, setImportFileName] = useState("");
+    const [isReadingImport, setIsReadingImport] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        toast.success(`Archivo "${file.name}" subido correctamente (${(file.size / 1024).toFixed(1)} KB)`);
+        if (!formData.warehouseId || !formData.expedienteId) {
+            toast.error("Selecciona el almacén y el expediente antes de importar");
+            e.target.value = "";
+            return;
+        }
+
+        setIsReadingImport(true);
+        try {
+            const parsed = await parsePurchaseWorkbook(file);
+            const resolvedLines = parsed.lines.map(line => {
+                const normalizedName = line.productName
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9]+/g, " ")
+                    .trim();
+                const product = allProducts.find(item => {
+                    const itemName = String(item.name || "")
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9]+/g, " ")
+                        .trim();
+                    return itemName === normalizedName;
+                });
+                return { ...line, productId: product?.id };
+            });
+            setImportLines(resolvedLines);
+            setImportFileName(file.name);
+            toast.success(`${resolvedLines.length} productos adjudicados detectados`);
+        } catch (error: any) {
+            toast.error(error.message || "No se pudo leer el archivo");
+        } finally {
+            setIsReadingImport(false);
+        }
         e.target.value = "";
+    };
+
+    const handleConfirmImport = () => {
+        if (!formData.warehouseId || !formData.expedienteId || importLines.length === 0) {
+            toast.error("Selecciona un almacén, un expediente y carga un archivo válido");
+            return;
+        }
+
+        const groups = [...importLines.reduce((map, line) => {
+            const key = line.supplierName.trim();
+            const group = map.get(key) || { supplierName: key, items: [] };
+            group.items.push({
+                productId: line.productId,
+                productName: line.productName,
+                quantity: line.quantity,
+                unitPrice: line.unitPrice,
+            });
+            map.set(key, group);
+            return map;
+        }, new Map<string, { supplierName: string; items: Array<{ productId?: string; productName: string; quantity: number; unitPrice: number }> }>()).values()];
+
+        startTransition(async () => {
+            try {
+                const orders = await createPurchaseOrdersFromImport({
+                    warehouseId: formData.warehouseId,
+                    expedienteId: formData.expedienteId,
+                    sourceFileName: importFileName,
+                    groups,
+                });
+                toast.success(`${orders.length} orden${orders.length === 1 ? "" : "es"} creada${orders.length === 1 ? "" : "s"} correctamente`);
+                router.push("/dashboard/purchases");
+            } catch (error: any) {
+                toast.error(error.message || "Error al crear las órdenes importadas");
+            }
+        });
+    };
+
+    const switchMode = (nextMode: "import" | "manual") => {
+        setMode(nextMode);
+        if (nextMode === "manual") {
+            setImportLines([]);
+            setImportFileName("");
+        }
     };
 
     const handleProductCreated = (newProduct: any) => {
@@ -132,11 +215,22 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
         return items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
     };
 
+    const calculateImportTotal = () => {
+        return importLines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (mode === "import") return;
+
         if (!formData.supplierId || !formData.warehouseId) {
             toast.error("Selecciona un proveedor y almacén");
+            return;
+        }
+
+        if (!formData.expedienteId) {
+            toast.error("Selecciona un expediente para la orden");
             return;
         }
 
@@ -185,8 +279,30 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                     </Link>
                     <div>
                         <h1 className="text-xl md:text-3xl font-bold tracking-tight">Nueva Orden de Compra</h1>
-                        <p className="text-muted-foreground text-sm">Crear una nueva orden para un proveedor</p>
+                        <p className="text-muted-foreground text-sm">Importá un cuadro comparativo o cargá una orden individual</p>
                     </div>
+                </div>
+                <div className="grid grid-cols-2 rounded-lg border bg-muted/30 p-1">
+                    <Button
+                        type="button"
+                        variant={mode === "import" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => switchMode("import")}
+                        className="gap-2"
+                    >
+                        <Upload className="h-4 w-4" />
+                        Carga grupal
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={mode === "manual" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => switchMode("manual")}
+                        className="gap-2"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Carga individual
+                    </Button>
                 </div>
             </div>
 
@@ -201,7 +317,7 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="space-y-2">
+                            {mode === "manual" && <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <Label htmlFor="supplier">Proveedor *</Label>
                                     <QuickSupplierDialog onSupplierCreated={handleSupplierCreated} />
@@ -219,7 +335,12 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                                         ))}
                                     </SelectContent>
                                 </Select>
-                            </div>
+                            </div>}
+                            {mode === "import" && (
+                                <div className="rounded-lg border border-dashed border-primary/30 bg-primary/[0.03] p-3 text-sm text-muted-foreground">
+                                    Los proveedores se leerán desde <span className="font-semibold text-foreground">ADJ.</span> y se crearán automáticamente si no existen en el catálogo.
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <Label htmlFor="warehouse">Almacén Destino *</Label>
                                 <Select
@@ -238,7 +359,7 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                             </div>
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="expediente">Expediente</Label>
+                                <Label htmlFor="expediente">Expediente *</Label>
                                     <QuickExpedienteDialog onExpedienteCreated={handleExpedienteCreated} />
                                 </div>
                                 <Select
@@ -249,7 +370,6 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                                         <SelectValue placeholder="Seleccionar expediente..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="none">Sin expediente</SelectItem>
                                         {allExpedientes.map((e: any) => (
                                             <SelectItem key={e.id} value={e.id}>{e.number} ({e.year})</SelectItem>
                                         ))}
@@ -285,20 +405,23 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                                     <Package className="h-5 w-5 text-primary" />
                                     Artículos a Solicitar
                                 </CardTitle>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept=".xlsx,.xls,.csv"
-                                    onChange={handleFileUpload}
-                                    className="hidden"
-                                />
-                                <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()}>
-                                    <Upload className="h-4 w-4" />
-                                    Subir Excel
-                                </Button>
+                                {mode === "import" && <>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".xlsx,.xls,.csv"
+                                        onChange={handleFileUpload}
+                                        className="hidden"
+                                    />
+                                    <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()} disabled={isReadingImport || isPending}>
+                                        {isReadingImport ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                                        {isReadingImport ? "Leyendo..." : "Subir Excel"}
+                                    </Button>
+                                </>}
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            {mode === "manual" ? <>
                             <div className="flex flex-col sm:flex-row gap-3 bg-muted/40 p-3 sm:p-4 rounded-lg border">
                                 <div className="flex-1">
                                     <Select
@@ -467,6 +590,31 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                                     )}
                                 </div>
                             </div>
+                            </> : importLines.length > 0 ? (
+                                <PurchaseImportReview
+                                    lines={importLines}
+                                    products={allProducts}
+                                    fileName={importFileName}
+                                    isPending={isPending}
+                                    onChange={setImportLines}
+                                    onConfirm={handleConfirmImport}
+                                    onCancel={() => {
+                                        setImportLines([]);
+                                        setImportFileName("");
+                                    }}
+                                />
+                            ) : (
+                                <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-primary/25 bg-primary/[0.02] p-8 text-center">
+                                    <FileSpreadsheet className="h-12 w-12 text-primary/50" />
+                                    <div>
+                                        <p className="font-semibold">Subí el cuadro comparativo</p>
+                                        <p className="mt-1 max-w-md text-sm text-muted-foreground">El sistema localizará ADJ., agrupará los productos por proveedor y preparará una orden independiente para cada uno.</p>
+                                    </div>
+                                    <Button type="button" onClick={() => fileInputRef.current?.click()} disabled={isReadingImport}>
+                                        <Upload className="mr-2 h-4 w-4" /> Seleccionar Excel
+                                    </Button>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -482,19 +630,19 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                         <CardContent className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Artículos:</span>
-                                <span className="font-semibold">{items.length}</span>
+                                <span className="font-semibold">{mode === "import" ? importLines.length : items.length}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Total Estimado:</span>
-                                <span className="text-2xl font-bold text-primary">${calculateTotal().toFixed(2)}</span>
+                                <span className="text-2xl font-bold text-primary">${(mode === "import" ? calculateImportTotal() : calculateTotal()).toFixed(2)}</span>
                             </div>
                         </CardContent>
-                        <CardFooter>
+                        {mode === "manual" && <CardFooter>
                             <Button
                                 type="submit"
                                 size="lg"
                                 className="w-full h-14 text-lg font-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                                disabled={isPending || items.length === 0 || !formData.supplierId || !formData.warehouseId}
+                                disabled={isPending || items.length === 0 || !formData.supplierId || !formData.warehouseId || !formData.expedienteId}
                             >
                                 {isPending ? (
                                     <div className="flex flex-col items-center">
@@ -508,7 +656,7 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                                     </div>
                                 )}
                             </Button>
-                        </CardFooter>
+                        </CardFooter>}
                     </Card>
 
                     <Card className="shadow-md border-primary/10">
