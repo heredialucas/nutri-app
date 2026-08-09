@@ -215,6 +215,8 @@ export const purchaseService = {
             const products = await tx.product.findMany({ where: { deletedAt: null } });
             const supplierIds = new Map<string, string>();
             const productIds = new Map<string, string>();
+            const usedSupplierCodes = new Set(suppliers.map(supplier => supplier.code));
+            const usedProductSkus = new Set(products.map(product => product.sku));
 
             for (const supplier of suppliers) {
                 supplierIds.set(normalizeImportedValue(supplier.name), supplier.id);
@@ -235,7 +237,7 @@ export const purchaseService = {
                     const baseCode = `IMP-${normalizeImportedValue(supplierName).replace(/\s+/g, "-").slice(0, 35) || "PROVEEDOR"}`;
                     let code = baseCode;
                     let suffix = 1;
-                    while (await tx.supplier.findUnique({ where: { code } })) {
+                    while (usedSupplierCodes.has(code)) {
                         code = `${baseCode}-${suffix++}`;
                     }
                     const supplier = await tx.supplier.create({
@@ -247,6 +249,7 @@ export const purchaseService = {
                     });
                     supplierId = supplier.id;
                     supplierIds.set(normalizeImportedValue(supplierName), supplierId);
+                    usedSupplierCodes.add(code);
                 }
 
                 const orderItems = [];
@@ -269,7 +272,7 @@ export const purchaseService = {
                         const baseSku = createImportedProductSku(item.productName);
                         let sku = baseSku;
                         let suffix = 1;
-                        while (await tx.product.findUnique({ where: { sku } })) {
+                        while (usedProductSkus.has(sku)) {
                             sku = `${baseSku}-${suffix++}`;
                         }
                         const product = await tx.product.create({
@@ -282,6 +285,7 @@ export const purchaseService = {
                         });
                         productId = product.id;
                         productIds.set(normalizeImportedValue(item.productName), productId);
+                        usedProductSkus.add(sku);
                     }
 
                     orderItems.push({
@@ -316,6 +320,9 @@ export const purchaseService = {
             }
 
             return createdOrders;
+        }, {
+            maxWait: 10000,
+            timeout: 30000,
         });
     },
 
