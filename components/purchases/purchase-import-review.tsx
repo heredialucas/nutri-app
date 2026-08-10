@@ -168,7 +168,7 @@ export function PurchaseImportReview({
                                             </SelectTrigger>
                                             <SelectContent className="max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-3rem)]">
                                                 <SelectItem value={`new:${line.id}`} className="min-w-0 max-w-full">
-                                                    <span className="block min-w-0 whitespace-normal break-words" title={`Crear: ${line.productName}`}>Crear: {line.productName}</span>
+                                                    <span className="block min-w-0 whitespace-normal break-words" title={line.productName}>{line.productName}</span>
                                                 </SelectItem>
                                                 {products.map(product => (
                                                     <SelectItem key={product.id} value={product.id} className="min-w-0 max-w-full">
