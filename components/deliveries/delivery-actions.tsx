@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PackageCheck, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { markAsDelivered, cancelDelivery } from "@/app/actions/deliveries";
+import { cancelDelivery } from "@/app/actions/deliveries";
 
 interface DeliveryActionsProps {
     deliveryId: string;
@@ -19,15 +19,7 @@ export function DeliveryActions({ deliveryId, status, userId, variant = "icon" }
     const router = useRouter();
 
     const handleDeliver = () => {
-        startTransition(async () => {
-            try {
-                await markAsDelivered(deliveryId, userId);
-                toast.success("Entrega marcada como entregada");
-                router.refresh();
-            } catch (error: any) {
-                toast.error(error.message || "Error al marcar entrega");
-            }
-        });
+        router.push(`/dashboard/deliveries/${deliveryId}`);
     };
 
     const handleCancel = () => {
@@ -55,7 +47,7 @@ export function DeliveryActions({ deliveryId, status, userId, variant = "icon" }
                         className="bg-green-600 hover:bg-green-700"
                     >
                         <PackageCheck className="mr-2 h-4 w-4" />
-                        Entregado
+                        Revisar y entregar
                     </Button>
                 )}
                 {status !== "DELIVERED" && status !== "CANCELLED" && (

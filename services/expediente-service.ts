@@ -293,6 +293,30 @@ export const expedienteService = {
             categoryId?: string;
         }
     ) {
+        if (data.status === "CERRADO") {
+            const pendingDeliveries = await prisma.delivery.count({
+                where: {
+                    expedienteId: id,
+                    deletedAt: null,
+                    status: { notIn: ["DELIVERED", "CANCELLED"] },
+                },
+            });
+            const pendingReviews = await prisma.delivery.count({
+                where: {
+                    expedienteId: id,
+                    deletedAt: null,
+                    status: "DELIVERED",
+                    disaffectionReviewed: false,
+                },
+            });
+            if (pendingDeliveries > 0) {
+                throw new Error("No se puede cerrar la obra: hay entregas pendientes");
+            }
+            if (pendingReviews > 0) {
+                throw new Error("No se puede cerrar la obra: revisa y confirma los sobrantes de cada entrega");
+            }
+        }
+
         return await prisma.expediente.update({
             where: { id },
             data,

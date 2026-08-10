@@ -52,6 +52,14 @@ export const deliveryService = {
                         username: true,
                     },
                 },
+                deliveredBy: {
+                    select: {
+                        id: true,
+                        username: true,
+                        firstName: true,
+                        lastName: true,
+                    },
+                },
                 _count: {
                     select: {
                         items: true,
@@ -174,7 +182,7 @@ export const deliveryService = {
     /**
      * Mark delivery as delivered and update stock
      */
-    async markAsDelivered(deliveryId: string, userId: string) {
+    async markAsDelivered(deliveryId: string, userId: string, proofUrl: string) {
         return await prisma.$transaction(async (tx) => {
             const delivery = await tx.delivery.findUnique({
                 where: { id: deliveryId },
@@ -184,12 +192,16 @@ export const deliveryService = {
             });
 
             if (!delivery) throw new Error("Entrega no encontrada");
+            if (!proofUrl) throw new Error("La foto de recepción es obligatoria");
             if (delivery.status === "DELIVERED" || delivery.status === "CANCELLED") {
                 throw new Error(`No se puede marcar una entrega ${delivery.status.toLowerCase()} como entregada`);
             }
 
             // Update stock for each item
             for (const item of delivery.items) {
+                const quantityToDeliver = item.quantity - item.disaffectedQuantity;
+                if (quantityToDeliver <= 0) continue;
+
                 // Reduce warehouse stock
                 const warehouseStock = await tx.warehouseStock.findUnique({
                     where: {
@@ -200,7 +212,7 @@ export const deliveryService = {
                     },
                 });
 
-                if (!warehouseStock || warehouseStock.quantity < item.quantity) {
+                if (!warehouseStock || warehouseStock.quantity < quantityToDeliver) {
                     throw new Error(`Stock insuficiente para el producto ${item.productId}`);
                 }
 
@@ -213,7 +225,7 @@ export const deliveryService = {
                     },
                     data: {
                         quantity: {
-                            decrement: item.quantity,
+                            decrement: quantityToDeliver,
                         },
                     },
                 });
@@ -224,7 +236,7 @@ export const deliveryService = {
                         productId: item.productId,
                         warehouseId: delivery.warehouseId,
                         type: "OUT",
-                        quantity: item.quantity,
+                        quantity: quantityToDeliver,
                         userId,
                         reason: `Entrega ${delivery.deliveryNumber} a institución`,
                         sourceType: "DELIVERY",
@@ -240,6 +252,8 @@ export const deliveryService = {
                 data: {
                     status: "DELIVERED",
                     deliveryDate: new Date(),
+                    deliveryProofUrl: proofUrl,
+                    deliveredById: userId,
                 },
                 include: {
                     items: {
@@ -249,6 +263,97 @@ export const deliveryService = {
                     },
                 },
             });
+        });
+    },
+
+    /**
+     * Registers leftover quantities and returns them to the source warehouse
+     * when the delivery already consumed stock.
+     */
+    async disaffectItems(
+        deliveryId: string,
+        userId: string,
+        items: Array<{ itemId: string; quantity: number }>
+    ) {
+        return await prisma.$transaction(async (tx) => {
+            const delivery = await tx.delivery.findUnique({
+                where: { id: deliveryId },
+                include: { items: true },
+            });
+
+            if (!delivery) throw new Error("Entrega no encontrada");
+            if (delivery.status === "CANCELLED") {
+                throw new Error("No se puede desafectar una entrega cancelada");
+            }
+            if (items.length === 0) throw new Error("Seleccione al menos un sobrante");
+
+            for (const requested of items) {
+                if (!Number.isInteger(requested.quantity) || requested.quantity <= 0) {
+                    throw new Error("Las cantidades desafectadas deben ser enteros positivos");
+                }
+
+                const item = delivery.items.find((entry) => entry.id === requested.itemId);
+                if (!item) throw new Error("Ítem de entrega no encontrado");
+
+                const available = item.quantity - item.disaffectedQuantity;
+                if (requested.quantity > available) {
+                    throw new Error(`La cantidad desafectada supera el saldo de ${item.productId}`);
+                }
+
+                if (delivery.status === "DELIVERED") {
+                    await tx.warehouseStock.upsert({
+                        where: {
+                            warehouseId_productId: {
+                                warehouseId: delivery.warehouseId,
+                                productId: item.productId,
+                            },
+                        },
+                        create: {
+                            warehouseId: delivery.warehouseId,
+                            productId: item.productId,
+                            quantity: requested.quantity,
+                        },
+                        update: { quantity: { increment: requested.quantity } },
+                    });
+
+                    await tx.stockMovement.create({
+                        data: {
+                            productId: item.productId,
+                            warehouseId: delivery.warehouseId,
+                            type: "IN",
+                            quantity: requested.quantity,
+                            userId,
+                            reason: `Desafectación de sobrantes de ${delivery.deliveryNumber}`,
+                            sourceType: "DELIVERY_DISAFFECTION",
+                            sourceId: delivery.id,
+                            expedienteId: delivery.expedienteId,
+                        },
+                    });
+                }
+
+                await tx.deliveryItem.update({
+                    where: { id: item.id },
+                    data: { disaffectedQuantity: { increment: requested.quantity } },
+                });
+            }
+
+            return tx.delivery.findUnique({
+                where: { id: deliveryId },
+                include: { items: { include: { product: true } } },
+            });
+        });
+    },
+
+    async reviewDisaffection(deliveryId: string) {
+        const delivery = await prisma.delivery.findUnique({ where: { id: deliveryId } });
+        if (!delivery) throw new Error("Entrega no encontrada");
+        if (delivery.status !== "DELIVERED") {
+            throw new Error("La revisión de sobrantes sólo se puede cerrar después de entregar");
+        }
+
+        return prisma.delivery.update({
+            where: { id: deliveryId },
+            data: { disaffectionReviewed: true },
         });
     },
 

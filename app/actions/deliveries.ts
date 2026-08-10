@@ -5,6 +5,7 @@ import { getCurrentUser, hasPermission } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { DeliveryStatus } from "@prisma/client";
 import { serializePrisma } from "@/lib/utils";
+import { uploadImage } from "@/app/actions/cloudinary";
 
 export async function getDeliveries(filters?: {
     status?: DeliveryStatus;
@@ -87,22 +88,84 @@ export async function confirmDelivery(id: string) {
     }
 }
 
-export async function markAsDelivered(deliveryId: string, userId: string) {
+export async function markAsDeliveredWithProof(formData: FormData) {
     const user = await getCurrentUser();
     if (!user || !hasPermission(user, "deliveries.manage")) {
         throw new Error("No tienes permisos para marcar entregas como entregadas");
     }
 
+    const deliveryId = String(formData.get("deliveryId") || "");
+    const photo = formData.get("photo");
+
+    if (!deliveryId || !(photo instanceof File) || photo.size === 0) {
+        throw new Error("Debes adjuntar una foto de recepción");
+    }
+    if (!photo.type.startsWith("image/")) {
+        throw new Error("El archivo debe ser una imagen");
+    }
+    if (photo.size > 8 * 1024 * 1024) {
+        throw new Error("La foto no puede superar los 8 MB");
+    }
+
     try {
-        const delivery = await deliveryService.markAsDelivered(deliveryId, userId);
+        const buffer = Buffer.from(await photo.arrayBuffer());
+        const uploadResult = await uploadImage(
+            `data:${photo.type};base64,${buffer.toString("base64")}`,
+            "deliveryProofs"
+        );
+
+        if (!uploadResult.success || !uploadResult.url) {
+            throw new Error(uploadResult.error || "No se pudo subir la foto");
+        }
+
+        const delivery = await deliveryService.markAsDelivered(deliveryId, user.id, uploadResult.url);
         revalidatePath("/dashboard/deliveries");
         revalidatePath(`/dashboard/deliveries/${deliveryId}`);
-        
-        // Serialize response if needed
-        return delivery;
+        return serializePrisma(delivery);
     } catch (error: any) {
-        console.error("Error marking delivery as delivered:", error);
-        throw new Error(error.message || "Failed to mark delivery as delivered");
+        console.error("Error marking delivery with proof:", error);
+        throw new Error(error.message || "No se pudo finalizar la entrega");
+    }
+}
+
+export async function disaffectDeliveryItems(
+    deliveryId: string,
+    items: Array<{ itemId: string; quantity: number }>
+) {
+    const user = await getCurrentUser();
+    if (!user || !hasPermission(user, "deliveries.manage")) {
+        throw new Error("No tienes permisos para desafectar sobrantes");
+    }
+
+    try {
+        const delivery = await deliveryService.disaffectItems(deliveryId, user.id, items);
+        revalidatePath("/dashboard/deliveries");
+        revalidatePath(`/dashboard/deliveries/${deliveryId}`);
+        if (delivery?.expedienteId) {
+            revalidatePath(`/dashboard/expedientes/${delivery.expedienteId}`);
+        }
+        return serializePrisma(delivery);
+    } catch (error: any) {
+        console.error("Error disaffecting delivery items:", error);
+        throw new Error(error.message || "No se pudieron desafectar los sobrantes");
+    }
+}
+
+export async function reviewDeliveryDisaffection(deliveryId: string) {
+    const user = await getCurrentUser();
+    if (!user || !hasPermission(user, "deliveries.manage")) {
+        throw new Error("No tienes permisos para cerrar la revisión de sobrantes");
+    }
+
+    try {
+        const delivery = await deliveryService.reviewDisaffection(deliveryId);
+        revalidatePath(`/dashboard/deliveries/${deliveryId}`);
+        if (delivery.expedienteId) {
+            revalidatePath(`/dashboard/expedientes/${delivery.expedienteId}`);
+        }
+        return serializePrisma(delivery);
+    } catch (error: any) {
+        throw new Error(error.message || "No se pudo cerrar la revisión de sobrantes");
     }
 }
 

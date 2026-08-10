@@ -47,6 +47,14 @@ export const uploadPresets = {
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'] as string[],
     resource_type: 'auto' as const,
   },
+  deliveryProofs: {
+    folder: 'inventory-control/delivery-proofs',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'] as string[],
+    transformation: [
+      { width: 1600, height: 1600, crop: 'limit' },
+      { quality: 'auto', fetch_format: 'auto' }
+    ] as any[],
+  },
 };
 
 export type UploadPresetType = keyof typeof uploadPresets;

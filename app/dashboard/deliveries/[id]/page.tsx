@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getDelivery, markAsDelivered, cancelDelivery } from "@/app/actions/deliveries";
+import { getDelivery, cancelDelivery } from "@/app/actions/deliveries";
 import { getCurrentUser, hasPermission } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,9 +14,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, XCircle, Truck, Building2, Package, User, Calendar, FileText, UserCog, PackageCheck } from "lucide-react";
+import { ArrowLeft, XCircle, Truck, Building2, Package, User, Calendar, FileText, UserCog, Camera } from "lucide-react";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
+import Image from "next/image";
+import { DeliveryCompletion } from "@/components/deliveries/delivery-completion";
+import { DeliveryDisaffection } from "@/components/deliveries/delivery-disaffection";
 
 export default async function DeliveryDetailPage({
     params,
@@ -32,13 +35,6 @@ export default async function DeliveryDetailPage({
     }
 
     if (!user) redirect("/login");
-
-    async function handleMarkDelivered() {
-        "use server";
-        if (!user) return;
-        await markAsDelivered(id, user.id);
-        redirect(`/dashboard/deliveries/${id}`);
-    }
 
     async function handleCancel() {
         "use server";
@@ -87,13 +83,6 @@ export default async function DeliveryDetailPage({
                                     <span className="hidden sm:inline">Cancelar</span>
                                 </Button>
                             </form>
-                            <form action={handleMarkDelivered}>
-                                <Button type="submit" className="w-full sm:w-auto">
-                                    <PackageCheck className="mr-2 h-4 w-4" />
-                                    <span className="sm:hidden">Entregar</span>
-                                    <span className="hidden sm:inline">Marcar como Entregado</span>
-                                </Button>
-                            </form>
                         </>
                     )}
                 </div>
@@ -116,7 +105,10 @@ export default async function DeliveryDetailPage({
                                                 <div className="font-mono text-xs text-muted-foreground">{item.product.sku}</div>
                                             </div>
                                             <div className="text-right">
-                                                <div className="text-sm font-medium">Cant: {item.quantity}</div>
+                                                 <div className="text-sm font-medium">Cant: {item.quantity - item.disaffectedQuantity}</div>
+                                                 {item.disaffectedQuantity > 0 && (
+                                                     <div className="text-xs text-amber-700">Desafectado: {item.disaffectedQuantity}</div>
+                                                 )}
                                             </div>
                                         </div>
                                     </CardContent>
@@ -139,7 +131,12 @@ export default async function DeliveryDetailPage({
                                         <TableRow key={item.id}>
                                             <TableCell className="font-medium">{item.product.name}</TableCell>
                                             <TableCell className="font-mono text-xs text-muted-foreground">{item.product.sku}</TableCell>
-                                            <TableCell className="text-right font-medium">{item.quantity}</TableCell>
+                                             <TableCell className="text-right font-medium">
+                                                 {item.quantity - item.disaffectedQuantity}
+                                                 {item.disaffectedQuantity > 0 && (
+                                                     <div className="text-xs font-normal text-amber-700">Desafectado: {item.disaffectedQuantity}</div>
+                                                 )}
+                                             </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -147,6 +144,39 @@ export default async function DeliveryDetailPage({
                         </div>
                     </CardContent>
                 </Card>
+
+                {canManage && !isDelivered && !isCancelled && (
+                    <DeliveryCompletion deliveryId={id} />
+                )}
+
+                {canManage && isDelivered && !delivery.disaffectionReviewed && (
+                    <Card>
+                        <CardContent className="pt-6">
+                            <DeliveryDisaffection deliveryId={id} items={delivery.items} reviewed={delivery.disaffectionReviewed} />
+                        </CardContent>
+                    </Card>
+                )}
+
+                {isDelivered && delivery.deliveryProofUrl && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                <Camera className="h-4 w-4" /> Comprobante fotográfico
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
+                                <Image
+                                    src={delivery.deliveryProofUrl}
+                                    alt="Comprobante fotográfico de la entrega"
+                                    fill
+                                    className="object-contain"
+                                    sizes="(max-width: 768px) 100vw, 400px"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <div className="space-y-6">
                     <Card>

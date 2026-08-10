@@ -19,6 +19,7 @@ model User {
   lastName           String?
   username           String?             @unique
   deliveries         Delivery[]
+  deliveredDeliveries Delivery[] @relation("DeliveryDeliveredBy")
   purchaseOrders     PurchaseOrder[]
   stockMovements     StockMovement[]
   userRoles          UserRole[]
@@ -243,7 +244,11 @@ model Delivery {
   updatedAt      DateTime       @updatedAt
   deletedAt      DateTime?
   expedienteId   String?        @db.Uuid
+  deliveryProofUrl String?
+  deliveredById  String?        @db.Uuid
+  disaffectionReviewed Boolean   @default(false)
   createdBy      User           @relation(fields: [createdById], references: [id])
+  deliveredBy    User?          @relation("DeliveryDeliveredBy", fields: [deliveredById], references: [id])
   expediente     Expediente?    @relation(fields: [expedienteId], references: [id])
   institution    Institution    @relation(fields: [institutionId], references: [id])
   warehouse      Warehouse      @relation(fields: [warehouseId], references: [id])
@@ -258,6 +263,7 @@ model DeliveryItem {
   deliveryId String   @db.Uuid
   productId  String   @db.Uuid
   quantity   Int
+  disaffectedQuantity Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
