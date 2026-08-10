@@ -39,10 +39,10 @@ export const analyticsService = {
             prisma.warehouse.count({ where: { isActive: true, deletedAt: null } }),
 
             // Total suppliers
-            prisma.supplier.count({ where: { isActive: true } }),
+            prisma.supplier.count({ where: { isActive: true, deletedAt: null } }),
 
             // Total institutions
-            prisma.institution.count({ where: { isActive: true } }),
+            prisma.institution.count({ where: { isActive: true, deletedAt: null } }),
 
             // Recent movements (last 7 days)
             prisma.stockMovement.count({
@@ -58,6 +58,10 @@ export const analyticsService = {
             // Transferencias pendientes
             prisma.warehouseTransfer.count({
                 where: {
+                    deletedAt: null,
+                    product: { deletedAt: null },
+                    fromWarehouse: { deletedAt: null },
+                    toWarehouse: { deletedAt: null },
                     status: {
                         in: ["PENDING", "IN_TRANSIT"],
                     },
@@ -67,6 +71,9 @@ export const analyticsService = {
             // Purchase orders pending (draft only)
             prisma.purchaseOrder.count({
                 where: {
+                    deletedAt: null,
+                    supplier: { isActive: true, deletedAt: null },
+                    warehouse: { isActive: true, deletedAt: null },
                     status: "DRAFT",
                 },
             }),
@@ -74,6 +81,9 @@ export const analyticsService = {
             // Pending deliveries
             prisma.delivery.count({
                 where: {
+                    deletedAt: null,
+                    institution: { isActive: true, deletedAt: null },
+                    warehouse: { isActive: true, deletedAt: null },
                     status: {
                         in: ["DRAFT", "CONFIRMED"],
                     },
@@ -327,7 +337,11 @@ export const analyticsService = {
                 },
             }),
             prisma.purchaseOrder.findMany({
-                where: { deletedAt: null },
+                where: {
+                    deletedAt: null,
+                    supplier: { isActive: true, deletedAt: null },
+                    warehouse: { isActive: true, deletedAt: null },
+                },
                 take: limit,
                 orderBy: { createdAt: "desc" },
                 include: {
@@ -339,7 +353,11 @@ export const analyticsService = {
                 },
             }),
             prisma.delivery.findMany({
-                where: { deletedAt: null },
+                where: {
+                    deletedAt: null,
+                    institution: { isActive: true, deletedAt: null },
+                    warehouse: { isActive: true, deletedAt: null },
+                },
                 take: limit,
                 orderBy: { createdAt: "desc" },
                 include: {

@@ -37,11 +37,22 @@ export async function updateUserAction(id: string, data: { firstName?: string; l
 }
 
 export async function deleteUserAction(id: string) {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser || (!isAdminUser(currentUser) && !hasPermission(currentUser, "users.manage"))) {
+        return { error: "No autorizado" };
+    }
+
+    if (!id || id === currentUser.id) {
+        return { error: "No puedes eliminar este usuario" };
+    }
+
     try {
         await userService.deleteUser(id);
         revalidatePath("/dashboard/users");
         return { success: true };
     } catch (error) {
+        console.error(error);
         return { error: "Error al eliminar usuario" };
     }
 }

@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 export const userService = {
     async getUsers() {
         return await prisma.user.findMany({
+            where: { isActive: true },
             include: {
                 userRoles: {
                     include: {
@@ -72,8 +73,9 @@ export const userService = {
     },
 
     async deleteUser(id: string) {
-        return await prisma.user.delete({
-            where: { id }
+        return await prisma.user.update({
+            where: { id },
+            data: { isActive: false },
         });
     },
 

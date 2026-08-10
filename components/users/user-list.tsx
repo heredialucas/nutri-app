@@ -1,3 +1,7 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
     Table,
     TableBody,
@@ -21,6 +25,25 @@ interface UserListProps {
 }
 
 export function UserList({ users, roles, canManage = false }: UserListProps) {
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
+    const [error, setError] = useState("");
+
+    const handleDelete = (userId: string) => {
+        if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
+
+        setError("");
+        startTransition(async () => {
+            const result = await deleteUserAction(userId);
+            if (result.error) {
+                setError(result.error);
+                return;
+            }
+
+            router.refresh();
+        });
+    };
+
     const translateRoleName = (name: string) => {
         const translations: Record<string, string> = {
             ADMIN: "Administrador",
@@ -39,6 +62,12 @@ export function UserList({ users, roles, canManage = false }: UserListProps) {
 
     return (
         <>
+            {error && (
+                <p role="alert" className="text-sm text-destructive">
+                    {error}
+                </p>
+            )}
+
             {/* Desktop Table View */}
             <div className="rounded-md border hidden md:block bg-card">
                 <Table>
@@ -53,7 +82,14 @@ export function UserList({ users, roles, canManage = false }: UserListProps) {
                     </TableHeader>
                     <TableBody>
                         {users.map((user) => (
-                            <UserRow key={user.id} user={user} roles={roles || []} canManage={canManage} />
+                            <UserRow
+                                key={user.id}
+                                user={user}
+                                roles={roles || []}
+                                canManage={canManage}
+                                onDelete={handleDelete}
+                                isPending={isPending}
+                            />
                         ))}
                     </TableBody>
                 </Table>
@@ -91,14 +127,16 @@ export function UserList({ users, roles, canManage = false }: UserListProps) {
                                 {canManage && (
                                     <div className="flex items-center gap-2">
                                         <EditUserDialog user={user} roles={roles || []} />
-                                        <form action={async () => {
-                                            "use server";
-                                            await deleteUserAction(user.id);
-                                        }}>
-                                            <Button variant="ghost" size="icon" type="submit">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            type="button"
+                                            onClick={() => handleDelete(user.id)}
+                                            disabled={isPending}
+                                            aria-label={`Eliminar usuario ${user.email}`}
+                                        >
                                                 <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </form>
+                                        </Button>
                                     </div>
                                 )}
                             </div>
@@ -114,9 +152,11 @@ interface UserRowProps {
     user: any;
     roles: any[];
     canManage?: boolean;
+    onDelete: (userId: string) => void;
+    isPending: boolean;
 }
 
-function UserRow({ user, roles, canManage = false }: UserRowProps) {
+function UserRow({ user, roles, canManage = false, onDelete, isPending }: UserRowProps) {
     const translateRoleName = (name: string) => {
         const translations: Record<string, string> = {
             ADMIN: "Administrador",
@@ -154,14 +194,16 @@ function UserRow({ user, roles, canManage = false }: UserRowProps) {
                 <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                         <EditUserDialog user={user} roles={roles} />
-                        <form action={async () => {
-                            "use server";
-                            await deleteUserAction(user.id);
-                        }}>
-                            <Button variant="ghost" size="icon" type="submit">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            onClick={() => onDelete(user.id)}
+                            disabled={isPending}
+                            aria-label={`Eliminar usuario ${user.email}`}
+                        >
                                 <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                        </form>
+                        </Button>
                     </div>
                 </TableCell>
             )}
