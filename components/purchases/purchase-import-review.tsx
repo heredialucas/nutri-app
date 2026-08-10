@@ -149,8 +149,8 @@ export function PurchaseImportReview({
                                 />
                             )}
                             {supplierLines.map(line => (
-                                <div key={line.id} className="grid gap-3 rounded-lg border bg-background p-3 sm:p-4 md:grid-cols-[minmax(220px,1fr)_110px_140px_34px] md:items-end">
-                                    <div className="min-w-0 space-y-1">
+                                <div key={line.id} className="grid min-w-0 gap-3 rounded-lg border bg-background p-3 sm:p-4 md:grid-cols-[minmax(0,1fr)_110px_140px_34px] md:items-end">
+                                    <div className="min-w-0 space-y-1 md:col-span-4">
                                         <Label className="text-xs text-muted-foreground">Producto · ítem {line.itemNumber}</Label>
                                         <Select
                                             value={line.productId || `new:${line.id}`}
@@ -163,17 +163,25 @@ export function PurchaseImportReview({
                                                 updateLine(line.id, { productId: value, productName: product?.name || line.productName });
                                             }}
                                         >
-                                            <SelectTrigger className="h-auto min-h-10 bg-background py-2 text-left"><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value={`new:${line.id}`}>Crear: {line.productName}</SelectItem>
+                                            <SelectTrigger className="h-auto min-h-10 w-full min-w-0 max-w-full bg-background py-2 text-left [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:whitespace-normal [&_[data-slot=select-value]]:text-wrap [&_[data-slot=select-value]]:line-clamp-none">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-3rem)]">
+                                                <SelectItem value={`new:${line.id}`} className="min-w-0 max-w-full">
+                                                    <span className="block min-w-0 whitespace-normal break-words" title={`Crear: ${line.productName}`}>Crear: {line.productName}</span>
+                                                </SelectItem>
                                                 {products.map(product => (
-                                                    <SelectItem key={product.id} value={product.id}>{product.name}{product.sku ? ` · ${product.sku}` : ""}</SelectItem>
+                                                    <SelectItem key={product.id} value={product.id} className="min-w-0 max-w-full">
+                                                        <span className="block min-w-0 whitespace-normal break-words" title={product.name}>
+                                                            {product.name}
+                                                        </span>
+                                                    </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
                                         {!line.productId && <p className="text-[11px] text-amber-700">Se creará automáticamente si confirmás.</p>}
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-1 md:col-start-2">
                                         <Label className="text-xs text-muted-foreground">Cantidad</Label>
                                         <Input type="number" min="1" value={line.quantity} onChange={event => updateLine(line.id, { quantity: Number(event.target.value) || 0 })} />
                                     </div>

@@ -422,8 +422,8 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                         </CardHeader>
                         <CardContent className="space-y-6">
                             {mode === "manual" ? <>
-                            <div className="flex flex-col sm:flex-row gap-3 bg-muted/40 p-3 sm:p-4 rounded-lg border">
-                                <div className="flex-1">
+                            <div className="grid min-w-0 grid-cols-1 gap-3 rounded-lg border bg-muted/40 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:p-4">
+                                <div className="min-w-0">
                                     <Select
                                         value={selectedProductId}
                                         onValueChange={(val) => {
@@ -432,20 +432,20 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                                             }
                                         }}
                                     >
-                                        <SelectTrigger className="bg-background h-12 text-base">
+                                        <SelectTrigger className="w-full min-w-0 overflow-hidden bg-background h-12 text-base [&_[data-slot=select-value]]:min-w-0">
                                             <SelectValue placeholder="Buscar y agregar producto..." />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-3rem)]">
                                             {allProducts.length === 0 ? (
                                                 <SelectItem value="placeholder" disabled>No hay productos cargados</SelectItem>
                                             ) : (
                                                 allProducts.map((p: any) => (
-                                                    <SelectItem key={p.id} value={p.id}>
-                                                        <div className="flex flex-col w-full">
-                                                            <span>{p.name}</span>
-                                                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                                                <span className="font-mono">{p.sku}</span>
-                                                                <span>${Number(p.price || 0).toFixed(2)}</span>
+                                                    <SelectItem key={p.id} value={p.id} className="min-w-0 max-w-full">
+                                                        <div className="flex min-w-0 w-full flex-col">
+                                                            <span className="min-w-0 truncate" title={p.name}>{p.name}</span>
+                                                            <div className="flex min-w-0 items-center justify-between gap-3 text-xs text-muted-foreground">
+                                                                <span className="min-w-0 truncate font-mono">{p.sku}</span>
+                                                                <span className="shrink-0">${Number(p.price || 0).toFixed(2)}</span>
                                                             </div>
                                                         </div>
                                                     </SelectItem>
@@ -461,8 +461,8 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                             </div>
 
                             <div className="rounded-xl border overflow-hidden">
-                                <div className="hidden md:block">
-                                    <Table>
+                                <div className="hidden overflow-x-auto md:block">
+                                    <Table className="min-w-[760px] table-fixed">
                                         <TableHeader className="bg-muted/80">
                                             <TableRow>
                                                 <TableHead className="font-bold">Producto</TableHead>
@@ -486,9 +486,9 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                                             ) : (
                                                 items.map((item) => (
                                                     <TableRow key={item.id} className="hover:bg-muted/20">
-                                                        <TableCell>
-                                                            <div className="font-semibold text-primary">{item.productName}</div>
-                                                            <div className="text-xs text-muted-foreground font-mono">{item.productSku}</div>
+                                                        <TableCell className="min-w-0 max-w-0">
+                                                            <div className="truncate font-semibold text-primary" title={item.productName}>{item.productName}</div>
+                                                            <div className="truncate text-xs text-muted-foreground font-mono" title={item.productSku}>{item.productSku}</div>
                                                         </TableCell>
                                                         <TableCell>
                                                             <Input
@@ -545,7 +545,7 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex-1 min-w-0">
                                                         <div className="font-semibold text-primary text-sm truncate">{item.productName}</div>
-                                                        <div className="text-xs text-muted-foreground font-mono">{item.productSku}</div>
+                                                        <div className="truncate text-xs text-muted-foreground font-mono" title={item.productSku}>{item.productSku}</div>
                                                     </div>
                                                     <Button
                                                         type="button"
