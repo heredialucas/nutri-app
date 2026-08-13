@@ -149,6 +149,7 @@ export async function getWarehouseProducts(warehouseId: string) {
             return products.map(p => ({
                 id: p.id,
                 name: p.name,
+                brand: p.brand,
                 sku: p.sku,
                 quantity: p.stock,
                 price: p.price?.toString() || "0",
@@ -163,6 +164,7 @@ export async function getWarehouseProducts(warehouseId: string) {
             .map(item => ({
                 id: item.product.id,
                 name: item.product.name,
+                brand: item.product.brand,
                 sku: item.product.sku,
                 quantity: item.quantity,
                 price: item.product.price?.toString() || "0",

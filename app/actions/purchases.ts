@@ -63,6 +63,9 @@ export async function createPurchaseOrder(data: {
     warehouseId: string;
     createdById: string;
     expedienteId?: string;
+    subject: string;
+    causative: string;
+    responsible: string;
     expectedDate?: Date;
     notes?: string;
     items: Array<{
@@ -89,6 +92,9 @@ export async function createPurchaseOrder(data: {
 export async function createPurchaseOrdersFromImport(data: {
     warehouseId: string;
     expedienteId: string;
+    subject: string;
+    causative: string;
+    responsible: string;
     sourceFileName?: string;
     groups: Array<{
         supplierName: string;
@@ -97,6 +103,7 @@ export async function createPurchaseOrdersFromImport(data: {
             productName: string;
             quantity: number;
             unitPrice: number;
+            brand?: string;
         }>;
     }>;
 }) {

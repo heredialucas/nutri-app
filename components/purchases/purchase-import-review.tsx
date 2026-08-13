@@ -149,8 +149,8 @@ export function PurchaseImportReview({
                                 />
                             )}
                             {supplierLines.map(line => (
-                                <div key={line.id} className="grid min-w-0 gap-3 rounded-lg border bg-background p-3 sm:p-4 md:grid-cols-[minmax(0,1fr)_110px_140px_34px] md:items-end">
-                                    <div className="min-w-0 space-y-1 md:col-span-4">
+                                <div key={line.id} className="grid min-w-0 gap-3 rounded-lg border bg-background p-3 sm:p-4 md:grid-cols-[minmax(0,1fr)_minmax(120px,0.7fr)_110px_140px_34px] md:items-end">
+                                    <div className="min-w-0 space-y-1 md:col-span-5">
                                         <Label className="text-xs text-muted-foreground">Producto · ítem {line.itemNumber}</Label>
                                         <Select
                                             value={line.productId || `new:${line.id}`}
@@ -181,7 +181,11 @@ export function PurchaseImportReview({
                                         </Select>
                                         {!line.productId && <p className="text-[11px] text-amber-700">Se creará automáticamente si confirmás.</p>}
                                     </div>
-                                    <div className="space-y-1 md:col-start-2">
+                                    <div className="space-y-1 md:col-start-1 md:col-span-2">
+                                        <Label className="text-xs text-muted-foreground">Marca</Label>
+                                        <Input value={line.brand || ""} onChange={event => updateLine(line.id, { brand: event.target.value })} placeholder="Sin marca" />
+                                    </div>
+                                    <div className="space-y-1 md:col-span-1">
                                         <Label className="text-xs text-muted-foreground">Cantidad</Label>
                                         <Input type="number" min="1" value={line.quantity} onChange={event => updateLine(line.id, { quantity: Number(event.target.value) || 0 })} />
                                     </div>

@@ -141,6 +141,9 @@ export default async function PurchaseOrderDetailPage({
                             <span className="text-muted-foreground">Total:</span>
                             <span className="font-bold">${Number(order.totalAmount).toFixed(2)}</span>
                         </div>
+                        <div className="pt-2 text-sm"><span className="text-muted-foreground">Asunto:</span> {order.subject || "-"}</div>
+                        <div className="text-sm"><span className="text-muted-foreground">Causante:</span> {order.causative || "-"}</div>
+                        <div className="text-sm"><span className="text-muted-foreground">Responsable:</span> {order.responsible || "-"}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -158,6 +161,7 @@ export default async function PurchaseOrderDetailPage({
                                     <div className="flex items-start justify-between">
                                         <div className="space-y-1">
                                             <div className="font-medium">{item.product.name}</div>
+                                            <div className="text-xs text-muted-foreground">Marca: {item.product.brand || "-"}</div>
                                             <div className="font-mono text-xs text-muted-foreground">{item.product.sku}</div>
                                         </div>
                                         <div className="text-right">
@@ -198,6 +202,7 @@ export default async function PurchaseOrderDetailPage({
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Producto</TableHead>
+                                    <TableHead>Marca</TableHead>
                                     <TableHead>SKU</TableHead>
                                     <TableHead className="text-right">Cantidad</TableHead>
                                     <TableHead className="text-right">Recibida</TableHead>
@@ -210,6 +215,7 @@ export default async function PurchaseOrderDetailPage({
                                 {order.items.map((item) => (
                                     <TableRow key={item.id}>
                                         <TableCell className="font-medium">{item.product.name}</TableCell>
+                                        <TableCell>{item.product.brand || "-"}</TableCell>
                                         <TableCell className="font-mono text-xs">{item.product.sku}</TableCell>
                                         <TableCell className="text-right">{item.quantity}</TableCell>
                                         <TableCell className="text-right">

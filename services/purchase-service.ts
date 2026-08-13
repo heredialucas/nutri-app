@@ -21,6 +21,10 @@ function findImportedMatch(entries: Map<string, string>, value: string) {
     return best?.id;
 }
 
+function importedProductKey(name: string, brand?: string) {
+    return `${normalizeImportedValue(name)}::${normalizeImportedValue(brand || "")}`;
+}
+
 export const purchaseService = {
     // ==================== PURCHASE ORDER CRUD ====================
 
@@ -51,6 +55,9 @@ export const purchaseService = {
             include: {
                 supplier: true,
                 warehouse: true,
+                expediente: {
+                    select: { id: true, number: true, year: true, description: true },
+                },
                 createdBy: {
                     select: {
                         id: true,
@@ -171,6 +178,7 @@ export const purchaseService = {
                         purchaseOrderItemId: item.id,
                         productId: item.productId,
                         productName: item.product.name,
+                        brand: item.product.brand,
                         sku: item.product.sku,
                         orderedQty: item.quantity,
                         receivedQty: item.receivedQty,
@@ -187,6 +195,9 @@ export const purchaseService = {
         warehouseId: string;
         createdById: string;
         expedienteId?: string;
+        subject: string;
+        causative: string;
+        responsible: string;
         expectedDate?: Date;
         notes?: string;
         items: Array<{
@@ -196,6 +207,9 @@ export const purchaseService = {
         }>;
     }) {
         const { items, expedienteId, ...orderData } = data;
+        if (!orderData.subject.trim() || !orderData.causative.trim() || !orderData.responsible.trim()) {
+            throw new Error("Asunto, causante y responsable son obligatorios");
+        }
 
         // Calculate total amount
         const totalAmount = items.reduce(
@@ -255,8 +269,12 @@ export const purchaseService = {
                 productName: string;
                 quantity: number;
                 unitPrice: number;
+                brand?: string;
             }>;
         }>;
+        subject: string;
+        causative: string;
+        responsible: string;
     }) {
         return prisma.$transaction(async (tx) => {
             const expediente = await tx.expediente.findFirst({
@@ -268,6 +286,9 @@ export const purchaseService = {
                 where: { id: data.warehouseId, isActive: true, deletedAt: null },
             });
             if (!warehouse) throw new Error("El almacén no existe o está inactivo");
+            if (!data.subject.trim() || !data.causative.trim() || !data.responsible.trim()) {
+                throw new Error("Asunto, causante y responsable son obligatorios");
+            }
 
             const suppliers = await tx.supplier.findMany({ where: { deletedAt: null } });
             const products = await tx.product.findMany({ where: { deletedAt: null } });
@@ -280,7 +301,7 @@ export const purchaseService = {
                 supplierIds.set(normalizeImportedValue(supplier.name), supplier.id);
             }
             for (const product of products) {
-                productIds.set(normalizeImportedValue(product.name), product.id);
+                productIds.set(importedProductKey(product.name, product.brand || ""), product.id);
             }
 
             let orderSequence = await tx.purchaseOrder.count();
@@ -318,8 +339,10 @@ export const purchaseService = {
 
                     let productId = item.productId;
                     if (productId) {
-                        const exists = products.some(product => product.id === productId);
-                        if (!exists) productId = undefined;
+                        const existingProduct = products.find(product => product.id === productId);
+                        if (!existingProduct || (item.brand?.trim() && normalizeImportedValue(existingProduct.brand || "") !== normalizeImportedValue(item.brand))) {
+                            productId = undefined;
+                        }
                     }
 
                     if (!productId) {
@@ -327,7 +350,10 @@ export const purchaseService = {
                         // measurement (for example 4 L vs 20 L). Never use fuzzy
                         // matching here; an unresolved product must be created or
                         // reviewed, not silently assigned to another presentation.
-                        productId = productIds.get(normalizeImportedValue(item.productName));
+                        productId = productIds.get(importedProductKey(item.productName, item.brand));
+                        if (!productId && !item.brand?.trim()) {
+                            productId = productIds.get(importedProductKey(item.productName));
+                        }
                     }
 
                     if (!productId) {
@@ -341,13 +367,19 @@ export const purchaseService = {
                             data: {
                                 sku,
                                 name: item.productName,
+                                brand: item.brand?.trim() || null,
                                 price: item.unitPrice,
                                 supplierId,
                             },
                         });
                         productId = product.id;
-                        productIds.set(normalizeImportedValue(item.productName), productId);
+                        productIds.set(importedProductKey(item.productName, item.brand), productId);
                         usedProductSkus.add(sku);
+                    } else if (item.brand?.trim()) {
+                        await tx.product.update({
+                            where: { id: productId },
+                            data: { brand: item.brand.trim() },
+                        });
                     }
 
                     orderItems.push({
@@ -369,6 +401,9 @@ export const purchaseService = {
                         warehouseId: data.warehouseId,
                         createdById: data.createdById,
                         expedienteId: data.expedienteId,
+                        subject: data.subject.trim(),
+                        causative: data.causative.trim(),
+                        responsible: data.responsible.trim(),
                         totalAmount,
                         status: "DRAFT",
                         notes: data.sourceFileName

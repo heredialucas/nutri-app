@@ -17,6 +17,7 @@ import { ShoppingCart, Eye, PackageCheck } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { PurchaseOrderTable as PurchaseOrderTableInteractive } from "@/components/purchases/purchase-order-table";
 
 const getPurchaseOrderStatusLabel = (status: string) => {
     switch (status) {
@@ -84,10 +85,10 @@ export default async function PurchasesPage() {
                 </div>
 
                 <TabsContent value="all" className="mt-6">
-                    <PurchaseOrderTable orders={allOrders} />
+                    <PurchaseOrderTableInteractive orders={allOrders} />
                 </TabsContent>
                 <TabsContent value="received" className="mt-6">
-                    <PurchaseOrderTable orders={receivedOrders} />
+                    <PurchaseOrderTableInteractive orders={receivedOrders} />
                 </TabsContent>
             </Tabs>
         </div>

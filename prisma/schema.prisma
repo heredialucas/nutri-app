@@ -173,6 +173,9 @@ model PurchaseOrder {
   expectedDate DateTime?
   receivedDate DateTime?
   notes        String?
+  subject      String             @default("")
+  causative    String             @default("")
+  responsible  String             @default("")
   totalAmount  Decimal             @db.Decimal(10, 2)
   createdById  String              @db.Uuid
   createdAt    DateTime            @default(now())
@@ -288,6 +291,7 @@ model Product {
   id                 String                @id @default(uuid()) @db.Uuid
   sku                String                @unique
   name               String
+  brand              String?
   description        String?
   price              Decimal               @db.Decimal(10, 2)
   minStock           Int                   @default(0)

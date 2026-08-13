@@ -172,6 +172,7 @@ export default async function WarehouseDetailPage({
                                         <TableRow>
                                             <TableHead>Código</TableHead>
                                             <TableHead>Producto</TableHead>
+                                            <TableHead>Marca</TableHead>
                                             <TableHead>Categoría</TableHead>
                                             <TableHead>Cantidad</TableHead>
                                             <TableHead>Stock Mínimo</TableHead>
@@ -190,6 +191,9 @@ export default async function WarehouseDetailPage({
                                                     </TableCell>
                                                     <TableCell className="font-medium">
                                                         {item.product.name}
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {item.product.brand || "-"}
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">
                                                         {item.product.category?.name || "-"}
@@ -230,6 +234,7 @@ export default async function WarehouseDetailPage({
                                                 <div className="flex items-start justify-between mb-3">
                                                     <div>
                                                         <h4 className="font-medium">{item.product.name}</h4>
+                                                        <p className="text-sm text-muted-foreground">Marca: {item.product.brand || "-"}</p>
                                                         <p className="text-sm text-muted-foreground font-mono">
                                                             Código: {item.product.sku}
                                                         </p>

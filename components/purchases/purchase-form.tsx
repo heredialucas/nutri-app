@@ -56,6 +56,9 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
         supplierId: "",
         warehouseId: "",
         expedienteId: "",
+        subject: "",
+        causative: "",
+        responsible: "",
         expectedDate: "",
         notes: "",
     });
@@ -71,8 +74,8 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (!formData.warehouseId || !formData.expedienteId) {
-            toast.error("Selecciona el almacén y el expediente antes de importar");
+        if (!formData.warehouseId || !formData.expedienteId || !formData.subject.trim() || !formData.causative.trim() || !formData.responsible.trim()) {
+            toast.error("Completa almacén, expediente, asunto, causante y responsable antes de importar");
             e.target.value = "";
             return;
         }
@@ -114,6 +117,10 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
             toast.error("Selecciona un almacén, un expediente y carga un archivo válido");
             return;
         }
+        if (!formData.subject.trim() || !formData.causative.trim() || !formData.responsible.trim()) {
+            toast.error("Completa asunto, causante y responsable antes de confirmar");
+            return;
+        }
 
         const groups = [...importLines.reduce((map, line) => {
             const key = line.supplierName.trim();
@@ -123,16 +130,20 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                 productName: line.productName,
                 quantity: line.quantity,
                 unitPrice: line.unitPrice,
+                brand: line.brand,
             });
             map.set(key, group);
             return map;
-        }, new Map<string, { supplierName: string; items: Array<{ productId?: string; productName: string; quantity: number; unitPrice: number }> }>()).values()];
+        }, new Map<string, { supplierName: string; items: Array<{ productId?: string; productName: string; quantity: number; unitPrice: number; brand?: string }> }>()).values()];
 
         startTransition(async () => {
             try {
                 const orders = await createPurchaseOrdersFromImport({
                     warehouseId: formData.warehouseId,
                     expedienteId: formData.expedienteId,
+                    subject: formData.subject,
+                    causative: formData.causative,
+                    responsible: formData.responsible,
                     sourceFileName: importFileName,
                     groups,
                 });
@@ -234,6 +245,11 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
             return;
         }
 
+        if (!formData.subject.trim() || !formData.causative.trim() || !formData.responsible.trim()) {
+            toast.error("Completa asunto, causante y responsable");
+            return;
+        }
+
         if (items.length === 0) {
             toast.error("Agrega al menos un producto");
             return;
@@ -252,6 +268,9 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                     warehouseId: formData.warehouseId,
                     createdById: userId,
                     expedienteId: formData.expedienteId || undefined,
+                    subject: formData.subject.trim(),
+                    causative: formData.causative.trim(),
+                    responsible: formData.responsible.trim(),
                     expectedDate: formData.expectedDate ? new Date(formData.expectedDate) : undefined,
                     notes: formData.notes,
                     items: validItems.map((item) => ({
@@ -375,6 +394,20 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                                         ))}
                                     </SelectContent>
                                 </Select>
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <div className="space-y-2">
+                                    <Label htmlFor="subject">Asunto *</Label>
+                                    <Input id="subject" value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} placeholder="Asunto de la orden" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="causative">Causante *</Label>
+                                    <Input id="causative" value={formData.causative} onChange={e => setFormData({ ...formData, causative: e.target.value })} placeholder="Causante" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="responsible">Responsable *</Label>
+                                    <Input id="responsible" value={formData.responsible} onChange={e => setFormData({ ...formData, responsible: e.target.value })} placeholder="Responsable" required />
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="expectedDate">Fecha Esperada</Label>
@@ -642,7 +675,7 @@ export function PurchaseOrderForm({ suppliers: initialSuppliers, warehouses, pro
                                 type="submit"
                                 size="lg"
                                 className="w-full h-14 text-lg font-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                                disabled={isPending || items.length === 0 || !formData.supplierId || !formData.warehouseId || !formData.expedienteId}
+                                disabled={isPending || items.length === 0 || !formData.supplierId || !formData.warehouseId || !formData.expedienteId || !formData.subject.trim() || !formData.causative.trim() || !formData.responsible.trim()}
                             >
                                 {isPending ? (
                                     <div className="flex flex-col items-center">

@@ -5,6 +5,7 @@ export interface ImportedWorkbookLine {
     quantity: number;
     unitPrice: number;
     supplierName: string;
+    brand?: string;
     productId?: string;
 }
 
@@ -60,13 +61,47 @@ export async function parsePurchaseWorkbook(file: File): Promise<ParsedPurchaseW
 
     const header = rows[adjPosition] ?? [];
     const adjColumn = header.findIndex(cell => normalize(cell) === "ADJ");
-    const supplierColumns = header
+    const adjudicatedColumns = header
         .map((cell, index) => ({ name: String(cell ?? "").trim(), index }))
         .filter(({ name, index }) => index > adjColumn && name.length > 0);
 
-    if (supplierColumns.length === 0) {
+    if (adjudicatedColumns.length === 0) {
         throw new Error("No se encontraron proveedores después de la columna ADJ.");
     }
+
+    const subheader = rows[adjPosition + 1] ?? [];
+    const offerBrandColumns = header
+        .map((cell, index) => ({ supplierName: String(cell ?? "").trim(), index }))
+        .filter(({ supplierName, index }) => index < adjColumn && supplierName && normalize(subheader[index]) === "OFERTA")
+        .map(({ supplierName, index }) => ({
+            supplierName,
+            brandColumn: normalize(subheader[index + 1]) === "MARCA" ? index + 1 : undefined,
+        }))
+        .filter(block => block.brandColumn !== undefined);
+
+    const findOfferBrandBlock = (supplierName: string) => {
+        const normalizedSupplier = normalize(supplierName);
+        const exact = offerBrandColumns.find(block => normalize(block.supplierName) === normalizedSupplier);
+        if (exact) return exact;
+
+        const ignored = new Set(["SA", "SAS", "SRL", "DE", "EL", "LA", "Y", "ING"]);
+        const targetTokens = new Set(normalizedSupplier.split(" ").filter(token => token.length > 2 && !ignored.has(token)));
+        return offerBrandColumns
+            .map(block => {
+                const candidateTokens = new Set(normalize(block.supplierName).split(" ").filter(token => token.length > 2 && !ignored.has(token)));
+                const shared = [...targetTokens].filter(token => candidateTokens.has(token)).length;
+                return { block, score: shared / Math.max(targetTokens.size, candidateTokens.size) };
+            })
+            .sort((a, b) => b.score - a.score)[0]?.score >= 0.5
+            ? offerBrandColumns
+                .map(block => {
+                    const candidateTokens = new Set(normalize(block.supplierName).split(" ").filter(token => token.length > 2 && !ignored.has(token)));
+                    const shared = [...targetTokens].filter(token => candidateTokens.has(token)).length;
+                    return { block, score: shared / Math.max(targetTokens.size, candidateTokens.size) };
+                })
+                .sort((a, b) => b.score - a.score)[0].block
+            : undefined;
+    };
 
     const materialColumn = header.findIndex(cell => {
         const value = normalize(cell);
@@ -91,9 +126,11 @@ export async function parsePurchaseWorkbook(file: File): Promise<ParsedPurchaseW
 
         if (!productName || normalize(productName) === "TOTAL" || quantity <= 0) continue;
 
-        for (const supplierColumn of supplierColumns) {
+        for (const supplierColumn of adjudicatedColumns) {
             const adjudicatedTotal = numberValue(row[supplierColumn.index]);
             if (adjudicatedTotal <= 0) continue;
+            const offerBrandBlock = findOfferBrandBlock(supplierColumn.name);
+            const brand = offerBrandBlock ? String(row[offerBrandBlock.brandColumn!] ?? "").trim() : "";
 
             lines.push({
                 id: `${rowIndex}-${supplierColumn.index}`,
@@ -102,6 +139,7 @@ export async function parsePurchaseWorkbook(file: File): Promise<ParsedPurchaseW
                 quantity,
                 unitPrice: Number((adjudicatedTotal / quantity).toFixed(2)),
                 supplierName: supplierColumn.name,
+                brand: brand || undefined,
             });
         }
     }
