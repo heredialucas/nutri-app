@@ -55,6 +55,14 @@ export const uploadPresets = {
       { quality: 'auto', fetch_format: 'auto' }
     ] as any[],
   },
+  loanProofs: {
+    folder: 'inventory-control/loan-proofs',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'] as string[],
+    transformation: [
+      { width: 1600, height: 1600, crop: 'limit' },
+      { quality: 'auto', fetch_format: 'auto' }
+    ] as any[],
+  },
 };
 
 export type UploadPresetType = keyof typeof uploadPresets;

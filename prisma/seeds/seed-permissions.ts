@@ -35,6 +35,14 @@ export async function seedPermissions() {
             action: "transfers.view",
             description: "View warehouse transfers",
         },
+        {
+            action: "loans.manage",
+            description: "Register and manage material loans",
+        },
+        {
+            action: "loans.view",
+            description: "View material loans",
+        },
 
         // Purchases
         {

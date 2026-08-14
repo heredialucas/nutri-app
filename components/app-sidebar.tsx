@@ -20,7 +20,8 @@ import {
     FileCheck,
     ChevronDown,
     ChevronRight,
-    Boxes
+    Boxes,
+    HandCoins
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +91,12 @@ const sidebarGroups: SidebarGroup[] = [
                 href: "/dashboard/warehouses/transfers",
                 icon: ArrowRightLeft,
                 permission: "transfers.view",
+            },
+            {
+                title: "Préstamos",
+                href: "/dashboard/loans",
+                icon: HandCoins,
+                permission: "loans.view",
             },
         ],
     },

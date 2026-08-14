@@ -8,22 +8,23 @@ datasource db {
 
 /// System User with authentication details
 model User {
-  id                 String              @id @default(uuid()) @db.Uuid
-  email              String              @unique
-  password           String
-  fullName           String?
-  isActive           Boolean             @default(true)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  firstName          String?
-  lastName           String?
-  username           String?             @unique
-  deliveries         Delivery[]
-  deliveredDeliveries Delivery[] @relation("DeliveryDeliveredBy")
-  purchaseOrders     PurchaseOrder[]
-  stockMovements     StockMovement[]
-  userRoles          UserRole[]
-  warehouseTransfers WarehouseTransfer[]
+  id                  String              @id @default(uuid()) @db.Uuid
+  email               String              @unique
+  password            String
+  fullName            String?
+  isActive            Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  firstName           String?
+  lastName            String?
+  username            String?             @unique
+  deliveries          Delivery[]
+  deliveredDeliveries Delivery[]          @relation("DeliveryDeliveredBy")
+  purchaseOrders      PurchaseOrder[]
+  stockMovements      StockMovement[]
+  userRoles           UserRole[]
+  warehouseTransfers  WarehouseTransfer[]
+  loansCreated        Loan[]              @relation("LoanCreatedBy")
 
   @@map("users")
 }
@@ -98,6 +99,7 @@ model Warehouse {
   stockItems       WarehouseStock[]
   transfersFrom    WarehouseTransfer[] @relation("TransferFrom")
   transfersTo      WarehouseTransfer[] @relation("TransferTo")
+  loans            Loan[]
 
   @@map("warehouses")
 }
@@ -164,49 +166,49 @@ model Supplier {
 
 /// Purchase orders from suppliers
 model PurchaseOrder {
-  id           String              @id @default(uuid()) @db.Uuid
-  orderNumber  String              @unique
-  supplierId   String              @db.Uuid
-  warehouseId  String              @db.Uuid
-  status       PurchaseOrderStatus @default(DRAFT)
-  orderDate    DateTime            @default(now())
-  expectedDate DateTime?
-  receivedDate DateTime?
-  notes        String?
-  subject      String             @default("")
-  causative    String             @default("")
-  responsible  String             @default("")
-  totalAmount  Decimal             @db.Decimal(10, 2)
-  createdById  String              @db.Uuid
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  deletedAt    DateTime?
-  expedienteId String?             @db.Uuid
-  invoiceUrl      String?
-  creditNoteUrl   String?
-  debitNoteUrl   String?
-  items        PurchaseOrderItem[]
-  createdBy    User                @relation(fields: [createdById], references: [id])
-  expediente   Expediente?         @relation(fields: [expedienteId], references: [id])
-  supplier     Supplier            @relation(fields: [supplierId], references: [id])
-  warehouse    Warehouse           @relation(fields: [warehouseId], references: [id])
-  receipts     PurchaseReceipt[]
+  id            String              @id @default(uuid()) @db.Uuid
+  orderNumber   String              @unique
+  supplierId    String              @db.Uuid
+  warehouseId   String              @db.Uuid
+  status        PurchaseOrderStatus @default(DRAFT)
+  orderDate     DateTime            @default(now())
+  expectedDate  DateTime?
+  receivedDate  DateTime?
+  notes         String?
+  subject       String              @default("")
+  causative     String              @default("")
+  responsible   String              @default("")
+  totalAmount   Decimal             @db.Decimal(10, 2)
+  createdById   String              @db.Uuid
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  deletedAt     DateTime?
+  expedienteId  String?             @db.Uuid
+  invoiceUrl    String?
+  creditNoteUrl String?
+  debitNoteUrl  String?
+  items         PurchaseOrderItem[]
+  createdBy     User                @relation(fields: [createdById], references: [id])
+  expediente    Expediente?         @relation(fields: [expedienteId], references: [id])
+  supplier      Supplier            @relation(fields: [supplierId], references: [id])
+  warehouse     Warehouse           @relation(fields: [warehouseId], references: [id])
+  receipts      PurchaseReceipt[]
 
   @@map("purchase_orders")
 }
 
 /// Items in a purchase order
 model PurchaseOrderItem {
-  id              String        @id @default(uuid()) @db.Uuid
-  purchaseOrderId String        @db.Uuid
-  productId       String        @db.Uuid
+  id              String                @id @default(uuid()) @db.Uuid
+  purchaseOrderId String                @db.Uuid
+  productId       String                @db.Uuid
   quantity        Int
-  receivedQty     Int           @default(0)
-  unitPrice       Decimal       @db.Decimal(10, 2)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  product         Product       @relation(fields: [productId], references: [id])
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  receivedQty     Int                   @default(0)
+  unitPrice       Decimal               @db.Decimal(10, 2)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  product         Product               @relation(fields: [productId], references: [id])
+  purchaseOrder   PurchaseOrder         @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   receiptItems    PurchaseReceiptItem[]
 
   @@map("purchase_order_items")
@@ -234,43 +236,43 @@ model Institution {
 
 /// Deliveries to institutions
 model Delivery {
-  id             String         @id @default(uuid()) @db.Uuid
-  deliveryNumber String         @unique
-  institutionId  String         @db.Uuid
-  warehouseId    String         @db.Uuid
-  status         DeliveryStatus @default(DRAFT)
-  deliveryDate   DateTime?
-  receivedBy     String?
-  notes          String?
-  createdById    String         @db.Uuid
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  deletedAt      DateTime?
-  expedienteId   String?        @db.Uuid
-  deliveryProofUrl String?
-  deliveredById  String?        @db.Uuid
-  disaffectionReviewed Boolean   @default(false)
-  createdBy      User           @relation(fields: [createdById], references: [id])
-  deliveredBy    User?          @relation("DeliveryDeliveredBy", fields: [deliveredById], references: [id])
-  expediente     Expediente?    @relation(fields: [expedienteId], references: [id])
-  institution    Institution    @relation(fields: [institutionId], references: [id])
-  warehouse      Warehouse      @relation(fields: [warehouseId], references: [id])
-  items          DeliveryItem[]
+  id                   String         @id @default(uuid()) @db.Uuid
+  deliveryNumber       String         @unique
+  institutionId        String         @db.Uuid
+  warehouseId          String         @db.Uuid
+  status               DeliveryStatus @default(DRAFT)
+  deliveryDate         DateTime?
+  receivedBy           String?
+  notes                String?
+  createdById          String         @db.Uuid
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  deletedAt            DateTime?
+  expedienteId         String?        @db.Uuid
+  deliveryProofUrl     String?
+  deliveredById        String?        @db.Uuid
+  disaffectionReviewed Boolean        @default(false)
+  createdBy            User           @relation(fields: [createdById], references: [id])
+  deliveredBy          User?          @relation("DeliveryDeliveredBy", fields: [deliveredById], references: [id])
+  expediente           Expediente?    @relation(fields: [expedienteId], references: [id])
+  institution          Institution    @relation(fields: [institutionId], references: [id])
+  warehouse            Warehouse      @relation(fields: [warehouseId], references: [id])
+  items                DeliveryItem[]
 
   @@map("deliveries")
 }
 
 /// Items in a delivery
 model DeliveryItem {
-  id         String   @id @default(uuid()) @db.Uuid
-  deliveryId String   @db.Uuid
-  productId  String   @db.Uuid
-  quantity   Int
+  id                  String   @id @default(uuid()) @db.Uuid
+  deliveryId          String   @db.Uuid
+  productId           String   @db.Uuid
+  quantity            Int
   disaffectedQuantity Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  product    Product  @relation(fields: [productId], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  delivery            Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  product             Product  @relation(fields: [productId], references: [id])
 
   @@map("delivery_items")
 }
@@ -310,6 +312,7 @@ model Product {
   movements          StockMovement[]
   warehouseStock     WarehouseStock[]
   warehouseTransfers WarehouseTransfer[]
+  loanItems          LoanItem[]
 
   @@map("products")
 }
@@ -327,36 +330,38 @@ model StockMovement {
   sourceId     String       @db.Uuid
   sourceType   String
   deletedAt    DateTime?
+  loanId       String?      @db.Uuid
   expediente   Expediente?  @relation(fields: [expedienteId], references: [id])
   product      Product      @relation(fields: [productId], references: [id])
   user         User         @relation(fields: [userId], references: [id])
   warehouse    Warehouse?   @relation(fields: [warehouseId], references: [id])
+  loan         Loan?        @relation(fields: [loanId], references: [id])
 
   @@map("stock_movements")
 }
 
 model ExpedienteCategory {
   id          String       @id @default(uuid()) @db.Uuid
-  name       String       @unique
+  name        String       @unique
   description String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  deletedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
   expedientes Expediente[]
 
   @@map("expediente_categories")
 }
 
 model Expediente {
-  id          String               @id @default(uuid()) @db.Uuid
-  number      String               @unique
+  id          String              @id @default(uuid()) @db.Uuid
+  number      String              @unique
   description String?
   status      String
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   origin      String?
   type        String?
-  categoryId  String?            @db.Uuid
+  categoryId  String?             @db.Uuid
   category    ExpedienteCategory? @relation(fields: [categoryId], references: [id])
   year        Int?
   deletedAt   DateTime?
@@ -365,6 +370,7 @@ model Expediente {
   receipts    PurchaseReceipt[]
   movements   StockMovement[]
   transfers   WarehouseTransfer[]
+  loans       Loan[]
 
   @@map("expedientes")
 }
@@ -400,22 +406,60 @@ model PurchaseReceipt {
 }
 
 model PurchaseReceiptItem {
-  id           String               @id @default(uuid()) @db.Uuid
-  receiptId    String               @db.Uuid
-  purchaseOrderItemId String?       @db.Uuid
-  productId    String               @db.Uuid
-  quantity     Int
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  unitPrice    Decimal              @default(0) @db.Decimal(10, 2)
-  priceHistory ProductPriceHistory?
-  product      Product              @relation(fields: [productId], references: [id])
-  purchaseOrderItem PurchaseOrderItem? @relation(fields: [purchaseOrderItemId], references: [id])
-  receipt      PurchaseReceipt      @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  id                  String               @id @default(uuid()) @db.Uuid
+  receiptId           String               @db.Uuid
+  purchaseOrderItemId String?              @db.Uuid
+  productId           String               @db.Uuid
+  quantity            Int
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  unitPrice           Decimal              @default(0) @db.Decimal(10, 2)
+  priceHistory        ProductPriceHistory?
+  product             Product              @relation(fields: [productId], references: [id])
+  purchaseOrderItem   PurchaseOrderItem?   @relation(fields: [purchaseOrderItemId], references: [id])
+  receipt             PurchaseReceipt      @relation(fields: [receiptId], references: [id], onDelete: Cascade)
 
   @@unique([receiptId, purchaseOrderItemId])
-
   @@map("purchase_receipt_items")
+}
+
+/// Egreso documentado de materiales entregados en préstamo
+model Loan {
+  id              String          @id @default(uuid()) @db.Uuid
+  number          String          @unique
+  warehouseId     String          @db.Uuid
+  responsibleName String
+  responsibleDni  String
+  destination     String
+  notes           String?
+  proofUrl        String
+  status          LoanStatus      @default(ACTIVE)
+  createdById     String          @db.Uuid
+  expedienteId    String?         @db.Uuid
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+  warehouse       Warehouse       @relation(fields: [warehouseId], references: [id])
+  createdBy       User            @relation("LoanCreatedBy", fields: [createdById], references: [id])
+  expediente      Expediente?     @relation(fields: [expedienteId], references: [id])
+  items           LoanItem[]
+  movements       StockMovement[]
+
+  @@map("loans")
+}
+
+/// Producto y cantidad que salió del depósito como parte de un préstamo
+model LoanItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  loanId    String   @db.Uuid
+  productId String   @db.Uuid
+  quantity  Int
+  createdAt DateTime @default(now())
+  loan      Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@unique([loanId, productId])
+  @@map("loan_items")
 }
 
 model ProductPriceHistory {
@@ -467,4 +511,9 @@ enum MovementType {
   IN
   OUT
   ADJUSTMENT
+}
+
+enum LoanStatus {
+  ACTIVE
+  CANCELLED
 }

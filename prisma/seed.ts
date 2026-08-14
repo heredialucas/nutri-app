@@ -34,6 +34,10 @@ async function main() {
         { action: "transfers.manage", description: "Crear, completar y cancelar transferencias entre almacenes" },
         { action: "transfers.view", description: "Ver transferencias entre almacenes" },
 
+        // Loans (documented stock outflows)
+        { action: "loans.manage", description: "Registrar y gestionar préstamos de materiales" },
+        { action: "loans.view", description: "Ver préstamos de materiales" },
+
         // Traceability (General Movements)
         { action: "movements.view", description: "Ver historial completo de movimientos de stock" },
 
@@ -165,6 +169,7 @@ async function main() {
         "inventory.manage", "inventory.view",
         "warehouses.manage", "warehouses.view",
         "transfers.manage", "transfers.view",
+        "loans.manage", "loans.view",
         "deliveries.manage", "deliveries.view",
         "receipts.manage", "receipts.view",
         "institutions.manage", "institutions.view",
