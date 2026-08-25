@@ -1,12 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { useBooking } from "@/components/booking/booking-context";
+import { useState } from "react";
 
-function DatosForm() {
-  const searchParams = useSearchParams();
-  const type = searchParams.get("type") || "IN_PERSON";
+export default function DatosPage() {
+  const { data, setStep2 } = useBooking();
+  const router = useRouter();
+  const [form, setForm] = useState({
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: data.email,
+    phone: data.phone,
+    birthDate: data.birthDate,
+    goal: data.goal,
+    billingType: data.billingType,
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setStep2(form);
+    router.push("/reservar/horario");
+  };
 
   return (
     <div>
@@ -17,7 +37,7 @@ function DatosForm() {
         Completá tus datos para continuar con la reserva.
       </p>
 
-      <form className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="firstName" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
@@ -28,6 +48,8 @@ function DatosForm() {
               name="firstName"
               type="text"
               required
+              value={form.firstName}
+              onChange={handleChange}
               className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
             />
           </div>
@@ -40,6 +62,8 @@ function DatosForm() {
               name="lastName"
               type="text"
               required
+              value={form.lastName}
+              onChange={handleChange}
               className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
             />
           </div>
@@ -54,6 +78,8 @@ function DatosForm() {
             name="email"
             type="email"
             required
+            value={form.email}
+            onChange={handleChange}
             className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
           />
         </div>
@@ -67,6 +93,8 @@ function DatosForm() {
             name="phone"
             type="tel"
             required
+            value={form.phone}
+            onChange={handleChange}
             className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
           />
         </div>
@@ -79,6 +107,8 @@ function DatosForm() {
             id="birthDate"
             name="birthDate"
             type="date"
+            value={form.birthDate}
+            onChange={handleChange}
             className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
           />
         </div>
@@ -92,6 +122,8 @@ function DatosForm() {
             name="goal"
             rows={3}
             placeholder="Ej: bajar de peso, mejorar hábitos alimentarios, control médico..."
+            value={form.goal}
+            onChange={handleChange}
             className="px-4 py-3 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] resize-none"
           />
         </div>
@@ -103,6 +135,8 @@ function DatosForm() {
           <select
             id="billingType"
             name="billingType"
+            value={form.billingType}
+            onChange={handleChange}
             className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
           >
             <option value="particular">Particular</option>
@@ -117,22 +151,14 @@ function DatosForm() {
           >
             Volver
           </Link>
-          <Link
-            href={`/reservar/horario?type=${type}`}
-            className="inline-flex items-center justify-center h-11 px-8 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold no-underline transition-colors hover:bg-[#333] flex-1"
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center h-11 px-8 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold transition-colors hover:bg-[#333] flex-1 cursor-pointer"
           >
             Continuar
-          </Link>
+          </button>
         </div>
       </form>
     </div>
-  );
-}
-
-export default function DatosPage() {
-  return (
-    <Suspense fallback={<div className="text-sm text-[#999]">Cargando...</div>}>
-      <DatosForm />
-    </Suspense>
   );
 }

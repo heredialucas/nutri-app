@@ -1,15 +1,19 @@
+"use client";
+
 import Link from "next/link";
 import { Building2, Video } from "lucide-react";
+import { useBooking } from "@/components/booking/booking-context";
+import { useRouter } from "next/navigation";
 
 const types = [
   {
-    id: "IN_PERSON",
+    id: "IN_PERSON" as const,
     title: "Presencial",
     description: "En el consultorio, con mediciones antropométricas y evaluación completa.",
     icon: Building2,
   },
   {
-    id: "ONLINE",
+    id: "ONLINE" as const,
     title: "Online",
     description: "Por videollamada, con la misma cercanía y calidad.",
     icon: Video,
@@ -17,6 +21,14 @@ const types = [
 ];
 
 export default function ReservarPage() {
+  const { setStep1 } = useBooking();
+  const router = useRouter();
+
+  const handleSelect = (type: "ONLINE" | "IN_PERSON") => {
+    setStep1(type);
+    router.push("/reservar/datos");
+  };
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-[#1a1a1a] mb-2 m-0">
@@ -30,10 +42,10 @@ export default function ReservarPage() {
         {types.map((type) => {
           const Icon = type.icon;
           return (
-            <Link
+            <button
               key={type.id}
-              href={`/reservar/datos?type=${type.id}`}
-              className="group flex flex-col items-center gap-5 p-8 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white no-underline transition-all duration-300 hover:border-[rgba(0,0,0,0.15)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] text-center"
+              onClick={() => handleSelect(type.id)}
+              className="group flex flex-col items-center gap-5 p-8 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white transition-all duration-300 hover:border-[rgba(0,0,0,0.15)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] text-center cursor-pointer"
             >
               <div className="w-14 h-14 rounded-full bg-[rgba(0,0,0,0.03)] flex items-center justify-center transition-colors duration-300 group-hover:bg-[rgba(0,0,0,0.06)]">
                 <Icon size={24} strokeWidth={1.5} className="text-[#1a1a1a]" />
@@ -46,7 +58,7 @@ export default function ReservarPage() {
                   {type.description}
                 </p>
               </div>
-            </Link>
+            </button>
           );
         })}
       </div>

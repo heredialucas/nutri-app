@@ -3,6 +3,7 @@
 import { authService } from "@/services/auth-service";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import prisma from "@/lib/prisma";
 
 export async function loginAction(formData: FormData) {
     const identifier = formData.get("identifier") as string;
@@ -15,12 +16,11 @@ export async function loginAction(formData: FormData) {
     try {
         const { token } = await authService.login(identifier, password);
 
-        // Set HTTP-only cookie
         const cookieStore = await cookies();
         cookieStore.set("session_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            maxAge: 60 * 60 * 24 * 7, // 7 days
+            maxAge: 60 * 60 * 24 * 7,
             path: "/",
         });
 
@@ -30,23 +30,68 @@ export async function loginAction(formData: FormData) {
     }
 }
 
-export async function registerAction(data: { email: string, password: string, username?: string }) {
-    const { email, password, username } = data;
+export async function registerAction(data: {
+    email: string;
+    password: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+}) {
+    const { email, password, username, firstName, lastName } = data;
 
     if (!email || !password) {
         return { error: "Faltan datos" };
     }
 
     try {
-        await authService.register(email, password, username);
-        // Auto-login after register
+        const user = await authService.register(email, password, username);
+
+        // Update user with firstName/lastName if provided
+        if (firstName || lastName) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    firstName: firstName || undefined,
+                    lastName: lastName || undefined,
+                    fullName: firstName && lastName ? `${firstName} ${lastName}` : undefined,
+                },
+            });
+        }
+
+        // Assign PATIENT role
+        const patientRole = await prisma.role.findUnique({ where: { name: "PATIENT" } });
+        if (patientRole) {
+            await prisma.userRole.upsert({
+                where: { userId_roleId: { userId: user.id, roleId: patientRole.id } },
+                update: {},
+                create: { userId: user.id, roleId: patientRole.id },
+            });
+        }
+
+        // Create Patient record if not exists
+        const existingPatient = await prisma.patient.findFirst({
+            where: { email: email.trim(), deletedAt: null },
+        });
+
+        if (!existingPatient) {
+            await prisma.patient.create({
+                data: {
+                    firstName: (firstName || "").trim() || "Sin nombre",
+                    lastName: (lastName || "").trim() || "Sin apellido",
+                    email: email.trim(),
+                    billingType: "particular",
+                },
+            });
+        }
+
+        // Auto-login
         const { token } = await authService.login(email, password);
 
         const cookieStore = await cookies();
         cookieStore.set("session_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            maxAge: 60 * 60 * 24 * 7, // 7 days
+            maxAge: 60 * 60 * 24 * 7,
             path: "/",
         });
 
@@ -75,7 +120,6 @@ export async function forgotPasswordAction(email: string) {
 export async function updatePasswordAction(password: string) {
     if (!password) return { error: "Contraseña requerida" };
 
-    // Need current user context
     const cookieStore = await cookies();
     const token = cookieStore.get("session_token");
     if (!token) return { error: "No autorizado" };

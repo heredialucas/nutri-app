@@ -85,7 +85,7 @@ export async function createAppointment(data: {
         endAt: new Date(data.endAt),
     });
 
-    revalidatePath("/dashboard/appointments");
+    revalidatePath("/dashboard/turnos");
     return serializePrisma(appointment);
 }
 
@@ -108,15 +108,16 @@ export async function updateAppointment(id: string, data: {
     if (data.meetingUrl !== undefined) updateData.meetingUrl = data.meetingUrl;
 
     const appointment = await appointmentService.update(id, updateData);
-    revalidatePath("/dashboard/appointments");
-    revalidatePath(`/dashboard/appointments/${id}`);
+    revalidatePath("/dashboard/turnos");
+    revalidatePath("/dashboard/turnos/calendario");
     return serializePrisma(appointment);
 }
 
 export async function cancelAppointment(id: string, reason?: string) {
     await requireAuth("appointments:update");
     await appointmentService.cancel(id, reason);
-    revalidatePath("/dashboard/appointments");
+    revalidatePath("/dashboard/turnos");
+    revalidatePath("/dashboard/turnos/calendario");
     return { success: true };
 }
 

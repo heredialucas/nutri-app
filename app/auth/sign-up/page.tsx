@@ -6,7 +6,10 @@ import Link from "next/link";
 export default async function Page() {
   const user = await getCurrentUser();
   if (user) {
-    redirect("/dashboard/users");
+    if (user.userRoles?.some((ur) => ur.role.name === "PATIENT")) {
+      redirect("/paciente/dashboard");
+    }
+    redirect("/dashboard");
   }
 
   return (

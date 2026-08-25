@@ -13,14 +13,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
 
-export function SignUpForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<"div">) {
-  const [email, setEmail] = useState("");
+function SignUpFormInner() {
+  const searchParams = useSearchParams();
+  const preEmail = searchParams.get("email") || "";
+  const preFirstName = searchParams.get("firstName") || "";
+  const preLastName = searchParams.get("lastName") || "";
+
+  const [email, setEmail] = useState(preEmail);
+  const [firstName, setFirstName] = useState(preFirstName);
+  const [lastName, setLastName] = useState(preLastName);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
@@ -40,10 +44,16 @@ export function SignUpForm({
     }
 
     try {
-      const result = await registerAction({ email, username, password });
+      const result = await registerAction({
+        email,
+        username,
+        password,
+        firstName,
+        lastName,
+      });
       if (result?.error) throw new Error(result.error);
 
-      router.push("/dashboard");
+      router.push("/paciente/dashboard");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Ocurrió un error");
     } finally {
@@ -52,15 +62,41 @@ export function SignUpForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn("flex flex-col gap-6")}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Registrarse</CardTitle>
-          <CardDescription>Crear una nueva cuenta</CardDescription>
+          <CardTitle className="text-2xl">Crear cuenta</CardTitle>
+          <CardDescription>
+            {preEmail
+              ? "Completá tu contraseña para activar tu cuenta"
+              : "Registrate para gestionar tus turnos"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp}>
             <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="firstName">Nombre</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    required
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="lastName">Apellido</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    required
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
+                </div>
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Correo electrónico</Label>
                 <Input
@@ -112,7 +148,7 @@ export function SignUpForm({
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
-              ¿Ya tienes una cuenta?{" "}
+              ¿Ya tenés una cuenta?{" "}
               <Link href="/auth/login" className="underline underline-offset-4">
                 Iniciar sesión
               </Link>
@@ -120,6 +156,16 @@ export function SignUpForm({
           </form>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutRef<"div">) {
+  return (
+    <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <Suspense fallback={<div className="text-sm text-muted-foreground">Cargando...</div>}>
+        <SignUpFormInner />
+      </Suspense>
     </div>
   );
 }
