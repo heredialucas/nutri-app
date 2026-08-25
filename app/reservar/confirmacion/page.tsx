@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { useBooking } from "@/components/booking/booking-context";
 import { createPublicBooking } from "@/app/actions/public-booking";
@@ -20,8 +20,11 @@ function ConfirmacionContent() {
   const [appointmentId, setAppointmentId] = useState("");
   const [countdown, setCountdown] = useState(10);
 
+  const bookedRef = useRef(false);
+
   useEffect(() => {
-    if (status !== "loading") return;
+    if (status !== "loading" || bookedRef.current) return;
+    bookedRef.current = true;
 
     async function book() {
       try {
