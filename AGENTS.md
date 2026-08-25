@@ -164,7 +164,7 @@ Los documentos `sistema_gestion_stock.md`, `NEW_STRUCTURE.md` y `EXPLICACION_SCH
 - **Fase 14:** ✅ Turnos y agenda (lista, calendario mensual, disponibilidad horaria)
 - **Fase 15:** ✅ Mediciones y evolución (IMC server-side, fotos, gráficos)
 - **Fase 16:** ✅ Planes alimentarios (editor, días, comidas, PDF)
-- **Fase 17:** Recetas y listas de compras
+- **Fase 17:** ✅ Recetas y listas de compras (CRUD recetas, listas de compras, generación desde plan)
 - **Fase 18:** Archivos, fotos y consentimientos (Cloudinary)
 - **Fase 19:** Seguimiento semanal
 - **Fase 20:** Cobros, gastos y reportes
