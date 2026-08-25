@@ -63,6 +63,16 @@
     "tsx": "^4.21.0",
     "typescript": "^5"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver",
+      "bcryptjs"
+    ]
+  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   }
