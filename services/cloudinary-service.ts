@@ -14,12 +14,12 @@ export class CloudinaryService {
   /**
    * Sube una imagen a Cloudinary
    * @param file - Archivo en formato base64 o URL
-   * @param preset - Tipo de preset (products, users, suppliers)
+   * @param preset - Tipo de preset
    * @param customOptions - Opciones personalizadas adicionales
    */
   static async uploadImage(
     file: string,
-    preset: UploadPresetType = 'products',
+    preset: UploadPresetType = 'patientPhotos',
     customOptions?: Record<string, any>
   ): Promise<UploadResult> {
     try {
@@ -72,7 +72,7 @@ export class CloudinaryService {
   static async updateImage(
     file: string,
     oldPublicId: string,
-    preset: UploadPresetType = 'products'
+    preset: UploadPresetType = 'patientPhotos'
   ): Promise<UploadResult> {
     try {
       // Subir nueva imagen
@@ -104,7 +104,7 @@ export class CloudinaryService {
    */
   static async uploadMultipleImages(
     files: string[],
-    preset: UploadPresetType = 'products'
+    preset: UploadPresetType = 'patientPhotos'
   ): Promise<UploadResult[]> {
     const uploadPromises = files.map(file => this.uploadImage(file, preset));
     return Promise.all(uploadPromises);

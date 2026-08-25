@@ -189,7 +189,7 @@ export async function createProductAction(formData: FormData) {
 
             // Importar dinámicamente la función de upload
             const { uploadImage } = await import('./cloudinary');
-            const uploadResult = await uploadImage(dataUrl, 'products');
+            const uploadResult = await uploadImage(dataUrl, 'patientDocuments');
 
             if (uploadResult.success && uploadResult.url) {
                 receiptImageUrl = uploadResult.url;
@@ -361,7 +361,7 @@ export async function restockProductAction(formData: FormData) {
             const dataUrl = `data:${receiptImageFile.type};base64,${base64}`;
 
             const { uploadImage } = await import('./cloudinary');
-            const uploadResult = await uploadImage(dataUrl, 'products');
+            const uploadResult = await uploadImage(dataUrl, 'patientDocuments');
 
             if (uploadResult.success && uploadResult.url) {
                 receiptImageUrl = uploadResult.url;

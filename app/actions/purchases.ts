@@ -216,7 +216,7 @@ export async function updateOrderDocument(
         if (base64Data) {
             // Upload to Cloudinary using orders preset (allows images and PDFs)
             const { uploadImage } = await import("./cloudinary");
-            const result = await uploadImage(base64Data, "orders");
+            const result = await uploadImage(base64Data, "patientDocuments");
             
             if (result.success && result.url) {
                 documentUrl = result.url;

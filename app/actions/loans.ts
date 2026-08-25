@@ -87,7 +87,7 @@ export async function createLoanAction(formData: FormData) {
     try {
         const buffer = Buffer.from(await proof.arrayBuffer());
         const upload = await import("@/app/actions/cloudinary");
-        const result = await upload.uploadImage(`data:${proof.type};base64,${buffer.toString("base64")}`, "loanProofs");
+        const result = await upload.uploadImage(`data:${proof.type};base64,${buffer.toString("base64")}`, "patientDocuments");
         if (!result.success || !result.url) return { error: result.error || "No se pudo subir el comprobante" };
 
         await loanService.createLoan({

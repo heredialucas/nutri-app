@@ -11,14 +11,14 @@ const defaultUrl = process.env.VERCEL_URL
 export const metadata: Metadata = {
     metadataBase: new URL(defaultUrl),
     title: {
-        default: "Control de Inventario",
-        template: "%s | Control de Inventario",
+        default: "Mauro Acosta | Gestión nutricional",
+        template: "%s | Mauro Acosta",
     },
     description:
-        "Sistema de gestión de inventario, depósitos, compras y entregas para organizaciones.",
+        "Consultorio de gestión nutricional. Atención personalizada para pacientes y consultorios.",
     openGraph: {
-        title: "Control de Inventario",
-        description: "Sistema de gestión de inventario, depósitos, compras y entregas.",
+        title: "Mauro Acosta | Gestión nutricional",
+        description: "Consultorio de gestión nutricional. Atención personalizada para pacientes y consultorios.",
         type: "website",
         locale: "es_AR",
     },

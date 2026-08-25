@@ -77,7 +77,7 @@ export function ReceiptForm({ purchaseOrders, products: initialProducts, warehou
     );
 
     const { upload, isUploading: isUploadingImage } = useImageUpload({
-        preset: 'products',
+        preset: 'patientDocuments',
         onSuccess: (url) => setImageUrl(url),
         onError: (err) => toast.error(err)
     });

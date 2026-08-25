@@ -8,7 +8,7 @@ import type { UploadPresetType } from '@/lib/cloudinary';
  */
 export async function uploadImage(
   file: string,
-  preset: UploadPresetType = 'products'
+  preset: UploadPresetType = 'patientPhotos'
 ) {
   try {
     const result = await CloudinaryService.uploadImage(file, preset);
@@ -44,7 +44,7 @@ export async function deleteImage(publicId: string) {
 export async function updateImage(
   file: string,
   oldPublicId: string,
-  preset: UploadPresetType = 'products'
+  preset: UploadPresetType = 'patientPhotos'
 ) {
   try {
     const result = await CloudinaryService.updateImage(file, oldPublicId, preset);
@@ -63,7 +63,7 @@ export async function updateImage(
  */
 export async function uploadMultipleImages(
   files: string[],
-  preset: UploadPresetType = 'products'
+  preset: UploadPresetType = 'patientPhotos'
 ) {
   try {
     const results = await CloudinaryService.uploadMultipleImages(files, preset);

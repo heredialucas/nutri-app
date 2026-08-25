@@ -11,7 +11,7 @@ export interface UseImageUploadOptions {
 }
 
 export function useImageUpload(options: UseImageUploadOptions = {}) {
-  const { preset = 'products', onSuccess, onError } = options;
+  const { preset = 'patientPhotos', onSuccess, onError } = options;
   
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);

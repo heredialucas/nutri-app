@@ -52,7 +52,7 @@ export function ReceiptIntakeForm({ expedientes }: ReceiptIntakeFormProps) {
     const [base64Image, setBase64Image] = useState("");
 
     const { upload, isUploading: isUploadingImage } = useImageUpload({
-        preset: "receipts",
+        preset: "paymentReceipts",
         onSuccess: url => setImageUrl(url),
         onError: error => toast.error(error),
     });

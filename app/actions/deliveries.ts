@@ -111,7 +111,7 @@ export async function markAsDeliveredWithProof(formData: FormData) {
         const buffer = Buffer.from(await photo.arrayBuffer());
         const uploadResult = await uploadImage(
             `data:${photo.type};base64,${buffer.toString("base64")}`,
-            "deliveryProofs"
+            "patientDocuments"
         );
 
         if (!uploadResult.success || !uploadResult.url) {
