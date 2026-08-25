@@ -66,11 +66,11 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@prisma/engines",
+      "bcryptjs",
       "esbuild",
       "prisma",
       "sharp",
-      "unrs-resolver",
-      "bcryptjs"
+      "unrs-resolver"
     ]
   },
   "prisma": {
