@@ -63,11 +63,10 @@ export const availabilityService = {
             },
         });
 
-        // Obtener turnos existentes para esa fecha
-        const dayStart = new Date(date);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(date);
-        dayEnd.setHours(23, 59, 59, 999);
+        // Obtener turnos existentes para esa fecha (usar string local para evitar offset UTC)
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        const dayStart = new Date(`${dateStr}T00:00:00`);
+        const dayEnd = new Date(`${dateStr}T23:59:59`);
 
         const existingAppointments = await prisma.appointment.findMany({
             where: {
@@ -93,10 +92,8 @@ export const availabilityService = {
                 const m = currentMinutes % 60;
                 const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
-                const slotStart = new Date(date);
-                slotStart.setHours(h, m, 0, 0);
-                const slotEnd = new Date(slotStart);
-                slotEnd.setMinutes(slotEnd.getMinutes() + duration);
+                const slotStart = new Date(`${dateStr}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`);
+                const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
 
                 const isBooked = existingAppointments.some(
                     (apt) => apt.startAt < slotEnd && apt.endAt > slotStart

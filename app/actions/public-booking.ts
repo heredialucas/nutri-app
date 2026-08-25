@@ -28,7 +28,9 @@ async function getDefaultProfessionalId(): Promise<string> {
 export async function getPublicAvailableSlots(date: string) {
     const professionalId = await getDefaultProfessionalId();
     const { availabilityService } = await import("@/services/availability-service");
-    const slots = await availabilityService.getAvailableSlots(professionalId, new Date(date));
+    // Parse as local date string to avoid UTC offset
+    const localDate = new Date(`${date}T12:00:00`);
+    const slots = await availabilityService.getAvailableSlots(professionalId, localDate);
     return slots;
 }
 
@@ -76,11 +78,9 @@ export async function createPublicBooking(data: {
     }
 
     // Calculate end time (30 min slots)
-    const [hours, minutes] = data.time.split(":").map(Number);
-    const startAt = new Date(data.date);
-    startAt.setHours(hours, minutes, 0, 0);
-    const endAt = new Date(startAt);
-    endAt.setMinutes(endAt.getMinutes() + 30);
+    // Build the ISO string in local time to avoid UTC offset issues
+    const startAt = new Date(`${data.date}T${data.time}:00`);
+    const endAt = new Date(startAt.getTime() + 30 * 60 * 1000);
 
     // Check for conflicts
     const conflict = await prisma.appointment.findFirst({
