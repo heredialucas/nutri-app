@@ -104,9 +104,17 @@ export function NavMenu({
 
             <div className="flex flex-col gap-4">
               <Link
-                href="/reservar"
+                href="/auth/login"
                 onClick={() => setIsOpen(false)}
                 className="inline-flex items-center justify-center px-6 py-3 text-sm font-medium rounded-full bg-white text-[#1a1a1a] no-underline transition-all duration-300 hover:bg-white/90"
+              >
+                Iniciar sesión
+              </Link>
+
+              <Link
+                href="/reservar"
+                onClick={() => setIsOpen(false)}
+                className="inline-flex items-center justify-center px-6 py-3 text-sm font-medium rounded-full border border-[#ffffff33] text-white no-underline transition-all duration-300 hover:border-white"
               >
                 Reservar turno
               </Link>

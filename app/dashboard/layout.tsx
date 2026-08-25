@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = {
     title: "Dashboard",
-    description: "Panel de control del sistema de inventario",
+    description: "Panel de gestión nutricional — Mauro Acosta",
 };
 
 export default async function DashboardLayout({

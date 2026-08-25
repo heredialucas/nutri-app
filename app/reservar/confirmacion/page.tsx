@@ -7,16 +7,14 @@ import { CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const typeLabels: Record<string, string> = {
-  first: "Primera consulta",
-  follow_up: "Seguimiento",
-  online: "Consulta online",
-  in_person: "Consulta presencial",
+  IN_PERSON: "Consulta presencial",
+  ONLINE: "Consulta online",
 };
 
 function ConfirmacionContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const type = searchParams.get("type") || "first";
+  const type = searchParams.get("type") || "IN_PERSON";
   const time = searchParams.get("time") || "10:00";
   const [countdown, setCountdown] = useState(5);
 

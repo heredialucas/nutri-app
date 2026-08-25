@@ -144,25 +144,26 @@ Los documentos `sistema_gestion_stock.md`, `NEW_STRUCTURE.md` y `EXPLICACION_SCH
 - **Fase 3 — Adaptación visual:** Hero cinematográfico con imagen de fondo, header flotante con glass morphism, menú móvil con curva SVG, loading intro, smooth scroll con Lenis, `globals.css` con animaciones. Dependencias `framer-motion` y `lenis` instaladas. Imagen `tritri.png` copiada como `public/images/hero-mauro.jpg`.
 - **Fase 4 — Landing completa y reserva pública:**
   - Landing: Header, Hero (imagen + gradientes), Servicios, Cómo trabajo (zigzag), Beneficios, Muro de testimonios, CTA Reserva, Contacto, Footer.
-  - Reserva: `/reservar` (tipo), `/reservar/datos` (formulario), `/reservar/horario` (selección), `/reservar/confirmacion` (redirect a dashboard).
+  - Reserva: `/reservar` (2 opciones: Presencial u Online), `/reservar/datos` (formulario), `/reservar/horario` (selección), `/reservar/confirmacion` (redirect a dashboard).
+  - Tipos de turno simplificados a `IN_PERSON` y `ONLINE` (enum consistente con Prisma Fase 5).
   - Smooth scroll con `lenis.scrollTo()` en todos los nav links.
   - Datos de contacto: WhatsApp `+54 9 3816 70-9189`, ubicación `San Miguel de Tucumán, Tucumán`.
   - Confirmación redirige a `/dashboard` después de 5s.
 
 ### Pendiente
 
-- **Fase 5:** Nuevo modelo Prisma (Patient, MedicalHistory, Appointment, Availability, AnthropometricMeasurement, NutritionPlan, etc.)
-- **Fase 6:** Migración de base de datos (schema → SQL → execute → verify)
-- **Fase 7:** Seed, roles y permisos nutricionales
-- **Fase 8:** Autenticación y autorización (extender `lib/auth.ts`)
-- **Fase 9:** Servicios y Server Actions nutricionales
-- **Fase 10:** Layout privado y navegación del dashboard
-- **Fase 11:** Dashboard (turnos de hoy, pacientes activos, ingresos)
-- **Fase 12:** Pacientes (CRUD, búsqueda, archivado)
-- **Fase 13:** Historia clínica (antecedentes, alergias, medicación, objetivos)
-- **Fase 14:** Turnos y agenda (calendario, disponibilidad, conflictos)
-- **Fase 15:** Mediciones y evolución (IMC server-side, fotos, gráficos)
-- **Fase 16:** Planes alimentarios (editor, días, comidas, PDF)
+- **Fase 5:** ✅ Nuevo modelo Prisma (schema actualizado, pendiente migración DB)
+- **Fase 6:** ✅ Migración de base de datos (schema → SQL → execute → verify)
+- **Fase 7:** ✅ Seed, roles y permisos nutricionales
+- **Fase 8:** ✅ Autenticación y autorización (lib/auth.ts extendido, proxy.ts protege /paciente/dashboard)
+- **Fase 9:** ✅ Servicios y Server Actions nutricionales (18 services + 17 actions)
+- **Fase 10:** ✅ Layout privado y navegación del dashboard (sidebar nutricional, mobile nav, metadata)
+- **Fase 11:** ✅ Dashboard (turnos de hoy, pacientes activos, ingresos, alertas de seguimiento)
+- **Fase 12:** ✅ Pacientes (CRUD, búsqueda, archivado, formulario completo)
+- **Fase 13:** ✅ Historia clínica (antecedentes, alergias, medicación, objetivos)
+- **Fase 14:** ✅ Turnos y agenda (lista, calendario mensual, disponibilidad horaria)
+- **Fase 15:** ✅ Mediciones y evolución (IMC server-side, fotos, gráficos)
+- **Fase 16:** ✅ Planes alimentarios (editor, días, comidas, PDF)
 - **Fase 17:** Recetas y listas de compras
 - **Fase 18:** Archivos, fotos y consentimientos (Cloudinary)
 - **Fase 19:** Seguimiento semanal

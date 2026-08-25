@@ -37,7 +37,7 @@ export function MobileNav({
                     />
                 </SheetContent>
             </Sheet>
-            <div className="font-bold truncate">Gestión</div>
+            <div className="font-bold truncate text-sm">Mauro Acosta</div>
         </div>
     );
 }

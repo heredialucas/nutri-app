@@ -83,6 +83,17 @@ export function LandingHeader() {
           </nav>
 
           <Link
+            href="/auth/login"
+            className={`hidden md:inline-flex items-center px-4 py-1.5 text-xs font-medium rounded-full transition-all duration-300 ${
+              scrolled
+                ? "text-white bg-[#1a1a1a] hover:bg-[#2a2a2a]"
+                : "text-[#0c0c0e] bg-white hover:bg-white/90"
+            }`}
+          >
+            Iniciar sesión
+          </Link>
+
+          <Link
             href="/reservar"
             className={`hidden md:inline-flex items-center px-4 py-1.5 text-xs font-medium rounded-full border transition-all duration-300 ${
               scrolled

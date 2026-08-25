@@ -1,100 +1,69 @@
 import prisma from "@/lib/prisma";
 
-/**
- * Seed permissions for the inventory control system
- * Uses a simplified model: manage (CRUD) and view (read-only) per module
- */
 export async function seedPermissions() {
     const permissions = [
-        // Inventory & Products
-        {
-            action: "inventory.manage",
-            description: "Create, edit, and delete products",
-        },
-        {
-            action: "inventory.view",
-            description: "View products and stock levels",
-        },
+        { action: "dashboard:view", description: "Ver panel principal" },
 
-        // Warehouses
-        {
-            action: "warehouses.manage",
-            description: "Create, edit, and delete warehouses",
-        },
-        {
-            action: "warehouses.view",
-            description: "View warehouses and their stock",
-        },
+        { action: "patients:read", description: "Ver lista de pacientes" },
+        { action: "patients:create", description: "Crear pacientes" },
+        { action: "patients:update", description: "Editar pacientes" },
+        { action: "patients:delete", description: "Archivar pacientes" },
 
-        // Transfers
-        {
-            action: "transfers.manage",
-            description: "Create, complete, and cancel warehouse transfers",
-        },
-        {
-            action: "transfers.view",
-            description: "View warehouse transfers",
-        },
-        {
-            action: "loans.manage",
-            description: "Register and manage material loans",
-        },
-        {
-            action: "loans.view",
-            description: "View material loans",
-        },
+        { action: "medical_history:read", description: "Ver historia clínica" },
+        { action: "medical_history:update", description: "Editar historia clínica, alergias, medicación y objetivos" },
 
-        // Purchases
-        {
-            action: "purchases.manage",
-            description: "Create, edit, receive, and cancel purchase orders",
-        },
-        {
-            action: "purchases.view",
-            description: "View purchase orders",
-        },
+        { action: "appointments:read", description: "Ver turnos y agenda" },
+        { action: "appointments:create", description: "Crear turnos" },
+        { action: "appointments:update", description: "Confirmar, cancelar y reprogramar turnos" },
 
-        // Deliveries
-        {
-            action: "deliveries.manage",
-            description: "Create, confirm, deliver, and cancel deliveries",
-        },
-        {
-            action: "deliveries.view",
-            description: "View deliveries",
-        },
+        { action: "availability:read", description: "Ver disponibilidad horaria" },
+        { action: "availability:manage", description: "Configurar disponibilidad horaria" },
 
-        // Suppliers
-        {
-            action: "suppliers.manage",
-            description: "Create, edit, and delete suppliers",
-        },
-        {
-            action: "suppliers.view",
-            description: "View suppliers",
-        },
+        { action: "measurements:read", description: "Ver mediciones antropométricas" },
+        { action: "measurements:create", description: "Cargar mediciones" },
+        { action: "measurements:update", description: "Editar mediciones" },
+        { action: "measurements:delete", description: "Eliminar mediciones" },
 
-        // Institutions
-        {
-            action: "institutions.manage",
-            description: "Create, edit, and delete institutions",
-        },
-        {
-            action: "institutions.view",
-            description: "View institutions",
-        },
+        { action: "plans:read", description: "Ver planes alimentarios" },
+        { action: "plans:create", description: "Crear planes alimentarios" },
+        { action: "plans:update", description: "Editar planes alimentarios" },
+        { action: "plans:delete", description: "Eliminar planes alimentarios" },
 
-        // Reports & Analytics
-        {
-            action: "reports.view",
-            description: "View all reports and analytics",
-        },
+        { action: "recipes:read", description: "Ver recetas" },
+        { action: "recipes:create", description: "Crear recetas" },
+        { action: "recipes:update", description: "Editar recetas" },
+        { action: "recipes:delete", description: "Eliminar recetas" },
 
-        // Users & Roles (Admin)
-        {
-            action: "users.manage",
-            description: "Manage users, roles, and permissions",
-        },
+        { action: "followups:read", description: "Ver seguimientos semanales" },
+        { action: "followups:create", description: "Crear seguimientos" },
+        { action: "followups:update", description: "Responder seguimientos" },
+        { action: "followups:delete", description: "Eliminar seguimientos" },
+
+        { action: "files:read", description: "Ver archivos de pacientes" },
+        { action: "files:manage", description: "Subir y eliminar archivos" },
+
+        { action: "consents:read", description: "Ver consentimientos" },
+        { action: "consents:update", description: "Registrar consentimientos" },
+
+        { action: "payments:read", description: "Ver cobros" },
+        { action: "payments:create", description: "Registrar cobros" },
+        { action: "payments:update", description: "Editar cobros" },
+        { action: "payments:delete", description: "Eliminar cobros" },
+
+        { action: "expenses:read", description: "Ver gastos" },
+        { action: "expenses:create", description: "Registrar gastos" },
+        { action: "expenses:update", description: "Editar gastos" },
+        { action: "expenses:delete", description: "Eliminar gastos" },
+
+        { action: "reports:read", description: "Ver reportes y estadísticas" },
+
+        { action: "messages:read", description: "Ver mensajes de pacientes" },
+        { action: "messages:send", description: "Enviar y gestionar mensajes" },
+
+        { action: "users:read", description: "Ver usuarios del sistema" },
+        { action: "users:manage", description: "Gestionar usuarios, roles y permisos" },
+
+        { action: "settings:manage", description: "Configurar datos del consultorio" },
     ];
 
     console.log("🔐 Seeding permissions...");

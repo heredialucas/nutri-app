@@ -14,67 +14,72 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
     console.log("🌱 Starting database seeding...");
 
-    // ==================== SEED PERMISSIONS ====================
+    // ==================== PERMISSIONS ====================
     console.log("🔐 Seeding permissions...");
 
     const permissions = [
-        // Inventory & Products
-        { action: "inventory.manage", description: "Crear, editar y eliminar productos" },
-        { action: "inventory.view", description: "Ver productos y niveles de stock" },
+        { action: "dashboard:view", description: "Ver panel principal" },
 
-        // Categories
-        { action: "categories.manage", description: "Crear, editar y eliminar categorías" },
-        { action: "categories.view", description: "Ver categorías" },
+        { action: "patients:read", description: "Ver lista de pacientes" },
+        { action: "patients:create", description: "Crear pacientes" },
+        { action: "patients:update", description: "Editar pacientes" },
+        { action: "patients:delete", description: "Archivar pacientes" },
 
-        // Warehouses
-        { action: "warehouses.manage", description: "Crear, editar y eliminar almacenes" },
-        { action: "warehouses.view", description: "Ver almacenes y su stock" },
+        { action: "medical_history:read", description: "Ver historia clínica" },
+        { action: "medical_history:update", description: "Editar historia clínica, alergias, medicación y objetivos" },
 
-        // Transfers (Movements between warehouses)
-        { action: "transfers.manage", description: "Crear, completar y cancelar transferencias entre almacenes" },
-        { action: "transfers.view", description: "Ver transferencias entre almacenes" },
+        { action: "appointments:read", description: "Ver turnos y agenda" },
+        { action: "appointments:create", description: "Crear turnos" },
+        { action: "appointments:update", description: "Confirmar, cancelar y reprogramar turnos" },
 
-        // Loans (documented stock outflows)
-        { action: "loans.manage", description: "Registrar y gestionar préstamos de materiales" },
-        { action: "loans.view", description: "Ver préstamos de materiales" },
+        { action: "availability:read", description: "Ver disponibilidad horaria" },
+        { action: "availability:manage", description: "Configurar disponibilidad horaria" },
 
-        // Traceability (General Movements)
-        { action: "movements.view", description: "Ver historial completo de movimientos de stock" },
+        { action: "measurements:read", description: "Ver mediciones antropométricas" },
+        { action: "measurements:create", description: "Cargar mediciones" },
+        { action: "measurements:update", description: "Editar mediciones" },
+        { action: "measurements:delete", description: "Eliminar mediciones" },
 
-        // Purchases
-        { action: "purchases.manage", description: "Crear, editar, recibir y cancelar órdenes de compra" },
-        { action: "purchases.view", description: "Ver órdenes de compra" },
+        { action: "plans:read", description: "Ver planes alimentarios" },
+        { action: "plans:create", description: "Crear planes alimentarios" },
+        { action: "plans:update", description: "Editar planes alimentarios" },
+        { action: "plans:delete", description: "Eliminar planes alimentarios" },
 
-        // Deliveries
-        { action: "deliveries.manage", description: "Crear, confirmar, entregar y cancelar entregas" },
-        { action: "deliveries.view", description: "Ver entregas" },
+        { action: "recipes:read", description: "Ver recetas" },
+        { action: "recipes:create", description: "Crear recetas" },
+        { action: "recipes:update", description: "Editar recetas" },
+        { action: "recipes:delete", description: "Eliminar recetas" },
 
-        // Suppliers
-        { action: "suppliers.manage", description: "Crear, editar y eliminar proveedores" },
-        { action: "suppliers.view", description: "Ver proveedores" },
+        { action: "followups:read", description: "Ver seguimientos semanales" },
+        { action: "followups:create", description: "Crear seguimientos" },
+        { action: "followups:update", description: "Responder seguimientos" },
+        { action: "followups:delete", description: "Eliminar seguimientos" },
 
-        // Institutions
-        { action: "institutions.manage", description: "Crear, editar y eliminar instituciones" },
-        { action: "institutions.view", description: "Ver instituciones" },
+        { action: "files:read", description: "Ver archivos de pacientes" },
+        { action: "files:manage", description: "Subir y eliminar archivos" },
 
-        // Reports & Analytics
-        { action: "reports.view", description: "Ver todos los reportes y análisis" },
+        { action: "consents:read", description: "Ver consentimientos" },
+        { action: "consents:update", description: "Registrar consentimientos" },
 
-        // Users & Roles (Admin)
-        { action: "users.manage", description: "Gestionar usuarios, roles y permisos" },
-        { action: "users.view", description: "Ver usuarios" },
+        { action: "payments:read", description: "Ver cobros" },
+        { action: "payments:create", description: "Registrar cobros" },
+        { action: "payments:update", description: "Editar cobros" },
+        { action: "payments:delete", description: "Eliminar cobros" },
 
-        // Expedientes
-        { action: "expedientes.manage", description: "Gestionar expedientes" },
-        { action: "expedientes.view", description: "Ver expedientes" },
+        { action: "expenses:read", description: "Ver gastos" },
+        { action: "expenses:create", description: "Registrar gastos" },
+        { action: "expenses:update", description: "Editar gastos" },
+        { action: "expenses:delete", description: "Eliminar gastos" },
 
-        // Receipts
-        { action: "receipts.manage", description: "Gestionar recibos de compra" },
-        { action: "receipts.view", description: "Ver recibos de compra" },
+        { action: "reports:read", description: "Ver reportes y estadísticas" },
 
-        // Admin Products (Gestión de stock mínimo desde Administración)
-        { action: "adminProducts.manage", description: "Gestionar productos: stock mínimo y configuración" },
-        { action: "adminProducts.view", description: "Ver lista de productos en administración" },
+        { action: "messages:read", description: "Ver mensajes de pacientes" },
+        { action: "messages:send", description: "Enviar y gestionar mensajes" },
+
+        { action: "users:read", description: "Ver usuarios del sistema" },
+        { action: "users:manage", description: "Gestionar usuarios, roles y permisos" },
+
+        { action: "settings:manage", description: "Configurar datos del consultorio" },
     ];
 
     for (const perm of permissions) {
@@ -87,7 +92,7 @@ async function main() {
 
     console.log(`✅ Seeded ${permissions.length} permissions`);
 
-    // ==================== CREATE ROLES ====================
+    // ==================== ROLES ====================
     console.log("👥 Seeding roles...");
 
     const adminRole = await prisma.role.upsert({
@@ -96,40 +101,37 @@ async function main() {
         create: { name: "ADMIN", description: "Administrador con acceso total" },
     });
 
-    const encargadoRole = await prisma.role.upsert({
-        where: { name: "ENCARGADO" },
+    const professionalRole = await prisma.role.upsert({
+        where: { name: "PROFESSIONAL" },
         update: {},
-        create: { name: "ENCARGADO", description: "Encargado con acceso administrativo operativo" },
+        create: { name: "PROFESSIONAL", description: "Profesional nutricional: pacientes, turnos, historia clínica, planes y seguimiento" },
     });
 
-    const comprasRole = await prisma.role.upsert({
-        where: { name: "COMPRAS" },
+    const assistantRole = await prisma.role.upsert({
+        where: { name: "ASSISTANT" },
         update: {},
-        create: { name: "COMPRAS", description: "Personal del departamento de Compras" },
+        create: { name: "ASSISTANT", description: "Asistente: pacientes y agenda con acceso clínico limitado" },
     });
 
-    const depositoRole = await prisma.role.upsert({
-        where: { name: "DEPOSITO" },
+    const receptionRole = await prisma.role.upsert({
+        where: { name: "RECEPTION" },
         update: {},
-        create: { name: "DEPOSITO", description: "Personal del departamento de Depósito" },
+        create: { name: "RECEPTION", description: "Recepción: turnos, datos básicos y cobros" },
     });
 
-    const tecnicoRole = await prisma.role.upsert({
-        where: { name: "TECNICO" },
+    const patientRole = await prisma.role.upsert({
+        where: { name: "PATIENT" },
         update: {},
-        create: { name: "TECNICO", description: "Técnico con acceso solo a entregas" },
+        create: { name: "PATIENT", description: "Paciente: únicamente sus propios datos" },
     });
 
-    console.log("✅ Seeded roles: ADMIN, ENCARGADO, COMPRAS, DEPOSITO, TECNICO");
+    console.log("✅ Seeded roles: ADMIN, PROFESSIONAL, ASSISTANT, RECEPTION, PATIENT");
 
-    console.log("✅ Seeded 4 roles");
-
-    // ==================== ASSIGN PERMISSIONS TO ROLES ====================
+    // ==================== ASSIGN PERMISSIONS ====================
     console.log("🔗 Assigning permissions to roles...");
 
     const allPermissions = await prisma.permission.findMany();
 
-    // Helper function to assign permissions
     const assignPermissions = async (roleId: string, actions: string[]) => {
         const permsToAssign = allPermissions.filter(p => actions.includes(p.action));
         for (const p of permsToAssign) {
@@ -141,7 +143,7 @@ async function main() {
         }
     };
 
-    // ADMIN gets all permissions
+    // ADMIN: all permissions
     for (const p of allPermissions) {
         await prisma.rolePermission.upsert({
             where: { roleId_permissionId: { roleId: adminRole.id, permissionId: p.id } },
@@ -150,141 +152,85 @@ async function main() {
         });
     }
 
-    // ENCARGADO gets everything except users.manage
-    const encargadoActions = allPermissions
-        .filter(p => p.action !== "users.manage")
-        .map(p => p.action);
-    await assignPermissions(encargadoRole.id, encargadoActions);
-
-    // COMPRAS permissions
-    const comprasActions = [
-        "purchases.manage", "purchases.view",
-        "suppliers.manage", "suppliers.view",
-        "users.view"
+    // PROFESSIONAL: patients, history, appointments, measurements, plans, recipes, follow-ups, files, messages
+    const professionalActions = [
+        "dashboard:view",
+        "patients:read", "patients:create", "patients:update", "patients:delete",
+        "medical_history:read", "medical_history:update",
+        "appointments:read", "appointments:create", "appointments:update",
+        "availability:read", "availability:manage",
+        "measurements:read", "measurements:create", "measurements:update", "measurements:delete",
+        "plans:read", "plans:create", "plans:update", "plans:delete",
+        "recipes:read", "recipes:create", "recipes:update", "recipes:delete",
+        "followups:read", "followups:create", "followups:update", "followups:delete",
+        "files:read", "files:manage",
+        "consents:read", "consents:update",
+        "payments:read",
+        "reports:read",
+        "messages:read", "messages:send",
     ];
-    await assignPermissions(comprasRole.id, comprasActions);
+    await assignPermissions(professionalRole.id, professionalActions);
 
-    // DEPOSITO permissions
-    const depositoActions = [
-        "inventory.manage", "inventory.view",
-        "warehouses.manage", "warehouses.view",
-        "transfers.manage", "transfers.view",
-        "loans.manage", "loans.view",
-        "deliveries.manage", "deliveries.view",
-        "receipts.manage", "receipts.view",
-        "institutions.manage", "institutions.view",
-        "categories.view", "warehouses.view",
-        "users.view"
+    // ASSISTANT: patients, appointments, limited clinical (view only)
+    const assistantActions = [
+        "dashboard:view",
+        "patients:read", "patients:create", "patients:update",
+        "medical_history:read",
+        "appointments:read", "appointments:create", "appointments:update",
+        "measurements:read",
+        "plans:read",
+        "followups:read",
+        "files:read", "files:manage",
+        "consents:read",
+        "messages:read",
     ];
-    await assignPermissions(depositoRole.id, depositoActions);
+    await assignPermissions(assistantRole.id, assistantActions);
 
-    // TECNICO permissions (only deliveries)
-    const tecnicoActions = [
-        "deliveries.manage", "deliveries.view",
+    // RECEPTION: appointments, basic data, payments
+    const receptionActions = [
+        "dashboard:view",
+        "patients:read", "patients:create", "patients:update",
+        "appointments:read", "appointments:create", "appointments:update",
+        "payments:read", "payments:create", "payments:update",
+        "consents:read",
     ];
-    await assignPermissions(tecnicoRole.id, tecnicoActions);
+    await assignPermissions(receptionRole.id, receptionActions);
+
+    // PATIENT: dashboard only (patient portal will be added later)
+    const patientActions = [
+        "dashboard:view",
+    ];
+    await assignPermissions(patientRole.id, patientActions);
 
     console.log("✅ Assigned permissions to roles");
 
-    // ==================== CREATE DEFAULT WAREHOUSE ====================
-    console.log("🏭 Creating default warehouse...");
+    // ==================== CREATE ADMIN USER ====================
+    console.log("👤 Creating admin user...");
 
-    try {
-        const defaultWarehouse = await prisma.warehouse.upsert({
-            where: { code: "WH-MAIN" },
-            update: {},
-            create: {
-                name: "Depósito Principal",
-                code: "WH-MAIN",
-                description: "Depósito principal del sistema",
-                address: "Sede central",
-                isActive: true,
-            },
-        });
-        console.log(`✅ Default warehouse created/updated: ${defaultWarehouse.name}`);
-    } catch (error: any) {
-        if (error.code === "P2002") {
-            console.log("✅ Default warehouse already exists");
-        } else {
-            throw error;
-        }
-    }
-
-    // ==================== CREATE USERS ====================
     const adminPassword = await bcrypt.hash("admin123", 10);
-    const encargadoPassword = await bcrypt.hash("encargado123", 10);
-    const comprasPassword = await bcrypt.hash("compras123", 10);
-    const depositoPassword = await bcrypt.hash("deposito123", 10);
-    const tecnicoPassword = await bcrypt.hash("tecnico123", 10);
 
-    const usersToCreate = [
-        {
-            email: "admin@gmail.com",
+    const adminUser = await prisma.user.upsert({
+        where: { email: "admin@mauroacosta.com" },
+        update: { password: adminPassword },
+        create: {
+            email: "admin@mauroacosta.com",
             username: "admin",
-            firstName: "Admin",
-            lastName: "User",
             password: adminPassword,
-            role: adminRole
+            firstName: "Mauro",
+            lastName: "Acosta",
+            fullName: "Mauro Acosta",
+            isActive: true,
         },
-        {
-            email: "encargado@gmail.com",
-            username: "encargado",
-            firstName: "Encargado",
-            lastName: "General",
-            password: encargadoPassword,
-            role: encargadoRole
-        },
-        {
-            email: "compras@gmail.com",
-            username: "compras",
-            firstName: "Responsable",
-            lastName: "Compras",
-            password: comprasPassword,
-            role: comprasRole
-        },
-        {
-            email: "deposito@gmail.com",
-            username: "deposito",
-            firstName: "Responsable",
-            lastName: "Depósito",
-            password: depositoPassword,
-            role: depositoRole
-        },
-        {
-            email: "tecnico@gmail.com",
-            username: "tecnico",
-            firstName: "Técnico",
-            lastName: "Mantenimiento",
-            password: tecnicoPassword,
-            role: tecnicoRole
-        }
-    ];
+    });
 
-    for (const u of usersToCreate) {
-        console.log(`👤 Creating/Updating user: ${u.email}...`);
-        const user = await prisma.user.upsert({
-            where: { email: u.email },
-            update: {
-                password: u.password // Actualizar contraseña por si cambió en el seed
-            },
-            create: {
-                email: u.email,
-                username: u.username,
-                password: u.password,
-                firstName: u.firstName,
-                lastName: u.lastName,
-                isActive: true,
-            },
-        });
+    await prisma.userRole.upsert({
+        where: { userId_roleId: { userId: adminUser.id, roleId: adminRole.id } },
+        update: {},
+        create: { userId: adminUser.id, roleId: adminRole.id },
+    });
 
-        await prisma.userRole.upsert({
-            where: { userId_roleId: { userId: user.id, roleId: u.role.id } },
-            update: {},
-            create: { userId: user.id, roleId: u.role.id },
-        });
-    }
-
-    console.log("✅ Database seeding completed!");
+    console.log(`✅ Admin user created: admin@mauroacosta.com`);
+    console.log("🌱 Database seeding completed!");
 }
 
 main()

@@ -1,20 +1,31 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
-  // Define protected routes
-  const protectedRoutes = ["/dashboard"];
-  const isProtectedRoute = protectedRoutes.some((route) => request.nextUrl.pathname.startsWith(route));
+  const pathname = request.nextUrl.pathname;
+
+  // Rutas protegidas: dashboard profesional y portal paciente
+  const protectedRoutes = ["/dashboard", "/paciente/dashboard"];
+  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
+
+  // Rutas públicas que nunca deben ser interceptadas
+  const publicRoutes = ["/", "/reservar", "/auth/login", "/auth/sign-up", "/auth/forgot-password"];
+  const isPublicRoute = publicRoutes.some((route) => pathname === route || pathname.startsWith("/reservar"));
 
   // Check for session token
   const sessionToken = request.cookies.get("session_token");
 
-  // Protect routes
+  // Protect routes: si no hay token, redirigir a login
   if (isProtectedRoute && !sessionToken) {
     const loginUrl = new URL("/auth/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Continue request
+  // Si ya está logueado y visita login/register, redirigir al dashboard
+  if (sessionToken && (pathname === "/auth/login" || pathname === "/auth/sign-up")) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
   return NextResponse.next();
 }
 
@@ -26,7 +37,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - images - .svg, .png, .jpg, .jpeg, .gif, .webp
-     * Feel free to modify this pattern to include more paths.
      */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

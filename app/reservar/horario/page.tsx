@@ -21,7 +21,7 @@ const availableSlots = [
 
 function HorarioForm() {
   const searchParams = useSearchParams();
-  const type = searchParams.get("type") || "first";
+  const type = searchParams.get("type") || "IN_PERSON";
   const [selected, setSelected] = useState<string | null>(null);
 
   return (

@@ -6,7 +6,7 @@ import { Suspense } from "react";
 
 function DatosForm() {
   const searchParams = useSearchParams();
-  const type = searchParams.get("type") || "first";
+  const type = searchParams.get("type") || "IN_PERSON";
 
   return (
     <div>

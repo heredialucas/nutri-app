@@ -430,12 +430,10 @@ No agregar GSAP sin una necesidad concreta.
 
 ### Reserva pública
 
-Paso 1: tipo de consulta:
+Paso 1: tipo de consulta (2 opciones):
 
-- Consulta online.
-- Consulta presencial.
-- Primera consulta.
-- Seguimiento.
+- Consulta presencial (`IN_PERSON`).
+- Consulta online (`ONLINE`).
 
 Paso 2: datos básicos:
 
@@ -1756,23 +1754,23 @@ El build debe finalizar correctamente y la aplicación debe representar exclusiv
 | 2 | ✅ | Rebranding de la aplicación |
 | 3 | ✅ | Adaptación visual de lucas-portfolio |
 | 4 | ✅ | Landing completa y reserva pública |
+| 5 | ✅ | Nuevo modelo Prisma |
+| 6 | ✅ | Migración de base de datos |
+| 7 | ✅ | Seed, roles y permisos |
+| 8 | ✅ | Autenticación y autorización |
+| 9 | ✅ | Servicios y Server Actions |
+| 10 | ✅ | Layout privado y navegación |
+| 11 | ✅ | Dashboard |
+| 12 | ✅ | Pacientes |
+| 13 | ✅ | Historia clínica |
+| 14 | ✅ | Turnos y agenda |
+| 15 | ✅ | Mediciones y evolución |
+| 16 | ✅ | Planes alimentarios |
 
 ### Pendiente
 
 | Fase | Estado | Descripción |
 |------|--------|-------------|
-| 5 | ⏳ | Nuevo modelo Prisma |
-| 6 | ⏳ | Migración de base de datos |
-| 7 | ⏳ | Seed, roles y permisos |
-| 8 | ⏳ | Autenticación y autorización |
-| 9 | ⏳ | Servicios y Server Actions |
-| 10 | ⏳ | Layout privado y navegación |
-| 11 | ⏳ | Dashboard |
-| 12 | ⏳ | Pacientes |
-| 13 | ⏳ | Historia clínica |
-| 14 | ⏳ | Turnos y agenda |
-| 15 | ⏳ | Mediciones y evolución |
-| 16 | ⏳ | Planes alimentarios |
 | 17 | ⏳ | Recetas y listas de compras |
 | 18 | ⏳ | Archivos, fotos y consentimientos |
 | 19 | ⏳ | Seguimiento semanal |

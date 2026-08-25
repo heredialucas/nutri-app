@@ -6,22 +6,21 @@ import { useState, useEffect } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
     LayoutDashboard,
-    Package,
     Users,
-    Warehouse,
-    ArrowRightLeft,
+    Calendar,
+    CalendarDays,
+    Clock,
+    UtensilsCrossed,
+    ChefHat,
     ShoppingCart,
-    Building2,
-    Truck,
+    DollarSign,
+    TrendingDown,
     BarChart3,
-    Activity,
-    Building,
-    FolderOpen,
-    FileCheck,
+    ClipboardList,
+    Shield,
     ChevronDown,
     ChevronRight,
-    Boxes,
-    HandCoins
+    Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -48,109 +47,97 @@ const sidebarGroups: SidebarGroup[] = [
                 title: "Dashboard",
                 href: "/dashboard",
                 icon: LayoutDashboard,
-                requiresAdmin: true,
+                permission: "dashboard:view",
             },
         ],
     },
     {
-        groupTitle: "Gestión Administrativa",
+        groupTitle: "Pacientes",
         defaultOpen: true,
         items: [
             {
-                title: "Expedientes",
-                href: "/dashboard/expedientes",
-                icon: FolderOpen,
-                permission: "expedientes.view",
+                title: "Pacientes",
+                href: "/dashboard/pacientes",
+                icon: Users,
+                permission: "patients:read",
             },
             {
-                title: "Productos",
-                href: "/dashboard/administracion/productos",
-                icon: Boxes,
-                permission: "adminProducts.view",
+                title: "Seguimientos",
+                href: "/dashboard/seguimiento",
+                icon: ClipboardList,
+                permission: "followups:read",
             },
         ],
     },
     {
-        groupTitle: "Almacenamiento",
+        groupTitle: "Agenda",
         defaultOpen: true,
         items: [
             {
-                title: "Ingresos",
-                href: "/dashboard/inventory",
-                icon: Package,
-                permission: "inventory.view",
+                title: "Turnos",
+                href: "/dashboard/turnos",
+                icon: Calendar,
+                permission: "appointments:read",
             },
             {
-                title: "Depósitos",
-                href: "/dashboard/warehouses",
-                icon: Warehouse,
-                permission: "warehouses.view",
+                title: "Calendario",
+                href: "/dashboard/turnos/calendario",
+                icon: CalendarDays,
+                permission: "appointments:read",
             },
             {
-                title: "Transferencias",
-                href: "/dashboard/warehouses/transfers",
-                icon: ArrowRightLeft,
-                permission: "transfers.view",
-            },
-            {
-                title: "Préstamos",
-                href: "/dashboard/loans",
-                icon: HandCoins,
-                permission: "loans.view",
+                title: "Disponibilidad",
+                href: "/dashboard/turnos/disponibilidad",
+                icon: Clock,
+                permission: "availability:read",
             },
         ],
     },
     {
-        groupTitle: "Compras",
+        groupTitle: "Nutrición",
         defaultOpen: false,
         items: [
             {
-                title: "Proveedores",
-                href: "/dashboard/suppliers",
-                icon: Building,
-                permission: "suppliers.view",
+                title: "Planes alimentarios",
+                href: "/dashboard/planes",
+                icon: UtensilsCrossed,
+                permission: "plans:read",
             },
             {
-                title: "Órdenes de Compra",
-                href: "/dashboard/purchases",
+                title: "Recetas",
+                href: "/dashboard/recetas",
+                icon: ChefHat,
+                permission: "recipes:read",
+            },
+            {
+                title: "Listas de compras",
+                href: "/dashboard/listas-compras",
                 icon: ShoppingCart,
-                permission: "purchases.view",
+                permission: "recipes:read",
             },
         ],
     },
     {
-        groupTitle: "Distribución",
+        groupTitle: "Administración",
         defaultOpen: false,
         items: [
             {
-                title: "Instituciones",
-                href: "/dashboard/institutions",
-                icon: Building2,
-                permission: "institutions.view",
+                title: "Cobros",
+                href: "/dashboard/cobros",
+                icon: DollarSign,
+                permission: "payments:read",
             },
             {
-                title: "Entregas",
-                href: "/dashboard/deliveries",
-                icon: Truck,
-                permission: "deliveries.view",
-            },
-        ],
-    },
-    {
-        groupTitle: "Control e Informes",
-        defaultOpen: false,
-        items: [
-            {
-                title: "Movimientos",
-                href: "/dashboard/movements",
-                icon: Activity,
-                permission: "movements.view",
+                title: "Gastos",
+                href: "/dashboard/gastos",
+                icon: TrendingDown,
+                permission: "expenses:read",
             },
             {
                 title: "Reportes",
-                href: "/dashboard/reports",
+                href: "/dashboard/reportes",
                 icon: BarChart3,
-                permission: "reports.view",
+                permission: "reports:read",
             },
         ],
     },
@@ -162,7 +149,13 @@ const sidebarGroups: SidebarGroup[] = [
                 title: "Usuarios",
                 href: "/dashboard/users",
                 icon: Users,
-                permission: "users.view",
+                permission: "users:read",
+            },
+            {
+                title: "Roles",
+                href: "/dashboard/roles",
+                icon: Shield,
+                requiresAdmin: true,
             },
         ],
     },
@@ -201,7 +194,6 @@ export function AppSidebar({
 
     const allFilteredItems = filteredGroups.flatMap(g => g.items);
 
-    // Initialize open state based on current path
     useEffect(() => {
         const initialState: Record<string, boolean> = {};
         filteredGroups.forEach(group => {
@@ -212,7 +204,7 @@ export function AppSidebar({
             initialState[group.groupTitle] = hasActiveItem || group.defaultOpen || false;
         });
         setOpenGroups(initialState);
-    }, [pathname]); // Re-run only on pathname change to stay in sync
+    }, [pathname]);
 
     const toggleGroup = (groupTitle: string) => {
         const group = filteredGroups.find(g => g.groupTitle === groupTitle);
@@ -235,8 +227,12 @@ export function AppSidebar({
 
     return (
         <aside className={cn("w-64 bg-card flex flex-col h-full overflow-y-auto border-r", className)}>
-            <div className="p-5 border-b flex items-center justify-center sticky top-0 bg-card z-10">
-                <h2 className="font-bold text-lg tracking-tight">Gestión</h2>
+            <div className="p-5 border-b flex items-center gap-2 sticky top-0 bg-card z-10">
+                <Stethoscope className="h-5 w-5 text-primary" />
+                <div>
+                    <h2 className="font-bold text-sm tracking-tight leading-none">Mauro Acosta</h2>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Gestión nutricional</p>
+                </div>
             </div>
 
             <nav aria-label="Navegación principal" className="flex-1 px-3 py-3 space-y-1">
@@ -296,7 +292,7 @@ export function AppSidebar({
                 })}
             </nav>
             <div className="p-3 border-t text-xs text-center text-muted-foreground sticky bottom-0 bg-card">
-                v2.0 Expedientes
+                v1.0 — Consultorio nutricional
             </div>
         </aside>
     );

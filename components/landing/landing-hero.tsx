@@ -130,12 +130,17 @@ export function LandingHero() {
               </svg>
             </Link>
 
-            <a
-              href="#servicios"
+            <Link
+              href="/auth/login"
               className="inline-flex items-center gap-2 backdrop-blur-xl text-white uppercase tracking-[0.1em] cursor-pointer bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.2)] rounded-[50px] px-[clamp(20px,2.5vw,32px)] py-[clamp(12px,1.5vw,16px)] text-[clamp(11px,1.1vw,13px)] font-medium transition-all duration-300 hover:bg-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.35)] no-underline"
             >
-              <span>Conocer más</span>
-            </a>
+              <span>Iniciar sesión</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M15 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M10 17L15 12L10 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M15 12H3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </Link>
           </motion.div>
         </div>
 

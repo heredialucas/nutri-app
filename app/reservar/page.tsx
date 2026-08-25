@@ -1,29 +1,18 @@
 import Link from "next/link";
+import { Building2, Video } from "lucide-react";
 
 const types = [
   {
-    id: "first",
-    title: "Primera consulta",
-    description: "Evaluación completa, antecedentes y plan de acción inicial.",
-    icon: "01",
+    id: "IN_PERSON",
+    title: "Presencial",
+    description: "En el consultorio, con mediciones antropométricas y evaluación completa.",
+    icon: Building2,
   },
   {
-    id: "follow_up",
-    title: "Seguimiento",
-    description: "Control periódico, ajustes y acompanhamiento continuo.",
-    icon: "02",
-  },
-  {
-    id: "online",
-    title: "Consulta online",
+    id: "ONLINE",
+    title: "Online",
     description: "Por videollamada, con la misma cercanía y calidad.",
-    icon: "03",
-  },
-  {
-    id: "in_person",
-    title: "Consulta presencial",
-    description: "En el consultorio, con mediciones antropométricas.",
-    icon: "04",
+    icon: Video,
   },
 ];
 
@@ -38,25 +27,28 @@ export default function ReservarPage() {
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {types.map((type) => (
-          <Link
-            key={type.id}
-            href={`/reservar/datos?type=${type.id}`}
-            className="group flex flex-col gap-4 p-6 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white no-underline transition-all duration-300 hover:border-[rgba(0,0,0,0.15)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.04)]"
-          >
-            <span className="text-[rgba(0,0,0,0.1)] text-3xl font-bold leading-none">
-              {type.icon}
-            </span>
-            <div>
-              <h3 className="text-base font-semibold text-[#1a1a1a] m-0 mb-1 group-hover:text-[#1a1a1a]">
-                {type.title}
-              </h3>
-              <p className="text-sm text-[#666] m-0 leading-relaxed">
-                {type.description}
-              </p>
-            </div>
-          </Link>
-        ))}
+        {types.map((type) => {
+          const Icon = type.icon;
+          return (
+            <Link
+              key={type.id}
+              href={`/reservar/datos?type=${type.id}`}
+              className="group flex flex-col items-center gap-5 p-8 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white no-underline transition-all duration-300 hover:border-[rgba(0,0,0,0.15)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] text-center"
+            >
+              <div className="w-14 h-14 rounded-full bg-[rgba(0,0,0,0.03)] flex items-center justify-center transition-colors duration-300 group-hover:bg-[rgba(0,0,0,0.06)]">
+                <Icon size={24} strokeWidth={1.5} className="text-[#1a1a1a]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-[#1a1a1a] m-0 mb-2">
+                  {type.title}
+                </h3>
+                <p className="text-sm text-[#666] m-0 leading-relaxed">
+                  {type.description}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
