@@ -1,15 +1,9 @@
-import { getCurrentPatientData } from "@/app/actions/current-patient";
-import BookingLayoutClient from "@/components/booking/booking-layout-client";
+import BookingLayoutInner from "./booking-layout-inner";
 
-export default async function ReservarLayout({
+export default function ReservarLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const loggedPatient = await getCurrentPatientData();
-  return (
-    <BookingLayoutClient loggedPatient={loggedPatient}>
-      {children}
-    </BookingLayoutClient>
-  );
+  return <BookingLayoutInner>{children}</BookingLayoutInner>;
 }

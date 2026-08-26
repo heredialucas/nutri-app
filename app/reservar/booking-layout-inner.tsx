@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookingProvider } from "@/components/booking/booking-context";
+import { useEffect, useState } from "react";
 import { LayoutDashboard } from "lucide-react";
+import { BookingProvider } from "@/components/booking/booking-context";
+import { getCurrentPatientData } from "@/app/actions/current-patient";
+import type { LoggedPatient } from "@/components/booking/booking-context";
 
 const steps = [
   { href: "/reservar", label: "Tipo" },
@@ -12,31 +15,41 @@ const steps = [
   { href: "/reservar/confirmacion", label: "Confirmar" },
 ];
 
-export interface LoggedPatient {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  birthDate: string;
-  billingType: string;
-}
-
-interface BookingLayoutClientProps {
+export default function BookingLayoutInner({
+  children,
+}: {
   children: React.ReactNode;
-  loggedPatient: LoggedPatient | null;
-}
-
-export default function BookingLayoutClient({ children, loggedPatient }: BookingLayoutClientProps) {
+}) {
   const pathname = usePathname();
+  const [loggedPatient, setLoggedPatient] = useState<LoggedPatient | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    getCurrentPatientData().then((data) => {
+      setLoggedPatient(data);
+      setReady(true);
+    });
+  }, []);
 
   const currentIndex = steps.findIndex((s) => pathname === s.href);
 
+  if (!ready) {
     return (
+      <div className="min-h-screen bg-[#fafaf8] flex items-center justify-center text-sm text-[#999]">
+        Cargando...
+      </div>
+    );
+  }
+
+  return (
     <BookingProvider loggedPatient={loggedPatient}>
       <div className="min-h-screen bg-[#fafaf8]">
         <header className="border-b border-[rgba(0,0,0,0.06)] bg-white">
           <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-baseline gap-1 text-base font-semibold no-underline text-[#1a1a1a]">
+            <Link
+              href="/"
+              className="flex items-baseline gap-1 text-base font-semibold no-underline text-[#1a1a1a]"
+            >
               <span>Mauro</span>
               <span className="text-[rgba(0,0,0,0.3)]">Acosta</span>
             </Link>
@@ -64,7 +77,9 @@ export default function BookingLayoutClient({ children, loggedPatient }: Booking
                 <div key={step.href} className="flex items-center gap-2 flex-1">
                   <div
                     className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-                      i <= currentIndex ? "bg-[#1a1a1a]" : "bg-[rgba(0,0,0,0.06)]"
+                      i <= currentIndex
+                        ? "bg-[#1a1a1a]"
+                        : "bg-[rgba(0,0,0,0.06)]"
                     }`}
                   />
                 </div>
@@ -75,7 +90,9 @@ export default function BookingLayoutClient({ children, loggedPatient }: Booking
                 <span
                   key={step.href}
                   className={`text-[10px] uppercase tracking-[0.1em] ${
-                    i <= currentIndex ? "text-[#1a1a1a] font-medium" : "text-[#999]"
+                    i <= currentIndex
+                      ? "text-[#1a1a1a] font-medium"
+                      : "text-[#999]"
                   }`}
                 >
                   {step.label}

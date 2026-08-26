@@ -16,13 +16,22 @@ const typeLabels: Record<string, string> = {
   ONLINE: "Consulta online",
 };
 
+interface ConfirmedBooking {
+  type: string;
+  date: string;
+  time: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 function ConfirmacionContent() {
-  const { data, isPrefilled, loggedPatient, reset } = useBooking();
+  const { data, loggedPatient, reset } = useBooking();
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
-  const [appointmentId, setAppointmentId] = useState("");
   const [countdown, setCountdown] = useState(10);
+  const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBooking | null>(null);
 
   const bookedRef = useRef(false);
 
@@ -34,7 +43,7 @@ function ConfirmacionContent() {
 
     async function book() {
       try {
-        const result = await createPublicBooking({
+        await createPublicBooking({
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
@@ -46,7 +55,14 @@ function ConfirmacionContent() {
           date: data.date,
           time: data.time,
         });
-        setAppointmentId(result.appointment.id);
+        setConfirmedBooking({
+          type: data.type,
+          date: data.date,
+          time: data.time,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+        });
         setStatus("success");
       } catch (err) {
         setErrorMsg(err instanceof Error ? err.message : "Error al crear el turno");
@@ -58,20 +74,20 @@ function ConfirmacionContent() {
   }, [data, status]);
 
   useEffect(() => {
-    if (status !== "success") return;
+    if (status !== "success" || !confirmedBooking) return;
 
     const interval = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
+          reset();
           if (isLoggedIn) {
-            reset();
             router.push("/paciente/dashboard");
           } else {
             const params = new URLSearchParams({
-              firstName: data.firstName,
-              lastName: data.lastName,
-              email: data.email,
+              firstName: confirmedBooking.firstName,
+              lastName: confirmedBooking.lastName,
+              email: confirmedBooking.email,
             });
             router.push(`/auth/sign-up?${params.toString()}`);
           }
@@ -81,17 +97,17 @@ function ConfirmacionContent() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [status, router, data, isLoggedIn, reset]);
+  }, [status, confirmedBooking, isLoggedIn, router, reset]);
 
   const handlePrimaryAction = () => {
     reset();
     if (isLoggedIn) {
       router.push("/paciente/dashboard");
-    } else {
+    } else if (confirmedBooking) {
       const params = new URLSearchParams({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
+        firstName: confirmedBooking.firstName,
+        lastName: confirmedBooking.lastName,
+        email: confirmedBooking.email,
       });
       router.push(`/auth/sign-up?${params.toString()}`);
     }
@@ -153,7 +169,7 @@ function ConfirmacionContent() {
   }
 
   const formattedDate = formatInTimeZone(
-    new Date(data.date + "T12:00:00"),
+    new Date(confirmedBooking!.date + "T12:00:00"),
     AR_TZ,
     "EEEE d 'de' MMMM",
     { locale: es },
@@ -177,7 +193,7 @@ function ConfirmacionContent() {
       <div className="inline-flex flex-col gap-3 p-6 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white text-left mb-8">
         <div className="flex justify-between gap-8">
           <span className="text-xs text-[#999] uppercase tracking-[0.05em]">Tipo</span>
-          <span className="text-sm font-medium text-[#1a1a1a]">{typeLabels[data.type] || data.type}</span>
+          <span className="text-sm font-medium text-[#1a1a1a]">{typeLabels[confirmedBooking!.type] || confirmedBooking!.type}</span>
         </div>
         <div className="w-full h-px bg-[rgba(0,0,0,0.06)]" />
         <div className="flex justify-between gap-8">
@@ -187,7 +203,7 @@ function ConfirmacionContent() {
         <div className="w-full h-px bg-[rgba(0,0,0,0.06)]" />
         <div className="flex justify-between gap-8">
           <span className="text-xs text-[#999] uppercase tracking-[0.05em]">Horario</span>
-          <span className="text-sm font-medium text-[#1a1a1a]">{data.time} hs</span>
+          <span className="text-sm font-medium text-[#1a1a1a]">{confirmedBooking!.time} hs</span>
         </div>
         <div className="w-full h-px bg-[rgba(0,0,0,0.06)]" />
         <div className="flex justify-between gap-8">

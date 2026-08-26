@@ -3,16 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useBooking } from "@/components/booking/booking-context";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 export default function DatosPage() {
-  const { data, setStep2, prefill, loggedPatient } = useBooking();
+  const { data, setStep2, loggedPatient } = useBooking();
   const router = useRouter();
-  const prefilledRef = useRef(false);
 
   useEffect(() => {
-    if (loggedPatient && !prefilledRef.current) {
-      prefilledRef.current = true;
+    if (loggedPatient) {
       router.replace("/reservar/horario");
     }
   }, [loggedPatient, router]);

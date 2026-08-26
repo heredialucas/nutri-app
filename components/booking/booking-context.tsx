@@ -1,7 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
-import type { LoggedPatient } from "./booking-layout-client";
+import { createContext, useContext, useState, type ReactNode } from "react";
+
+export interface LoggedPatient {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    birthDate: string;
+    billingType: string;
+}
 
 export interface BookingData {
     type: "ONLINE" | "IN_PERSON";
@@ -18,27 +26,46 @@ export interface BookingData {
 
 interface BookingContextType {
     data: BookingData;
-    isPrefilled: boolean;
     loggedPatient: LoggedPatient | null;
     setStep1: (type: "ONLINE" | "IN_PERSON") => void;
     setStep2: (datos: Partial<BookingData>) => void;
     setStep3: (date: string, time: string) => void;
-    prefill: (datos: Partial<BookingData>) => void;
     reset: () => void;
 }
 
-const initialData: BookingData = {
-    type: "IN_PERSON",
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    birthDate: "",
-    goal: "",
-    billingType: "particular",
-    date: "",
-    time: "",
-};
+function todayString() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function buildInitialData(loggedPatient: LoggedPatient | null): BookingData {
+    if (loggedPatient) {
+        return {
+            type: "IN_PERSON",
+            firstName: loggedPatient.firstName,
+            lastName: loggedPatient.lastName,
+            email: loggedPatient.email,
+            phone: loggedPatient.phone,
+            birthDate: loggedPatient.birthDate,
+            goal: "",
+            billingType: loggedPatient.billingType,
+            date: todayString(),
+            time: "",
+        };
+    }
+    return {
+        type: "IN_PERSON",
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        birthDate: "",
+        goal: "",
+        billingType: "particular",
+        date: "",
+        time: "",
+    };
+}
 
 const BookingContext = createContext<BookingContextType | null>(null);
 
@@ -48,21 +75,7 @@ interface BookingProviderProps {
 }
 
 export function BookingProvider({ children, loggedPatient = null }: BookingProviderProps) {
-    const [data, setData] = useState<BookingData>(() => {
-        if (loggedPatient) {
-            return {
-                ...initialData,
-                firstName: loggedPatient.firstName,
-                lastName: loggedPatient.lastName,
-                email: loggedPatient.email,
-                phone: loggedPatient.phone,
-                birthDate: loggedPatient.birthDate,
-                billingType: loggedPatient.billingType,
-            };
-        }
-        return initialData;
-    });
-    const [isPrefilled, setIsPrefilled] = useState(!!loggedPatient);
+    const [data, setData] = useState<BookingData>(() => buildInitialData(loggedPatient));
 
     const setStep1 = (type: "ONLINE" | "IN_PERSON") => {
         setData((prev) => ({ ...prev, type }));
@@ -76,18 +89,10 @@ export function BookingProvider({ children, loggedPatient = null }: BookingProvi
         setData((prev) => ({ ...prev, date, time }));
     };
 
-    const prefill = useCallback((datos: Partial<BookingData>) => {
-        setData((prev) => ({ ...prev, ...datos }));
-        setIsPrefilled(true);
-    }, []);
-
-    const reset = () => {
-        setData(initialData);
-        setIsPrefilled(false);
-    };
+    const reset = () => setData(buildInitialData(loggedPatient));
 
     return (
-        <BookingContext.Provider value={{ data, isPrefilled, loggedPatient, setStep1, setStep2, setStep3, prefill, reset }}>
+        <BookingContext.Provider value={{ data, loggedPatient, setStep1, setStep2, setStep3, reset }}>
             {children}
         </BookingContext.Provider>
     );

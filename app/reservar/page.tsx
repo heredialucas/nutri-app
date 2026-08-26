@@ -3,7 +3,7 @@
 import { Building2, Video } from "lucide-react";
 import { useBooking } from "@/components/booking/booking-context";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 const types = [
   {
@@ -21,13 +21,11 @@ const types = [
 ];
 
 export default function ReservarPage() {
-  const { setStep1, prefill, loggedPatient } = useBooking();
+  const { setStep1, loggedPatient } = useBooking();
   const router = useRouter();
-  const prefilledRef = useRef(false);
 
   useEffect(() => {
-    if (loggedPatient && !prefilledRef.current) {
-      prefilledRef.current = true;
+    if (loggedPatient) {
       router.replace("/reservar/horario");
     }
   }, [loggedPatient, router]);
