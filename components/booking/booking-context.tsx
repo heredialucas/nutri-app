@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 
 export interface BookingData {
     type: "ONLINE" | "IN_PERSON";
@@ -17,9 +17,11 @@ export interface BookingData {
 
 interface BookingContextType {
     data: BookingData;
+    isPrefilled: boolean;
     setStep1: (type: "ONLINE" | "IN_PERSON") => void;
     setStep2: (datos: Partial<BookingData>) => void;
     setStep3: (date: string, time: string) => void;
+    prefill: (datos: Partial<BookingData>) => void;
     reset: () => void;
 }
 
@@ -40,6 +42,7 @@ const BookingContext = createContext<BookingContextType | null>(null);
 
 export function BookingProvider({ children }: { children: ReactNode }) {
     const [data, setData] = useState<BookingData>(initialData);
+    const [isPrefilled, setIsPrefilled] = useState(false);
 
     const setStep1 = (type: "ONLINE" | "IN_PERSON") => {
         setData((prev) => ({ ...prev, type }));
@@ -53,10 +56,18 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         setData((prev) => ({ ...prev, date, time }));
     };
 
-    const reset = () => setData(initialData);
+    const prefill = useCallback((datos: Partial<BookingData>) => {
+        setData((prev) => ({ ...prev, ...datos }));
+        setIsPrefilled(true);
+    }, []);
+
+    const reset = () => {
+        setData(initialData);
+        setIsPrefilled(false);
+    };
 
     return (
-        <BookingContext.Provider value={{ data, setStep1, setStep2, setStep3, reset }}>
+        <BookingContext.Provider value={{ data, isPrefilled, setStep1, setStep2, setStep3, prefill, reset }}>
             {children}
         </BookingContext.Provider>
     );

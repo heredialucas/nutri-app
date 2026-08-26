@@ -3,11 +3,32 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useBooking } from "@/components/booking/booking-context";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
-export default function DatosPage() {
-  const { data, setStep2 } = useBooking();
+interface DatosPageProps {
+  loggedPatient: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    birthDate: string;
+    billingType: string;
+  } | null;
+}
+
+export default function DatosPage({ loggedPatient }: DatosPageProps) {
+  const { data, setStep2, prefill } = useBooking();
   const router = useRouter();
+  const prefilledRef = useRef(false);
+
+  useEffect(() => {
+    if (loggedPatient && !prefilledRef.current) {
+      prefilledRef.current = true;
+      prefill(loggedPatient);
+      router.replace("/reservar/horario");
+    }
+  }, [loggedPatient, prefill, router]);
+
   const [form, setForm] = useState({
     firstName: data.firstName,
     lastName: data.lastName,
@@ -27,6 +48,14 @@ export default function DatosPage() {
     setStep2(form);
     router.push("/reservar/horario");
   };
+
+  if (loggedPatient) {
+    return (
+      <div className="text-center py-12 text-sm text-[#999]">
+        Redirigiendo a selección de horario...
+      </div>
+    );
+  }
 
   return (
     <div>

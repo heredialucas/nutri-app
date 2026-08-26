@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookingProvider } from "@/components/booking/booking-context";
+import { LayoutDashboard } from "lucide-react";
 
 const steps = [
   { href: "/reservar", label: "Tipo" },
@@ -11,7 +12,19 @@ const steps = [
   { href: "/reservar/confirmacion", label: "Confirmar" },
 ];
 
-export default function BookingLayout({ children }: { children: React.ReactNode }) {
+interface BookingLayoutProps {
+  children: React.ReactNode;
+  loggedPatient?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    birthDate: string;
+    billingType: string;
+  } | null;
+}
+
+export default function BookingLayout({ children, loggedPatient }: BookingLayoutProps) {
   const pathname = usePathname();
 
   const currentIndex = steps.findIndex((s) => pathname === s.href);
@@ -25,9 +38,20 @@ export default function BookingLayout({ children }: { children: React.ReactNode 
               <span>Mauro</span>
               <span className="text-[rgba(0,0,0,0.3)]">Acosta</span>
             </Link>
-            <span className="text-xs text-[#999] uppercase tracking-[0.15em]">
-              Reservar turno
-            </span>
+            <div className="flex items-center gap-3">
+              {loggedPatient && (
+                <Link
+                  href="/paciente/dashboard"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-[#666] no-underline transition-colors hover:text-[#1a1a1a]"
+                >
+                  <LayoutDashboard size={14} />
+                  Mi panel
+                </Link>
+              )}
+              <span className="text-xs text-[#999] uppercase tracking-[0.15em]">
+                Reservar turno
+              </span>
+            </div>
           </div>
         </header>
 

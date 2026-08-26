@@ -7,7 +7,18 @@ import { useBooking } from "@/components/booking/booking-context";
 import { getPublicAvailableSlots } from "@/app/actions/public-booking";
 import { CalendarDays, Loader2 } from "lucide-react";
 
-function HorarioForm() {
+interface HorarioFormProps {
+  loggedPatient: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    birthDate: string;
+    billingType: string;
+  } | null;
+}
+
+function HorarioForm({ loggedPatient }: HorarioFormProps) {
   const { data, setStep3 } = useBooking();
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(data.time || null);
@@ -116,7 +127,7 @@ function HorarioForm() {
 
       <div className="flex gap-3">
         <Link
-          href="/reservar/datos"
+          href={loggedPatient ? "/paciente/dashboard" : "/reservar/datos"}
           className="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] no-underline transition-colors hover:bg-[rgba(0,0,0,0.02)]"
         >
           Volver
@@ -137,10 +148,21 @@ function HorarioForm() {
   );
 }
 
-export default function HorarioPage() {
+interface HorarioPageProps {
+  loggedPatient: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    birthDate: string;
+    billingType: string;
+  } | null;
+}
+
+export default function HorarioPage({ loggedPatient }: HorarioPageProps) {
   return (
     <Suspense fallback={<div className="text-sm text-[#999]">Cargando...</div>}>
-      <HorarioForm />
+      <HorarioForm loggedPatient={loggedPatient} />
     </Suspense>
   );
 }

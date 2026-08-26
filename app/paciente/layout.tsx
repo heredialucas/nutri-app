@@ -25,14 +25,11 @@ export default async function PacienteLayout({
     return (
         <div className="min-h-screen bg-[#fafaf8] flex">
             <ReminderTrigger />
-            <PatientNav />
+            <PatientNav userName={user.firstName || user.email} />
 
             <div className="flex-1 flex flex-col min-w-0">
                 <header className="border-b border-[rgba(0,0,0,0.06)] bg-white sticky top-0 z-10">
-                    <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
-                        <span className="text-sm text-[#666]">
-                            {user.firstName || user.email}
-                        </span>
+                    <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-end">
                         <LogoutButton />
                     </div>
                 </header>

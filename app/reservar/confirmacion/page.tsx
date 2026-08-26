@@ -16,8 +16,19 @@ const typeLabels: Record<string, string> = {
   ONLINE: "Consulta online",
 };
 
-function ConfirmacionContent() {
-  const { data, reset } = useBooking();
+interface ConfirmacionContentProps {
+  loggedPatient: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    birthDate: string;
+    billingType: string;
+  } | null;
+}
+
+function ConfirmacionContent({ loggedPatient }: ConfirmacionContentProps) {
+  const { data, isPrefilled, reset } = useBooking();
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
@@ -25,6 +36,8 @@ function ConfirmacionContent() {
   const [countdown, setCountdown] = useState(10);
 
   const bookedRef = useRef(false);
+
+  const isLoggedIn = !!loggedPatient;
 
   useEffect(() => {
     if (status !== "loading" || bookedRef.current) return;
@@ -62,33 +75,46 @@ function ConfirmacionContent() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          const params = new URLSearchParams({
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email,
-          });
-          router.push(`/auth/sign-up?${params.toString()}`);
+          if (isLoggedIn) {
+            reset();
+            router.push("/paciente/dashboard");
+          } else {
+            const params = new URLSearchParams({
+              firstName: data.firstName,
+              lastName: data.lastName,
+              email: data.email,
+            });
+            router.push(`/auth/sign-up?${params.toString()}`);
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [status, router, data]);
+  }, [status, router, data, isLoggedIn, reset]);
 
-  const handleCreateAccount = () => {
+  const handlePrimaryAction = () => {
     reset();
-    const params = new URLSearchParams({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-    });
-    router.push(`/auth/sign-up?${params.toString()}`);
+    if (isLoggedIn) {
+      router.push("/paciente/dashboard");
+    } else {
+      const params = new URLSearchParams({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+      });
+      router.push(`/auth/sign-up?${params.toString()}`);
+    }
   };
 
   const handleGoHome = () => {
     reset();
-    router.push("/");
+    if (isLoggedIn) {
+      router.push("/paciente/dashboard");
+    } else {
+      router.push("/");
+    }
   };
 
   if (status === "loading") {
@@ -127,10 +153,10 @@ function ConfirmacionContent() {
             Elegir otro horario
           </Link>
           <Link
-            href="/"
+            href={isLoggedIn ? "/paciente/dashboard" : "/"}
             className="inline-flex items-center justify-center h-11 px-8 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] no-underline transition-colors hover:bg-[rgba(0,0,0,0.02)]"
           >
-            Volver al inicio
+            {isLoggedIn ? "Volver a mi panel" : "Volver al inicio"}
           </Link>
         </div>
       </div>
@@ -154,7 +180,9 @@ function ConfirmacionContent() {
         Turno reservado
       </h1>
       <p className="text-sm text-[#666] mb-8 m-0 max-w-md mx-auto">
-        Tu turno fue registrado correctamente. Creá tu cuenta para gestionar tus turnos y ver tu historial.
+        {isLoggedIn
+          ? "Tu turno fue registrado correctamente."
+          : "Tu turno fue registrado correctamente. Creá tu cuenta para gestionar tus turnos y ver tu historial."}
       </p>
 
       <div className="inline-flex flex-col gap-3 p-6 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white text-left mb-8">
@@ -181,26 +209,37 @@ function ConfirmacionContent() {
 
       <div className="flex flex-col gap-3 max-w-sm mx-auto">
         <button
-          onClick={handleCreateAccount}
+          onClick={handlePrimaryAction}
           className="inline-flex items-center justify-center h-11 px-8 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold transition-colors hover:bg-[#333] cursor-pointer"
         >
-          Crear mi cuenta ({countdown}s)
+          {isLoggedIn ? "Ir a mi panel" : `Crear mi cuenta (${countdown}s)`}
         </button>
         <button
           onClick={handleGoHome}
           className="inline-flex items-center justify-center h-11 px-8 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] transition-colors hover:bg-[rgba(0,0,0,0.02)] cursor-pointer"
         >
-          Volver al inicio
+          {isLoggedIn ? "Volver a mi panel" : "Volver al inicio"}
         </button>
       </div>
     </div>
   );
 }
 
-export default function ConfirmacionPage() {
+interface ConfirmacionPageProps {
+  loggedPatient: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    birthDate: string;
+    billingType: string;
+  } | null;
+}
+
+export default function ConfirmacionPage({ loggedPatient }: ConfirmacionPageProps) {
   return (
     <Suspense fallback={<div className="text-sm text-[#999]">Cargando...</div>}>
-      <ConfirmacionContent />
+      <ConfirmacionContent loggedPatient={loggedPatient} />
     </Suspense>
   );
 }

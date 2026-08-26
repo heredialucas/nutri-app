@@ -59,6 +59,15 @@ export async function createPublicBooking(data: {
     if (!data.date) throw new Error("La fecha es obligatoria");
     if (!data.time) throw new Error("El horario es obligatorio");
 
+    // Prevent booking past dates/times
+    const [y, m, d] = data.date.split("-").map(Number);
+    const [h, min] = data.time.split(":").map(Number);
+    const localStart = new Date(y, m - 1, d, h, min, 0);
+    const startAtCheck = fromZonedTime(localStart, AR_TZ);
+    if (startAtCheck.getTime() <= Date.now()) {
+        throw new Error("No se puede reservar un turno en el pasado. Elegí un horario futuro.");
+    }
+
     const professionalId = await getDefaultProfessionalId();
 
     // Find or create patient
@@ -83,11 +92,8 @@ export async function createPublicBooking(data: {
         });
     }
 
-    // Calculate end time (30 min slots) - interpret as Argentina time, store as UTC
-    const [y, m, d] = data.date.split("-").map(Number);
-    const [h, min] = data.time.split(":").map(Number);
-    const localStart = new Date(y, m - 1, d, h, min, 0);
-    const startAt = fromZonedTime(localStart, AR_TZ);
+    // Calculate end time (30 min slots) - startAt was already computed during validation
+    const startAt = startAtCheck;
     const endAt = new Date(startAt.getTime() + 30 * 60 * 1000);
 
     // Check for conflicts

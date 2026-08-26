@@ -84,6 +84,16 @@ export const availabilityService = {
 
         const slots: { time: string; available: boolean }[] = [];
 
+        // Determine if the requested date is today in Argentina timezone
+        const nowArStr = formatInTimeZone(new Date(), AR_TZ, "yyyy-MM-dd");
+        const isToday = arDateStr === nowArStr;
+
+        // If today, get current time in "HH:mm" format for comparison
+        let currentTimeStr = "";
+        if (isToday) {
+            currentTimeStr = formatInTimeZone(new Date(), AR_TZ, "HH:mm");
+        }
+
         for (const block of availability) {
             const [startH, startM] = block.startTime.split(":").map(Number);
             const [endH, endM] = block.endTime.split(":").map(Number);
@@ -96,6 +106,12 @@ export const availabilityService = {
                 const h = Math.floor(currentMinutes / 60);
                 const m = currentMinutes % 60;
                 const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+
+                // Skip past time slots for today
+                if (isToday && currentTimeStr && time <= currentTimeStr) {
+                    currentMinutes += duration;
+                    continue;
+                }
 
                 // Build a pretend-UTC date with the AR local time, then convert to real UTC
                 const pretendLocal = new Date(`${arDateStr}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`);

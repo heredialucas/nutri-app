@@ -1,9 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { Building2, Video } from "lucide-react";
 import { useBooking } from "@/components/booking/booking-context";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
+
+interface ReservarPageProps {
+  loggedPatient: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    birthDate: string;
+    billingType: string;
+  } | null;
+}
 
 const types = [
   {
@@ -20,9 +31,26 @@ const types = [
   },
 ];
 
-export default function ReservarPage() {
-  const { setStep1 } = useBooking();
+export default function ReservarPage({ loggedPatient }: ReservarPageProps) {
+  const { setStep1, prefill } = useBooking();
   const router = useRouter();
+  const prefilledRef = useRef(false);
+
+  useEffect(() => {
+    if (loggedPatient && !prefilledRef.current) {
+      prefilledRef.current = true;
+      prefill(loggedPatient);
+      router.replace("/reservar/horario");
+    }
+  }, [loggedPatient, prefill, router]);
+
+  if (loggedPatient) {
+    return (
+      <div className="text-center py-12 text-sm text-[#999]">
+        Redirigiendo a selección de horario...
+      </div>
+    );
+  }
 
   const handleSelect = (type: "ONLINE" | "IN_PERSON") => {
     setStep1(type);
