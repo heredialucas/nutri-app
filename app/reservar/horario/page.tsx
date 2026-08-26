@@ -12,7 +12,10 @@ function HorarioForm() {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(data.time || null);
   const [selectedDate, setSelectedDate] = useState<string>(
-    data.date || new Date().toISOString().split("T")[0]
+    data.date || (() => {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    })()
   );
   const [slots, setSlots] = useState<{ time: string; available: boolean }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,7 +46,10 @@ function HorarioForm() {
     router.push("/reservar/confirmacion");
   };
 
-  const minDate = new Date().toISOString().split("T")[0];
+  const minDate = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  })();
 
   return (
     <div>

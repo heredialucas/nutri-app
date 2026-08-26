@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserPlus, Phone, Mail } from "lucide-react";
+import { Search, Phone, Mail } from "lucide-react";
 
 interface Patient {
     id: string;
@@ -84,14 +84,6 @@ export function PatientList({ initialPatients }: { initialPatients: Patient[] })
                     <p className="text-muted-foreground">
                         {search ? "No se encontraron pacientes con esa búsqueda" : "No hay pacientes registrados"}
                     </p>
-                    {!search && (
-                        <Button asChild className="mt-4">
-                            <Link href="/dashboard/pacientes/new">
-                                <UserPlus className="mr-2 h-4 w-4" />
-                                Agregar paciente
-                            </Link>
-                        </Button>
-                    )}
                 </div>
             ) : (
                 <div className="grid gap-3">

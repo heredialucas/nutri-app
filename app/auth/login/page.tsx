@@ -1,11 +1,14 @@
 import { LoginForm } from "@/components/login-form";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
 export default async function Page() {
   const user = await getCurrentUser();
   if (user) {
+    if (isPatientUser(user)) {
+      redirect("/paciente/dashboard");
+    }
     redirect("/dashboard/users");
   }
 

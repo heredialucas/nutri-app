@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
+import { PatientNav } from "@/components/patient-portal/patient-nav";
+import { ReminderTrigger } from "@/components/reminder-trigger";
 
 export const metadata: Metadata = {
     title: "Mi Portal — Mauro Acosta",
@@ -21,22 +23,23 @@ export default async function PacienteLayout({
     if (!isPatient) redirect("/dashboard");
 
     return (
-        <div className="min-h-screen bg-[#fafaf8]">
-            <header className="border-b border-[rgba(0,0,0,0.06)] bg-white sticky top-0 z-10">
-                <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-                    <Link href="/" className="flex items-baseline gap-1 text-base font-semibold no-underline text-[#1a1a1a]">
-                        <span>Mauro</span>
-                        <span className="text-[rgba(0,0,0,0.3)]">Acosta</span>
-                    </Link>
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm text-[#666] hidden sm:block">
+        <div className="min-h-screen bg-[#fafaf8] flex">
+            <ReminderTrigger />
+            <PatientNav />
+
+            <div className="flex-1 flex flex-col min-w-0">
+                <header className="border-b border-[rgba(0,0,0,0.06)] bg-white sticky top-0 z-10">
+                    <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+                        <span className="text-sm text-[#666]">
                             {user.firstName || user.email}
                         </span>
                         <LogoutButton />
                     </div>
-                </div>
-            </header>
-            <main className="max-w-4xl mx-auto px-4 py-8">{children}</main>
+                </header>
+                <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 pb-24 md:pb-6">
+                    {children}
+                </main>
+            </div>
         </div>
     );
 }

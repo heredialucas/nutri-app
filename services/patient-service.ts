@@ -86,16 +86,9 @@ export const patientService = {
     },
 
     async getByUserId(userId: string) {
-        // Buscar paciente vinculado a un usuario del portal
-        // Por ahora busca por email del usuario
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user) return null;
-
         return prisma.patient.findFirst({
             where: {
-                OR: [
-                    { email: user.email },
-                ],
+                userId,
                 deletedAt: null,
             },
             include: patientInclude,

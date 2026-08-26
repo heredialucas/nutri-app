@@ -14,7 +14,7 @@ export async function loginAction(formData: FormData) {
     }
 
     try {
-        const { token } = await authService.login(identifier, password);
+        const { user: loginResult, token } = await authService.login(identifier, password);
 
         const cookieStore = await cookies();
         cookieStore.set("session_token", token, {
@@ -24,7 +24,20 @@ export async function loginAction(formData: FormData) {
             path: "/",
         });
 
-        return { success: true };
+        // Fetch roles to determine redirect
+        const userWithRoles = await prisma.user.findUnique({
+            where: { id: loginResult.id },
+            include: {
+                userRoles: {
+                    include: { role: true },
+                },
+            },
+        });
+
+        const isPatient = userWithRoles?.userRoles.some((ur) => ur.role.name === "PATIENT");
+        const redirectTo = isPatient ? "/paciente/dashboard" : "/dashboard";
+
+        return { success: true, redirectTo };
     } catch (error) {
         return { error: error instanceof Error ? error.message : "Error al iniciar sesión" };
     }
@@ -68,14 +81,21 @@ export async function registerAction(data: {
             });
         }
 
-        // Create Patient record if not exists
+        // Create Patient record linked to User
         const existingPatient = await prisma.patient.findFirst({
             where: { email: email.trim(), deletedAt: null },
         });
 
-        if (!existingPatient) {
+        if (existingPatient) {
+            // Link existing patient to this user
+            await prisma.patient.update({
+                where: { id: existingPatient.id },
+                data: { userId: user.id },
+            });
+        } else {
             await prisma.patient.create({
                 data: {
+                    userId: user.id,
                     firstName: (firstName || "").trim() || "Sin nombre",
                     lastName: (lastName || "").trim() || "Sin apellido",
                     email: email.trim(),
@@ -95,7 +115,7 @@ export async function registerAction(data: {
             path: "/",
         });
 
-        return { success: true };
+        return { success: true, redirectTo: "/paciente/dashboard" };
     } catch (error) {
         return { error: error instanceof Error ? error.message : "Error al registrarse" };
     }

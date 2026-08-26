@@ -21,9 +21,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Si ya está logueado y visita login/register, redirigir al dashboard
+  // Si ya está logueado y visita login/register, deja pasar — el Server Component se encarga del redirect por rol
   if (sessionToken && (pathname === "/auth/login" || pathname === "/auth/sign-up")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.next();
   }
 
   return NextResponse.next();

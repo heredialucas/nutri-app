@@ -63,7 +63,9 @@ export async function deleteAvailabilitySlot(id: string) {
 }
 
 export async function getAvailableSlots(professionalId: string, date: string) {
-    // Este endpoint es público para que los pacientes puedan ver horarios disponibles
-    const slots = await availabilityService.getAvailableSlots(professionalId, new Date(date));
+    // Parse date as UTC to match how appointments are stored in the DB
+    const [y, m, d] = date.split("-").map(Number);
+    const localDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    const slots = await availabilityService.getAvailableSlots(professionalId, localDate);
     return slots;
 }

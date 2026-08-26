@@ -101,15 +101,14 @@ export const appointmentService = {
     },
 
     async getTodayAppointments(professionalId: string) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const now = new Date();
+        const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+        const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
 
         return prisma.appointment.findMany({
             where: {
                 professionalId,
-                startAt: { gte: today, lt: tomorrow },
+                startAt: { gte: todayStart, lt: todayEnd },
                 status: { notIn: ["CANCELLED"] },
             },
             include: {

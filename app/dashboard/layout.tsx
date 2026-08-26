@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import { MobileNav } from "@/components/mobile-nav";
 import { getCurrentUser, isAdminUser } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ReminderTrigger } from "@/components/reminder-trigger";
 
 export const metadata: Metadata = {
     title: "Dashboard",
@@ -33,6 +34,7 @@ export default async function DashboardLayout({
 
     return (
         <div className="min-h-screen flex text-foreground bg-background">
+            <ReminderTrigger />
             {/* Desktop Sidebar */}
             <AppSidebar
                 className="hidden md:flex border-r sticky top-0 h-screen"

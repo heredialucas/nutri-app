@@ -29,11 +29,12 @@ export function MobileNav({
                         <SheetTitle>Menú de navegación</SheetTitle>
                         <SheetDescription>Navegación principal del dashboard</SheetDescription>
                     </VisuallyHidden>
-                    <AppSidebar 
-                        className="h-full border-none" 
+                    <AppSidebar
+                        className="h-full border-none"
                         onNavigate={() => setOpen(false)}
                         userPermissions={userPermissions}
                         isAdmin={isAdmin}
+                        forceExpanded
                     />
                 </SheetContent>
             </Sheet>

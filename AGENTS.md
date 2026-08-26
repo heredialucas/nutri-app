@@ -167,11 +167,11 @@ Los documentos `sistema_gestion_stock.md`, `NEW_STRUCTURE.md` y `EXPLICACION_SCH
 - **Fase 20:** ✅ Archivos, fotos y consentimientos (Cloudinary) — file-upload, file-list, file-preview, consent-form, consent-history, páginas archivos y consentimientos, navegación desde detalle del paciente
 - **Fase 21:** ✅ Seguimiento semanal (followup-list, followup-form, adherence-field, followup-summary, ruta por paciente, botón de navegación)
 - **Fase 22:** ✅ Cobros, gastos y reportes (payment-list, payment-form, cash-summary, expense-list, expense-form, revenue-report, patients-report, appointments-report, retention-report)
+- **Fase 23:** ✅ Portal del paciente (`/paciente/`) — login con redirect por rol, patient-nav (desktop sidebar + mobile bottom nav), dashboard mejorado con stats, turnos con cancelación, plan activo con días/comidas/recetas/listas de compras/tips, seguimiento semanal con check-in, archivos, patient→user link via `userId` FK
+- **Fase 24:** ✅ Automatizaciones y recordatorios
+- **Fase 25:** ✅ Eliminación del sistema anterior (92 archivos eliminados: 32 rutas dashboard, 34 componentes, 11 acciones, 12 servicios, 3 docs)
 
 ### Pendiente
 
-- **Fase 23:** Portal del paciente (`/paciente/`)
-- **Fase 24:** Automatizaciones y recordatorios
-- **Fase 25:** Eliminación del sistema anterior (rutas, componentes, acciones, modelos de inventario)
 - **Fase 26:** Documentación final (README, docs/)
 - **Fase 27:** Verificación final obligatoria

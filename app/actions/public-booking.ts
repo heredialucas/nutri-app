@@ -28,8 +28,9 @@ async function getDefaultProfessionalId(): Promise<string> {
 export async function getPublicAvailableSlots(date: string) {
     const professionalId = await getDefaultProfessionalId();
     const { availabilityService } = await import("@/services/availability-service");
-    // Parse as local date string to avoid UTC offset
-    const localDate = new Date(`${date}T12:00:00`);
+    // Parse as UTC date to match how appointments are stored
+    const [y, m, d] = date.split("-").map(Number);
+    const localDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
     const slots = await availabilityService.getAvailableSlots(professionalId, localDate);
     return slots;
 }
@@ -77,9 +78,10 @@ export async function createPublicBooking(data: {
         });
     }
 
-    // Calculate end time (30 min slots)
-    // Build the ISO string in local time to avoid UTC offset issues
-    const startAt = new Date(`${data.date}T${data.time}:00`);
+    // Calculate end time (30 min slots) - use UTC to match DB storage
+    const [y, m, d] = data.date.split("-").map(Number);
+    const [h, min] = data.time.split(":").map(Number);
+    const startAt = new Date(Date.UTC(y, m - 1, d, h, min, 0));
     const endAt = new Date(startAt.getTime() + 30 * 60 * 1000);
 
     // Check for conflicts

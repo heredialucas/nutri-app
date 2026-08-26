@@ -14,8 +14,8 @@ export default async function AppointmentsPage() {
     if (isPatientUser(user)) redirect("/paciente/dashboard");
 
     const now = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+    const from = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)).toISOString();
+    const to = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)).toISOString();
 
     const appointments = await getAppointments({ from, to });
 

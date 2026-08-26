@@ -79,14 +79,6 @@ export function PlanList({ initialPlans }: { initialPlans: Plan[] }) {
                     <p className="text-muted-foreground">
                         {search ? "No se encontraron planes con esa búsqueda" : "No hay planes alimentarios creados"}
                     </p>
-                    {!search && (
-                        <Button asChild className="mt-4">
-                            <Link href="/dashboard/planes/new">
-                                <FileText className="mr-2 h-4 w-4" />
-                                Crear plan
-                            </Link>
-                        </Button>
-                    )}
                 </div>
             ) : (
                 <div className="grid gap-3">

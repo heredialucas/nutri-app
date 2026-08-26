@@ -53,7 +53,7 @@ export function CreatePermissionDialog() {
                     <DialogHeader>
                         <DialogTitle>Crear Nuevo Permiso</DialogTitle>
                         <DialogDescription>
-                            Define una nueva acción permitida en el sistema (ej. <code>inventory.create</code>).
+                            Define una nueva acción permitida en el sistema (ej. <code>patients.manage</code>).
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">

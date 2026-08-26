@@ -2,7 +2,19 @@ import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { patientService } from "@/services/patient-service";
 import { appointmentService } from "@/services/appointment-service";
-import { CalendarDays, Clock, MapPin, Video } from "lucide-react";
+import { nutritionPlanService } from "@/services/nutrition-plan-service";
+import { followupService } from "@/services/followup-service";
+import {
+    CalendarDays,
+    Clock,
+    MapPin,
+    Video,
+    UtensilsCrossed,
+    ClipboardCheck,
+    ArrowRight,
+    Scale,
+    TrendingUp,
+} from "lucide-react";
 import Link from "next/link";
 
 const typeLabels: Record<string, string> = {
@@ -19,22 +31,35 @@ const statusLabels: Record<string, string> = {
     RESCHEDULED: "Reprogramado",
 };
 
+const statusColors: Record<string, string> = {
+    PENDING: "text-[#eab308] bg-[#fef9c3]",
+    CONFIRMED: "text-[#22c55e] bg-[#dcfce7]",
+    COMPLETED: "text-[#6b7280] bg-[#f3f4f6]",
+    CANCELLED: "text-[#ef4444] bg-[#fef2f2]",
+    NO_SHOW: "text-[#f97316] bg-[#fff7ed]",
+    RESCHEDULED: "text-[#3b82f6] bg-[#eff6ff]",
+};
+
 export default async function PacienteDashboardPage() {
     const user = await getCurrentUser();
     if (!user) redirect("/auth/login");
     if (!isPatientUser(user)) redirect("/dashboard");
 
     const patient = await patientService.getByUserId(user.id);
+    if (!patient) redirect("/auth/login");
 
-    let appointments: any[] = [];
-    if (patient) {
-        const all = await appointmentService.list({ patientId: patient.id });
-        appointments = all.filter((a: any) => a.status !== "CANCELLED");
-    }
+    const [allAppointments, activePlan, latestFollowUp] = await Promise.all([
+        appointmentService.list({ patientId: patient.id }),
+        nutritionPlanService.getActiveForPatient(patient.id),
+        followupService.getLatest(patient.id),
+    ]);
 
+    const appointments = allAppointments.filter((a: any) => a.status !== "CANCELLED");
     const now = new Date();
-    const upcoming = appointments.filter((a: any) => new Date(a.startAt) >= now);
+    const upcoming = appointments.filter((a: any) => new Date(a.startAt) >= now).slice(0, 3);
     const past = appointments.filter((a: any) => new Date(a.startAt) < now);
+
+    const latestWeight = latestFollowUp?.weight;
 
     return (
         <div>
@@ -42,21 +67,72 @@ export default async function PacienteDashboardPage() {
                 Hola, {user.firstName || "paciente"}
             </h1>
             <p className="text-sm text-[#666] mb-8 m-0">
-                Tu portal de pacientes — Mauro Acosta
+                Tu portal — Mauro Acosta
             </p>
 
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+                <Link
+                    href="/paciente/dashboard/turnos"
+                    className="flex items-center gap-3 p-4 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white no-underline hover:border-[rgba(0,0,0,0.12)] transition-colors"
+                >
+                    <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.03)] flex items-center justify-center shrink-0">
+                        <CalendarDays size={18} className="text-[#1a1a1a]" />
+                    </div>
+                    <div>
+                        <p className="text-lg font-bold text-[#1a1a1a] m-0">{upcoming.length}</p>
+                        <p className="text-xs text-[#666] m-0">Próximos turnos</p>
+                    </div>
+                </Link>
+
+                <Link
+                    href="/paciente/dashboard/plan"
+                    className="flex items-center gap-3 p-4 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white no-underline hover:border-[rgba(0,0,0,0.12)] transition-colors"
+                >
+                    <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.03)] flex items-center justify-center shrink-0">
+                        <UtensilsCrossed size={18} className="text-[#1a1a1a]" />
+                    </div>
+                    <div>
+                        <p className="text-lg font-bold text-[#1a1a1a] m-0">{activePlan ? "Activo" : "—"}</p>
+                        <p className="text-xs text-[#666] m-0">Plan alimentario</p>
+                    </div>
+                </Link>
+
+                <Link
+                    href="/paciente/dashboard/seguimiento"
+                    className="flex items-center gap-3 p-4 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white no-underline hover:border-[rgba(0,0,0,0.12)] transition-colors col-span-2 md:col-span-1"
+                >
+                    <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.03)] flex items-center justify-center shrink-0">
+                        <Scale size={18} className="text-[#1a1a1a]" />
+                    </div>
+                    <div>
+                        <p className="text-lg font-bold text-[#1a1a1a] m-0">{latestWeight ? `${latestWeight} kg` : "—"}</p>
+                        <p className="text-xs text-[#666] m-0">Peso actual</p>
+                    </div>
+                </Link>
+            </div>
+
+            {/* Upcoming Appointments */}
             {upcoming.length > 0 && (
-                <section className="mb-10">
-                    <h2 className="text-lg font-semibold text-[#1a1a1a] mb-4 m-0">
-                        Próximos turnos
-                    </h2>
-                    <div className="flex flex-col gap-3">
+                <section className="mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-base font-semibold text-[#1a1a1a] m-0">
+                            Próximos turnos
+                        </h2>
+                        <Link
+                            href="/paciente/dashboard/turnos"
+                            className="text-xs text-[#666] hover:text-[#1a1a1a] no-underline flex items-center gap-1"
+                        >
+                            Ver todos <ArrowRight size={12} />
+                        </Link>
+                    </div>
+                    <div className="flex flex-col gap-2">
                         {upcoming.map((apt: any) => {
                             const date = new Date(apt.startAt);
                             const formatted = date.toLocaleDateString("es-AR", {
-                                weekday: "long",
+                                weekday: "short",
                                 day: "numeric",
-                                month: "long",
+                                month: "short",
                             });
                             const time = date.toLocaleTimeString("es-AR", {
                                 hour: "2-digit",
@@ -66,30 +142,24 @@ export default async function PacienteDashboardPage() {
                             return (
                                 <div
                                     key={apt.id}
-                                    className="flex items-start gap-4 p-4 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white"
+                                    className="flex items-center gap-3 p-3 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white"
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.03)] flex items-center justify-center shrink-0">
+                                    <div className="w-9 h-9 rounded-full bg-[rgba(0,0,0,0.03)] flex items-center justify-center shrink-0">
                                         {apt.type === "ONLINE" ? (
-                                            <Video size={18} className="text-[#1a1a1a]" />
+                                            <Video size={16} className="text-[#1a1a1a]" />
                                         ) : (
-                                            <MapPin size={18} className="text-[#1a1a1a]" />
+                                            <MapPin size={16} className="text-[#1a1a1a]" />
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-sm font-medium text-[#1a1a1a] capitalize">
-                                                {formatted}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-xs text-[#666]">
-                                            <span className="flex items-center gap-1">
-                                                <Clock size={12} />
-                                                {time} hs
-                                            </span>
-                                            <span>{typeLabels[apt.type] || apt.type}</span>
-                                        </div>
+                                        <span className="text-sm font-medium text-[#1a1a1a] capitalize block">
+                                            {formatted}
+                                        </span>
+                                        <span className="text-xs text-[#666] flex items-center gap-1">
+                                            <Clock size={11} /> {time} hs · {typeLabels[apt.type] || apt.type}
+                                        </span>
                                     </div>
-                                    <span className="text-xs font-medium text-[#eab308] bg-[#fef9c3] px-2 py-1 rounded-md shrink-0">
+                                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0 ${statusColors[apt.status] || "text-[#666] bg-[#f3f4f6]"}`}>
                                         {statusLabels[apt.status] || apt.status}
                                     </span>
                                 </div>
@@ -99,55 +169,98 @@ export default async function PacienteDashboardPage() {
                 </section>
             )}
 
-            {past.length > 0 && (
-                <section className="mb-10">
-                    <h2 className="text-lg font-semibold text-[#1a1a1a] mb-4 m-0">
-                        Turnos anteriores
-                    </h2>
-                    <div className="flex flex-col gap-3">
-                        {past.slice(0, 5).map((apt: any) => {
-                            const date = new Date(apt.startAt);
-                            const formatted = date.toLocaleDateString("es-AR", {
+            {/* Active Plan Preview */}
+            {activePlan && (
+                <section className="mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-base font-semibold text-[#1a1a1a] m-0">
+                            Mi plan alimentario
+                        </h2>
+                        <Link
+                            href="/paciente/dashboard/plan"
+                            className="text-xs text-[#666] hover:text-[#1a1a1a] no-underline flex items-center gap-1"
+                        >
+                            Ver completo <ArrowRight size={12} />
+                        </Link>
+                    </div>
+                    <div className="p-4 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white">
+                        <h3 className="text-sm font-semibold text-[#1a1a1a] m-0 mb-1">{activePlan.title}</h3>
+                        {activePlan.description && (
+                            <p className="text-xs text-[#666] m-0 mb-3">{activePlan.description}</p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                            {activePlan.calorieTarget && (
+                                <span className="text-[10px] font-medium px-2 py-1 rounded-md bg-[rgba(0,0,0,0.03)] text-[#666]">
+                                    {activePlan.calorieTarget} kcal/día
+                                </span>
+                            )}
+                            <span className="text-[10px] font-medium px-2 py-1 rounded-md bg-[rgba(0,0,0,0.03)] text-[#666]">
+                                {activePlan.days?.length || 0} días
+                            </span>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* Latest Follow-up */}
+            {latestFollowUp && (
+                <section className="mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-base font-semibold text-[#1a1a1a] m-0">
+                            Último seguimiento
+                        </h2>
+                        <Link
+                            href="/paciente/dashboard/seguimiento"
+                            className="text-xs text-[#666] hover:text-[#1a1a1a] no-underline flex items-center gap-1"
+                        >
+                            Ver historial <ArrowRight size={12} />
+                        </Link>
+                    </div>
+                    <div className="p-4 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white">
+                        <div className="flex items-center gap-4 text-sm">
+                            {latestFollowUp.weight && (
+                                <div>
+                                    <span className="text-xs text-[#666] block">Peso</span>
+                                    <span className="font-semibold text-[#1a1a1a]">{latestFollowUp.weight?.toString()} kg</span>
+                                </div>
+                            )}
+                            {latestFollowUp.adherence && (
+                                <div>
+                                    <span className="text-xs text-[#666] block">Adherencia</span>
+                                    <span className="font-semibold text-[#1a1a1a] capitalize">{latestFollowUp.adherence}</span>
+                                </div>
+                            )}
+                            {latestFollowUp.energy && (
+                                <div>
+                                    <span className="text-xs text-[#666] block">Energía</span>
+                                    <span className="font-semibold text-[#1a1a1a] capitalize">{latestFollowUp.energy}</span>
+                                </div>
+                            )}
+                        </div>
+                        <p className="text-[10px] text-[#999] mt-2 m-0">
+                            {new Date(latestFollowUp.createdAt).toLocaleDateString("es-AR", {
                                 day: "numeric",
                                 month: "long",
                                 year: "numeric",
-                            });
-                            const time = date.toLocaleTimeString("es-AR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            });
-
-                            return (
-                                <div
-                                    key={apt.id}
-                                    className="flex items-center gap-4 p-4 rounded-xl border border-[rgba(0,0,0,0.04)] bg-white opacity-70"
-                                >
-                                    <div className="flex-1 min-w-0">
-                                        <span className="text-sm text-[#1a1a1a] capitalize">{formatted}</span>
-                                        <span className="text-xs text-[#999] ml-2">{time} hs</span>
-                                    </div>
-                                    <span className="text-xs text-[#999]">
-                                        {statusLabels[apt.status] || apt.status}
-                                    </span>
-                                </div>
-                            );
-                        })}
+                            })}
+                        </p>
                     </div>
                 </section>
             )}
 
-            {appointments.length === 0 && (
-                <div className="text-center py-16">
-                    <CalendarDays size={40} strokeWidth={1.2} className="text-[#ccc] mx-auto mb-4" />
-                    <h2 className="text-lg font-semibold text-[#1a1a1a] mb-2 m-0">
-                        Sin turnos
+            {/* Empty States */}
+            {upcoming.length === 0 && !activePlan && (
+                <div className="text-center py-12">
+                    <CalendarDays size={36} strokeWidth={1.2} className="text-[#ccc] mx-auto mb-3" />
+                    <h2 className="text-base font-semibold text-[#1a1a1a] mb-1 m-0">
+                        Sin turnos próximos
                     </h2>
-                    <p className="text-sm text-[#666] mb-6 m-0">
-                        Aún no tenés turnos reservados.
+                    <p className="text-sm text-[#666] mb-4 m-0">
+                        Reservá tu próximo turno con Mauro Acosta.
                     </p>
                     <Link
                         href="/reservar"
-                        className="inline-flex items-center justify-center h-11 px-8 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold no-underline transition-colors hover:bg-[#333]"
+                        className="inline-flex items-center justify-center h-10 px-6 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold no-underline transition-colors hover:bg-[#333]"
                     >
                         Reservar turno
                     </Link>

@@ -73,14 +73,6 @@ export function RecipeList({ initialRecipes }: { initialRecipes: Recipe[] }) {
                     <p className="text-muted-foreground">
                         {search ? "No se encontraron recetas con esa búsqueda" : "No hay recetas creadas"}
                     </p>
-                    {!search && (
-                        <Button asChild className="mt-4">
-                            <Link href="/dashboard/recetas/new">
-                                <ChefHat className="mr-2 h-4 w-4" />
-                                Crear receta
-                            </Link>
-                        </Button>
-                    )}
                 </div>
             ) : (
                 <div className="grid gap-3">

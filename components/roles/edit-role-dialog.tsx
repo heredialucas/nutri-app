@@ -126,15 +126,23 @@ export function EditRoleDialog({ role, permissions }: EditRoleDialogProps) {
                                     Object.entries(permissions.reduce<Record<string, any[]>>((acc, perm) => {
                                         const prefix = perm.action.split('.')[0];
                                         const groupTranslations: Record<string, string> = {
-                                            inventory: "Ingresos",
-                                            warehouses: "Almacenes",
-                                            transfers: "Transferencias",
-                                            purchases: "Compras",
-                                            deliveries: "Entregas",
-                                            suppliers: "Proveedores",
-                                            institutions: "Instituciones",
+                                            dashboard: "Panel",
+                                            patients: "Pacientes",
+                                            medical_history: "Historia Clínica",
+                                            appointments: "Turnos",
+                                            availability: "Disponibilidad",
+                                            measurements: "Mediciones",
+                                            nutrition_plans: "Planes Alimentarios",
+                                            recipes: "Recetas",
+                                            followups: "Seguimiento",
+                                            files: "Archivos",
+                                            consents: "Consentimientos",
+                                            payments: "Cobros",
+                                            expenses: "Gastos",
                                             reports: "Reportes",
-                                            users: "Usuarios"
+                                            messages: "Mensajes",
+                                            users: "Usuarios",
+                                            settings: "Configuración"
                                         };
                                         const groupName = groupTranslations[prefix] || prefix;
                                         if (!acc[groupName]) acc[groupName] = [];

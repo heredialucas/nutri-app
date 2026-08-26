@@ -1858,13 +1858,13 @@ El build debe finalizar correctamente y la aplicación debe representar exclusiv
 | 20 | ✅ | Archivos, fotos y consentimientos |
 | 21 | ✅ | Seguimiento semanal |
 | 22 | ✅ | Cobros, gastos y reportes |
+| 23 | ✅ | Portal del paciente |
+| 24 | ✅ | Automatizaciones y recordatorios |
+| 25 | ✅ | Eliminación del sistema anterior |
 
 ### Pendiente
 
 | Fase | Estado | Descripción |
 |------|--------|-------------|
-| 23 | ⏳ | Portal del paciente |
-| 24 | ⏳ | Automatizaciones y recordatorios |
-| 25 | ⏳ | Eliminación del sistema anterior |
 | 26 | ⏳ | Documentación final |
 | 27 | ⏳ | Verificación final obligatoria |

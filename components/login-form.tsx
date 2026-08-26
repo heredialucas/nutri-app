@@ -39,7 +39,8 @@ export function LoginForm({
       const result = await loginAction(formData);
       if (result?.error) throw new Error(result.error);
 
-      router.push("/dashboard");
+      router.push(result.redirectTo || "/dashboard");
+      router.refresh();
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Ocurrió un error");
     } finally {

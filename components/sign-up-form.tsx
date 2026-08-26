@@ -53,7 +53,7 @@ function SignUpFormInner() {
       });
       if (result?.error) throw new Error(result.error);
 
-      router.push("/paciente/dashboard");
+      router.push(result.redirectTo || "/paciente/dashboard");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Ocurrió un error");
     } finally {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
     LayoutDashboard,
@@ -21,7 +21,11 @@ import {
     ChevronDown,
     ChevronRight,
     Stethoscope,
+    PanelLeftClose,
+    PanelLeftOpen,
+    MessageSquare,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface SidebarItem {
@@ -157,6 +161,11 @@ const sidebarGroups: SidebarGroup[] = [
                 icon: Shield,
                 requiresAdmin: true,
             },
+            {
+                title: "WhatsApp",
+                href: "/dashboard/configuracion/whatsapp",
+                icon: MessageSquare,
+            },
         ],
     },
 ];
@@ -166,14 +175,33 @@ export function AppSidebar({
     onNavigate,
     userPermissions = [],
     isAdmin = false,
+    forceExpanded = false,
 }: {
     className?: string;
     onNavigate?: () => void;
     userPermissions?: string[];
     isAdmin?: boolean;
+    forceExpanded?: boolean;
 }) {
     const pathname = usePathname();
     const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+    const [collapsed, setCollapsed] = useState(false);
+
+    useEffect(() => {
+        if (forceExpanded) return;
+        const saved = localStorage.getItem("sidebar-collapsed");
+        if (saved !== null) setCollapsed(saved === "true");
+    }, [forceExpanded]);
+
+    const toggleCollapsed = useCallback(() => {
+        setCollapsed(prev => {
+            const next = !prev;
+            localStorage.setItem("sidebar-collapsed", String(next));
+            return next;
+        });
+    }, []);
+
+    const isCollapsed = forceExpanded ? false : collapsed;
 
     const filteredGroups = sidebarGroups.map(group => {
         const filteredItems = group.items
@@ -226,16 +254,41 @@ export function AppSidebar({
     };
 
     return (
-        <aside className={cn("w-64 bg-card flex flex-col h-full overflow-y-auto border-r", className)}>
-            <div className="p-5 border-b flex items-center gap-2 sticky top-0 bg-card z-10">
-                <Stethoscope className="h-5 w-5 text-primary" />
-                <div>
-                    <h2 className="font-bold text-sm tracking-tight leading-none">Mauro Acosta</h2>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Gestión nutricional</p>
+        <TooltipProvider delayDuration={0}>
+            <aside className={cn(
+                "bg-card flex flex-col h-full overflow-y-auto border-r transition-[width] duration-200 ease-in-out shrink-0",
+                isCollapsed ? "w-16" : "w-64",
+                className,
+            )}>
+                <div className={cn(
+                    "h-16 border-b flex items-center sticky top-0 bg-card z-10 shrink-0",
+                    isCollapsed ? "justify-center px-0" : "px-5 gap-2",
+                )}>
+                    <Stethoscope className="h-5 w-5 text-primary shrink-0" />
+                    {!isCollapsed && (
+                        <div className="min-w-0">
+                            <h2 className="font-bold text-sm tracking-tight leading-none">Mauro Acosta</h2>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">Gestión nutricional</p>
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={toggleCollapsed}
+                        className={cn(
+                            "p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors shrink-0",
+                            isCollapsed ? "mt-3" : "ml-auto",
+                        )}
+                        aria-label={isCollapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
+                    >
+                        {isCollapsed ? (
+                            <PanelLeftOpen className="h-4 w-4" />
+                        ) : (
+                            <PanelLeftClose className="h-4 w-4" />
+                        )}
+                    </button>
                 </div>
-            </div>
 
-            <nav aria-label="Navegación principal" className="flex-1 px-3 py-3 space-y-1">
+            <nav aria-label="Navegación principal" className={cn("flex-1 py-3 space-y-1", isCollapsed ? "px-2" : "px-3")}>
                 {filteredGroups.map((group) => {
                     const isOpen = !!openGroups[group.groupTitle];
                     const isPrincipal = group.groupTitle === "Principal";
@@ -250,6 +303,24 @@ export function AppSidebar({
                                         pathname={pathname}
                                         allFilteredItems={allFilteredItems}
                                         onNavigate={onNavigate}
+                                        collapsed={isCollapsed}
+                                    />
+                                ))}
+                            </div>
+                        );
+                    }
+
+                    if (isCollapsed) {
+                        return (
+                            <div key={group.groupTitle} className="space-y-0.5">
+                                {group.items.map((item) => (
+                                    <SidebarLink
+                                        key={item.href}
+                                        item={item}
+                                        pathname={pathname}
+                                        allFilteredItems={allFilteredItems}
+                                        onNavigate={onNavigate}
+                                        collapsed={isCollapsed}
                                     />
                                 ))}
                             </div>
@@ -283,6 +354,7 @@ export function AppSidebar({
                                             pathname={pathname}
                                             allFilteredItems={allFilteredItems}
                                             onNavigate={onNavigate}
+                                            collapsed={isCollapsed}
                                         />
                                     ))}
                                 </div>
@@ -291,10 +363,18 @@ export function AppSidebar({
                     );
                 })}
             </nav>
-            <div className="p-3 border-t text-xs text-center text-muted-foreground sticky bottom-0 bg-card">
-                v1.0 — Consultorio nutricional
+            <div className={cn(
+                "border-t text-muted-foreground sticky bottom-0 bg-card shrink-0",
+                isCollapsed ? "p-2 text-[0]" : "p-3 text-xs text-center",
+            )}>
+                {isCollapsed ? (
+                    <Stethoscope className="h-4 w-4 mx-auto text-muted-foreground/50" />
+                ) : (
+                    "v1.0 — Consultorio nutricional"
+                )}
             </div>
         </aside>
+        </TooltipProvider>
     );
 }
 
@@ -303,31 +383,14 @@ function SidebarLink({
     pathname,
     allFilteredItems,
     onNavigate,
+    collapsed,
 }: {
     item: SidebarItem;
     pathname: string;
     allFilteredItems: SidebarItem[];
     onNavigate?: () => void;
+    collapsed?: boolean;
 }) {
-    if (item.href === "/dashboard") {
-        const isActive = pathname === "/dashboard";
-        return (
-            <Link
-                href={item.href}
-                onClick={onNavigate}
-                className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-xs font-medium",
-                    isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-            >
-                <item.icon className="h-4 w-4" aria-hidden="true" />
-                <span>{item.title}</span>
-            </Link>
-        );
-    }
-
     const isExactMatch = pathname === item.href;
     const isChildRoute =
         pathname.startsWith(`${item.href}/`) &&
@@ -337,21 +400,39 @@ function SidebarLink({
                 otherItem.href.startsWith(item.href) &&
                 pathname.startsWith(otherItem.href)
         );
-    const isActive = isExactMatch || isChildRoute;
+    const isActive = item.href === "/dashboard"
+        ? pathname === "/dashboard"
+        : isExactMatch || isChildRoute;
 
-    return (
+    const link = (
         <Link
             href={item.href}
             onClick={onNavigate}
             className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium transition-colors",
+                "flex items-center gap-3 rounded-md text-xs font-medium transition-colors",
+                collapsed ? "justify-center px-0 py-2" : "px-3 py-2",
                 isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             )}
         >
-            <item.icon className="h-4 w-4" aria-hidden="true" />
-            {item.title}
+            <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {!collapsed && <span>{item.title}</span>}
         </Link>
     );
+
+    if (collapsed) {
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    {link}
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>
+                    {item.title}
+                </TooltipContent>
+            </Tooltip>
+        );
+    }
+
+    return link;
 }

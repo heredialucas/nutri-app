@@ -23,6 +23,12 @@ model User {
   username  String?     @unique
   userRoles UserRole[]
 
+  // WhatsApp settings
+  whatsappSetting          WhatsAppSetting?
+
+  // Patient portal
+  patient                  Patient?
+
   // Nutrition relations
   professionalAppointments Appointment[]       @relation("ProfessionalAppointments")
   professionalAvailability Availability[]
@@ -96,6 +102,7 @@ model RolePermission {
 
 model Patient {
   id               String                  @id @default(uuid()) @db.Uuid
+  userId           String?                 @unique @db.Uuid
   firstName        String
   lastName         String
   email            String?
@@ -115,6 +122,7 @@ model Patient {
   updatedAt        DateTime                @updatedAt
   deletedAt        DateTime?
 
+  user             User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
   appointments               Appointment[]
   medicalHistory            MedicalHistory?
   allergies                 Allergy[]
@@ -517,6 +525,52 @@ model Message {
   thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@map("messages")
+}
+
+// ──────────────────────────────────────────────
+// WHATSAPP & NOTIFICATIONS
+// ──────────────────────────────────────────────
+
+model WhatsAppSetting {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  encryptedPhone  String   @map("encrypted_phone") @db.Text
+  encryptedApiKey String   @map("encrypted_api_key") @db.Text
+  enabled         Boolean  @default(true)
+
+  // Recordatorios para el profesional
+  notifTurnosHoy              Boolean @default(true) @map("notif_turnos_hoy")
+  notifTurnosManana           Boolean @default(true) @map("notif_turnos_manana")
+  notifSeguimientosPendientes Boolean @default(true) @map("notif_seguimientos_pendientes")
+  notifPacientesInactivos     Boolean @default(false) @map("notif_pacientes_inactivos")
+
+  // Recordatorios para el paciente
+  notifPlanDelDia             Boolean @default(true) @map("notif_plan_del_dia")
+  notifTurno24h               Boolean @default(true) @map("notif_turno_24h")
+  notifTurno2h                Boolean @default(true) @map("notif_turno_2h")
+  notifTipsRecetas            Boolean @default(false) @map("notif_tips_recetas")
+  notifSeguimientoSemanal     Boolean @default(true) @map("notif_seguimiento_semanal")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("whatsapp_settings")
+}
+
+model NotificationLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  type      String
+  recipient String   @db.Text
+  message   String   @db.Text
+  status    String   @default("SENT")
+  error     String?  @db.Text
+  sentAt    DateTime @default(now()) @map("sent_at")
+
+  @@index([userId, type, sentAt])
+  @@map("notification_logs")
 }
 
 // ──────────────────────────────────────────────

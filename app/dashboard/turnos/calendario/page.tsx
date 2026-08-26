@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { getAppointments } from "@/app/actions/appointments";
 import { AppointmentStatusBadge, AppointmentTypeBadge } from "@/components/appointments/appointment-status-badge";
 import Link from "next/link";
@@ -33,8 +33,8 @@ export default function CalendarPage() {
     const loadMonth = async () => {
         setLoading(true);
         try {
-            const from = new Date(currentYear, currentMonth, 1).toISOString();
-            const to = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59).toISOString();
+            const from = new Date(Date.UTC(currentYear, currentMonth, 1, 0, 0, 0)).toISOString();
+            const to = new Date(Date.UTC(currentYear, currentMonth + 1, 0, 23, 59, 59)).toISOString();
             const data = await getAppointments({ from, to });
             setAppointments(data as any);
         } catch {
@@ -44,7 +44,7 @@ export default function CalendarPage() {
         }
     };
 
-    useMemo(() => {
+    useEffect(() => {
         loadMonth();
     }, [currentMonth, currentYear]);
 
@@ -67,11 +67,13 @@ export default function CalendarPage() {
     };
 
     const appointmentsByDay: Record<number, any[]> = {};
-    appointments.forEach((a) => {
-        const day = new Date(a.startAt).getDate();
-        if (!appointmentsByDay[day]) appointmentsByDay[day] = [];
-        appointmentsByDay[day].push(a);
-    });
+    appointments
+        .filter((a) => a.status !== "CANCELLED")
+        .forEach((a) => {
+            const day = new Date(a.startAt).getUTCDate();
+            if (!appointmentsByDay[day]) appointmentsByDay[day] = [];
+            appointmentsByDay[day].push(a);
+        });
 
     return (
         <div className="space-y-6">

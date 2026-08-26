@@ -53,7 +53,7 @@ export const availabilityService = {
     },
 
     async getAvailableSlots(professionalId: string, date: Date) {
-        const weekday = date.getDay();
+        const weekday = date.getUTCDay();
 
         const availability = await prisma.availability.findMany({
             where: {
@@ -63,10 +63,13 @@ export const availabilityService = {
             },
         });
 
-        // Obtener turnos existentes para esa fecha (usar string local para evitar offset UTC)
-        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-        const dayStart = new Date(`${dateStr}T00:00:00`);
-        const dayEnd = new Date(`${dateStr}T23:59:59`);
+        // Build UTC date string to match stored appointment dates
+        const y = date.getUTCFullYear();
+        const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+        const d = String(date.getUTCDate()).padStart(2, "0");
+        const dateStr = `${y}-${m}-${d}`;
+        const dayStart = new Date(`${dateStr}T00:00:00Z`);
+        const dayEnd = new Date(`${dateStr}T23:59:59Z`);
 
         const existingAppointments = await prisma.appointment.findMany({
             where: {
@@ -92,7 +95,7 @@ export const availabilityService = {
                 const m = currentMinutes % 60;
                 const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
-                const slotStart = new Date(`${dateStr}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`);
+                const slotStart = new Date(`${dateStr}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00Z`);
                 const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
 
                 const isBooked = existingAppointments.some(

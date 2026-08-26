@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AppointmentStatusBadge, AppointmentTypeBadge } from "./appointment-status-badge";
 import { updateAppointment, cancelAppointment } from "@/app/actions/appointments";
 import { toast } from "sonner";
-import { Video, MapPin, Clock, MoreHorizontal } from "lucide-react";
+import { Video, MapPin, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { useState } from "react";
 
 interface Appointment {
@@ -105,16 +105,30 @@ export function AppointmentList({ appointments }: { appointments: Appointment[] 
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                             <AppointmentStatusBadge status={a.status} />
-                            <div className="relative">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    disabled={loadingId === a.id}
-                                >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </div>
+                            {a.status === "PENDING" && (
+                                <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="default"
+                                        size="sm"
+                                        className="h-8 px-3 text-xs gap-1"
+                                        disabled={loadingId === a.id}
+                                        onClick={() => handleStatusChange(a.id, "CONFIRMED")}
+                                    >
+                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                        Confirmar
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="h-8 px-3 text-xs gap-1"
+                                        disabled={loadingId === a.id}
+                                        onClick={() => handleStatusChange(a.id, "CANCELLED")}
+                                    >
+                                        <XCircle className="h-3.5 w-3.5" />
+                                        Cancelar
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
