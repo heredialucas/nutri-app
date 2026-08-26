@@ -1,5 +1,8 @@
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
+import { fromZonedTime, formatInTimeZone, toZonedTime } from "date-fns-tz";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 export const availabilityService = {
     async getByProfessional(professionalId: string) {
@@ -53,7 +56,9 @@ export const availabilityService = {
     },
 
     async getAvailableSlots(professionalId: string, date: Date) {
-        const weekday = date.getUTCDay();
+        // date is a correct UTC Date; get Argentina weekday
+        const arDate = toZonedTime(date, AR_TZ);
+        const weekday = arDate.getDay();
 
         const availability = await prisma.availability.findMany({
             where: {
@@ -63,13 +68,10 @@ export const availabilityService = {
             },
         });
 
-        // Build UTC date string to match stored appointment dates
-        const y = date.getUTCFullYear();
-        const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-        const d = String(date.getUTCDate()).padStart(2, "0");
-        const dateStr = `${y}-${m}-${d}`;
-        const dayStart = new Date(`${dateStr}T00:00:00Z`);
-        const dayEnd = new Date(`${dateStr}T23:59:59Z`);
+        // Get Argentina date string for the day range
+        const arDateStr = formatInTimeZone(date, AR_TZ, "yyyy-MM-dd");
+        const dayStart = new Date(`${arDateStr}T00:00:00Z`);
+        const dayEnd = new Date(`${arDateStr}T23:59:59Z`);
 
         const existingAppointments = await prisma.appointment.findMany({
             where: {
@@ -95,7 +97,9 @@ export const availabilityService = {
                 const m = currentMinutes % 60;
                 const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
-                const slotStart = new Date(`${dateStr}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00Z`);
+                // Build a pretend-UTC date with the AR local time, then convert to real UTC
+                const pretendLocal = new Date(`${arDateStr}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`);
+                const slotStart = fromZonedTime(pretendLocal, AR_TZ);
                 const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
 
                 const isBooked = existingAppointments.some(

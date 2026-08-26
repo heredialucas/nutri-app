@@ -4,6 +4,9 @@ import { availabilityService } from "@/services/availability-service";
 import { getCurrentUser, hasPermission } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { serializePrisma } from "@/lib/utils";
+import { fromZonedTime } from "date-fns-tz";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 async function requireAuth(permission?: string) {
     const user = await getCurrentUser();
@@ -63,9 +66,10 @@ export async function deleteAvailabilitySlot(id: string) {
 }
 
 export async function getAvailableSlots(professionalId: string, date: string) {
-    // Parse date as UTC to match how appointments are stored in the DB
+    // date string is the Argentina-local date (e.g. "2026-08-27")
     const [y, m, d] = date.split("-").map(Number);
-    const localDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-    const slots = await availabilityService.getAvailableSlots(professionalId, localDate);
+    const localNoon = new Date(y, m - 1, d, 12, 0, 0);
+    const utcDate = fromZonedTime(localNoon, AR_TZ);
+    const slots = await availabilityService.getAvailableSlots(professionalId, utcDate);
     return slots;
 }

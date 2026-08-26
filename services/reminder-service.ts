@@ -1,5 +1,8 @@
 import prisma from "@/lib/prisma";
 import { sendNotification } from "@/lib/whatsapp-sender";
+import { formatInTimeZone } from "date-fns-tz";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 const NUTRITION_TIPS = [
     "Hoy te recomiendo incluir una porción de verduras de hoja verde en tu almuerzo. Espinaca, acelga o rúcula son excelentes opciones.",
@@ -250,10 +253,7 @@ export const reminderService = {
             return { sent: false, reason: `Sin turno en ${hoursAhead}h` };
         }
 
-        const timeStr = appointment.startAt.toLocaleTimeString("es-AR", {
-            hour: "2-digit",
-            minute: "2-digit",
-        });
+        const timeStr = formatInTimeZone(appointment.startAt, AR_TZ, "HH:mm");
 
         const typeStr =
             appointment.type === "ONLINE" ? "Online" : "Presencial";
@@ -370,10 +370,7 @@ export const reminderService = {
         let message = `📅 *Turnos de hoy*\n\n`;
 
         for (const apt of appointments) {
-            const timeStr = apt.startAt.toLocaleTimeString("es-AR", {
-                hour: "2-digit",
-                minute: "2-digit",
-            });
+            const timeStr = formatInTimeZone(apt.startAt, AR_TZ, "HH:mm");
             const typeStr =
                 apt.type === "ONLINE" ? "💻" : "🏥";
             message += `${timeStr} — ${typeStr} ${apt.patient.firstName} ${apt.patient.lastName}\n`;
@@ -430,10 +427,7 @@ export const reminderService = {
         let message = `📅 *Turnos de mañana — ${dayName}*\n\n`;
 
         for (const apt of appointments) {
-            const timeStr = apt.startAt.toLocaleTimeString("es-AR", {
-                hour: "2-digit",
-                minute: "2-digit",
-            });
+            const timeStr = formatInTimeZone(apt.startAt, AR_TZ, "HH:mm");
             const typeStr =
                 apt.type === "ONLINE" ? "💻" : "🏥";
             message += `${timeStr} — ${typeStr} ${apt.patient.firstName} ${apt.patient.lastName}\n`;

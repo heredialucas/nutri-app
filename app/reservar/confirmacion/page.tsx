@@ -6,6 +6,10 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { useBooking } from "@/components/booking/booking-context";
 import { createPublicBooking } from "@/app/actions/public-booking";
+import { formatInTimeZone } from "date-fns-tz";
+import { es } from "date-fns/locale";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 const typeLabels: Record<string, string> = {
   IN_PERSON: "Consulta presencial",
@@ -133,11 +137,12 @@ function ConfirmacionContent() {
     );
   }
 
-  const formattedDate = new Date(data.date + "T12:00:00").toLocaleDateString("es-AR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  const formattedDate = formatInTimeZone(
+    new Date(data.date + "T12:00:00"),
+    AR_TZ,
+    "EEEE d 'de' MMMM",
+    { locale: es },
+  );
 
   return (
     <div className="text-center">

@@ -8,6 +8,10 @@ import { updateAppointment, cancelAppointment } from "@/app/actions/appointments
 import { toast } from "sonner";
 import { Video, MapPin, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { useState } from "react";
+import { formatInTimeZone } from "date-fns-tz";
+import { es } from "date-fns/locale";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 interface Appointment {
     id: string;
@@ -23,8 +27,8 @@ interface Appointment {
 function formatDateTime(iso: string) {
     const d = new Date(iso);
     return {
-        date: d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short" }),
-        time: d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
+        date: formatInTimeZone(d, AR_TZ, "EEE d MMM", { locale: es }),
+        time: formatInTimeZone(d, AR_TZ, "HH:mm"),
     };
 }
 
@@ -61,10 +65,7 @@ export function AppointmentList({ appointments }: { appointments: Appointment[] 
         <div className="space-y-2">
             {appointments.map((a) => {
                 const { date, time } = formatDateTime(a.startAt);
-                const endTime = new Date(a.endAt).toLocaleTimeString("es-AR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                });
+                const endTime = formatInTimeZone(new Date(a.endAt), AR_TZ, "HH:mm");
 
                 return (
                     <div

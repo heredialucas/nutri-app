@@ -1,5 +1,8 @@
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
+import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 export const appointmentService = {
     async list(filters?: { professionalId?: string; patientId?: string; status?: string; from?: Date; to?: Date }) {
@@ -102,8 +105,10 @@ export const appointmentService = {
 
     async getTodayAppointments(professionalId: string) {
         const now = new Date();
-        const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-        const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
+        const arDateStr = formatInTimeZone(now, AR_TZ, "yyyy-MM-dd");
+        const [y, m, d] = arDateStr.split("-").map(Number);
+        const todayStart = fromZonedTime(new Date(y, m - 1, d, 0, 0, 0), AR_TZ);
+        const todayEnd = fromZonedTime(new Date(y, m - 1, d + 1, 0, 0, 0), AR_TZ);
 
         return prisma.appointment.findMany({
             where: {

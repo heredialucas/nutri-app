@@ -3,6 +3,9 @@
 import prisma from "@/lib/prisma";
 import { serializePrisma } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
+import { fromZonedTime } from "date-fns-tz";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 async function getDefaultProfessionalId(): Promise<string> {
     const admin = await prisma.user.findFirst({
@@ -28,10 +31,12 @@ async function getDefaultProfessionalId(): Promise<string> {
 export async function getPublicAvailableSlots(date: string) {
     const professionalId = await getDefaultProfessionalId();
     const { availabilityService } = await import("@/services/availability-service");
-    // Parse as UTC date to match how appointments are stored
+    // date string is the Argentina-local date the user picked (e.g. "2026-08-27")
+    // fromZonedTime interprets the given date+time as AR time and returns correct UTC
     const [y, m, d] = date.split("-").map(Number);
-    const localDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-    const slots = await availabilityService.getAvailableSlots(professionalId, localDate);
+    const localNoon = new Date(y, m - 1, d, 12, 0, 0);
+    const utcDate = fromZonedTime(localNoon, AR_TZ);
+    const slots = await availabilityService.getAvailableSlots(professionalId, utcDate);
     return slots;
 }
 
@@ -78,10 +83,11 @@ export async function createPublicBooking(data: {
         });
     }
 
-    // Calculate end time (30 min slots) - use UTC to match DB storage
+    // Calculate end time (30 min slots) - interpret as Argentina time, store as UTC
     const [y, m, d] = data.date.split("-").map(Number);
     const [h, min] = data.time.split(":").map(Number);
-    const startAt = new Date(Date.UTC(y, m - 1, d, h, min, 0));
+    const localStart = new Date(y, m - 1, d, h, min, 0);
+    const startAt = fromZonedTime(localStart, AR_TZ);
     const endAt = new Date(startAt.getTime() + 30 * 60 * 1000);
 
     // Check for conflicts

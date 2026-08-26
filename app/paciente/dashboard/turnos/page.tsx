@@ -2,9 +2,13 @@ import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { patientService } from "@/services/patient-service";
 import { appointmentService } from "@/services/appointment-service";
+import { formatInTimeZone } from "date-fns-tz";
+import { es } from "date-fns/locale";
 import { CalendarDays, Clock, MapPin, Video, XCircle } from "lucide-react";
 import Link from "next/link";
 import { CancelAppointmentButton } from "@/components/patient-portal/cancel-appointment-button";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 const typeLabels: Record<string, string> = {
     IN_PERSON: "Presencial",
@@ -73,16 +77,9 @@ export default async function TurnosPage() {
                     </h2>
                     <div className="flex flex-col gap-2">
                         {upcoming.map((apt: any) => {
-                            const date = new Date(apt.startAt);
-                            const formatted = date.toLocaleDateString("es-AR", {
-                                weekday: "long",
-                                day: "numeric",
-                                month: "long",
-                            });
-                            const time = date.toLocaleTimeString("es-AR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            });
+                            const aptDate = new Date(apt.startAt);
+                            const formatted = formatInTimeZone(aptDate, AR_TZ, "EEEE d 'de' MMMM", { locale: es });
+                            const time = formatInTimeZone(aptDate, AR_TZ, "HH:mm");
 
                             return (
                                 <div
@@ -132,16 +129,9 @@ export default async function TurnosPage() {
                     </h2>
                     <div className="flex flex-col gap-2">
                         {past.slice(0, 10).map((apt: any) => {
-                            const date = new Date(apt.startAt);
-                            const formatted = date.toLocaleDateString("es-AR", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                            });
-                            const time = date.toLocaleTimeString("es-AR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            });
+                            const aptDate = new Date(apt.startAt);
+                            const formatted = formatInTimeZone(aptDate, AR_TZ, "d 'de' MMMM 'de' yyyy", { locale: es });
+                            const time = formatInTimeZone(aptDate, AR_TZ, "HH:mm");
 
                             return (
                                 <div

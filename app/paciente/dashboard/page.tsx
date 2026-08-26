@@ -4,6 +4,8 @@ import { patientService } from "@/services/patient-service";
 import { appointmentService } from "@/services/appointment-service";
 import { nutritionPlanService } from "@/services/nutrition-plan-service";
 import { followupService } from "@/services/followup-service";
+import { formatInTimeZone } from "date-fns-tz";
+import { es } from "date-fns/locale";
 import {
     CalendarDays,
     Clock,
@@ -16,6 +18,8 @@ import {
     TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 const typeLabels: Record<string, string> = {
     IN_PERSON: "Presencial",
@@ -54,10 +58,11 @@ export default async function PacienteDashboardPage() {
         followupService.getLatest(patient.id),
     ]);
 
-    const appointments = allAppointments.filter((a: any) => a.status !== "CANCELLED");
+    const nonCancelled = allAppointments.filter((a: any) => a.status !== "CANCELLED");
     const now = new Date();
-    const upcoming = appointments.filter((a: any) => new Date(a.startAt) >= now).slice(0, 3);
-    const past = appointments.filter((a: any) => new Date(a.startAt) < now);
+    const upcoming = nonCancelled.filter((a: any) => new Date(a.startAt) >= now);
+    const pending = nonCancelled.filter((a: any) => a.status === "PENDING" || a.status === "CONFIRMED");
+    const past = nonCancelled.filter((a: any) => new Date(a.startAt) < now);
 
     const latestWeight = latestFollowUp?.weight;
 
@@ -80,8 +85,8 @@ export default async function PacienteDashboardPage() {
                         <CalendarDays size={18} className="text-[#1a1a1a]" />
                     </div>
                     <div>
-                        <p className="text-lg font-bold text-[#1a1a1a] m-0">{upcoming.length}</p>
-                        <p className="text-xs text-[#666] m-0">Próximos turnos</p>
+                        <p className="text-lg font-bold text-[#1a1a1a] m-0">{pending.length}</p>
+                        <p className="text-xs text-[#666] m-0">Turnos activos</p>
                     </div>
                 </Link>
 
@@ -112,12 +117,12 @@ export default async function PacienteDashboardPage() {
                 </Link>
             </div>
 
-            {/* Upcoming Appointments */}
-            {upcoming.length > 0 && (
+            {/* Appointments */}
+            {(pending.length > 0 || upcoming.length > 0 || past.length > 0) && (
                 <section className="mb-8">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-base font-semibold text-[#1a1a1a] m-0">
-                            Próximos turnos
+                            Mis turnos
                         </h2>
                         <Link
                             href="/paciente/dashboard/turnos"
@@ -127,17 +132,10 @@ export default async function PacienteDashboardPage() {
                         </Link>
                     </div>
                     <div className="flex flex-col gap-2">
-                        {upcoming.map((apt: any) => {
-                            const date = new Date(apt.startAt);
-                            const formatted = date.toLocaleDateString("es-AR", {
-                                weekday: "short",
-                                day: "numeric",
-                                month: "short",
-                            });
-                            const time = date.toLocaleTimeString("es-AR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            });
+                        {pending.map((apt: any) => {
+                            const aptDate = new Date(apt.startAt);
+                            const formatted = formatInTimeZone(aptDate, AR_TZ, "EEE d MMM", { locale: es });
+                            const time = formatInTimeZone(aptDate, AR_TZ, "HH:mm");
 
                             return (
                                 <div
@@ -165,6 +163,45 @@ export default async function PacienteDashboardPage() {
                                 </div>
                             );
                         })}
+                        {upcoming
+                            .filter((apt: any) => apt.status !== "PENDING" && apt.status !== "CONFIRMED")
+                            .slice(0, 3)
+                            .map((apt: any) => {
+                                const aptDate = new Date(apt.startAt);
+                                const formatted = formatInTimeZone(aptDate, AR_TZ, "EEE d MMM", { locale: es });
+                                const time = formatInTimeZone(aptDate, AR_TZ, "HH:mm");
+
+                                return (
+                                    <div
+                                        key={apt.id}
+                                        className="flex items-center gap-3 p-3 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white"
+                                    >
+                                        <div className="w-9 h-9 rounded-full bg-[rgba(0,0,0,0.03)] flex items-center justify-center shrink-0">
+                                            {apt.type === "ONLINE" ? (
+                                                <Video size={16} className="text-[#1a1a1a]" />
+                                            ) : (
+                                                <MapPin size={16} className="text-[#1a1a1a]" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <span className="text-sm font-medium text-[#1a1a1a] capitalize block">
+                                                {formatted}
+                                            </span>
+                                            <span className="text-xs text-[#666] flex items-center gap-1">
+                                                <Clock size={11} /> {time} hs · {typeLabels[apt.type] || apt.type}
+                                            </span>
+                                        </div>
+                                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0 ${statusColors[apt.status] || "text-[#666] bg-[#f3f4f6]"}`}>
+                                            {statusLabels[apt.status] || apt.status}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        {past.length > 0 && (
+                            <p className="text-[10px] text-[#999] mt-1 m-0">
+                                +{past.length} turno{past.length !== 1 ? "s" : ""} anterior{past.length !== 1 ? "es" : ""}
+                            </p>
+                        )}
                     </div>
                 </section>
             )}
@@ -248,12 +285,12 @@ export default async function PacienteDashboardPage() {
                 </section>
             )}
 
-            {/* Empty States */}
-            {upcoming.length === 0 && !activePlan && (
+            {/* Empty State */}
+            {pending.length === 0 && upcoming.length === 0 && (
                 <div className="text-center py-12">
                     <CalendarDays size={36} strokeWidth={1.2} className="text-[#ccc] mx-auto mb-3" />
                     <h2 className="text-base font-semibold text-[#1a1a1a] mb-1 m-0">
-                        Sin turnos próximos
+                        Sin turnos programados
                     </h2>
                     <p className="text-sm text-[#666] mb-4 m-0">
                         Reservá tu próximo turno con Mauro Acosta.

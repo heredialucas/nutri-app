@@ -2,6 +2,9 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, ArrowRight } from "lucide-react";
+import { formatInTimeZone } from "date-fns-tz";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 interface Appointment {
     id: string;
@@ -13,10 +16,7 @@ interface Appointment {
 }
 
 function formatTime(iso: string) {
-    return new Date(iso).toLocaleTimeString("es-AR", {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+    return formatInTimeZone(new Date(iso), AR_TZ, "HH:mm");
 }
 
 function statusLabel(status: string) {

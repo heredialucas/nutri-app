@@ -6,6 +6,10 @@ import { AppointmentStatusBadge, AppointmentTypeBadge } from "@/components/appoi
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { es } from "date-fns/locale";
+
+const AR_TZ = "America/Argentina/Buenos_Aires";
 
 function getDaysInMonth(year: number, month: number) {
     return new Date(year, month + 1, 0).getDate();
@@ -16,16 +20,24 @@ function getFirstDayOfMonth(year: number, month: number) {
 }
 
 export default function CalendarPage() {
-    const today = new Date();
-    const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-    const [currentYear, setCurrentYear] = useState(today.getFullYear());
+    const now = new Date();
+    const [currentMonth, setCurrentMonth] = useState(() => {
+        const arNow = new Date(now.toLocaleString("en-US", { timeZone: AR_TZ }));
+        return arNow.getMonth();
+    });
+    const [currentYear, setCurrentYear] = useState(() => {
+        const arNow = new Date(now.toLocaleString("en-US", { timeZone: AR_TZ }));
+        return arNow.getFullYear();
+    });
     const [appointments, setAppointments] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const monthName = new Date(currentYear, currentMonth).toLocaleDateString("es-AR", {
-        month: "long",
-        year: "numeric",
-    });
+    const monthName = formatInTimeZone(
+        new Date(Date.UTC(currentYear, currentMonth, 15)),
+        AR_TZ,
+        "LLLL yyyy",
+        { locale: es },
+    );
 
     const daysInMonth = getDaysInMonth(currentYear, currentMonth);
     const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
@@ -33,8 +45,11 @@ export default function CalendarPage() {
     const loadMonth = async () => {
         setLoading(true);
         try {
-            const from = new Date(Date.UTC(currentYear, currentMonth, 1, 0, 0, 0)).toISOString();
-            const to = new Date(Date.UTC(currentYear, currentMonth + 1, 0, 23, 59, 59)).toISOString();
+            // Query the full AR month range converted to UTC
+            const fromLocal = new Date(currentYear, currentMonth, 1, 0, 0, 0);
+            const toLocal = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+            const from = fromZonedTime(fromLocal, AR_TZ).toISOString();
+            const to = fromZonedTime(toLocal, AR_TZ).toISOString();
             const data = await getAppointments({ from, to });
             setAppointments(data as any);
         } catch {
@@ -66,11 +81,13 @@ export default function CalendarPage() {
         }
     };
 
+    // Group appointments by AR day
+    const arToday = new Date(now.toLocaleString("en-US", { timeZone: AR_TZ }));
     const appointmentsByDay: Record<number, any[]> = {};
     appointments
         .filter((a) => a.status !== "CANCELLED")
         .forEach((a) => {
-            const day = new Date(a.startAt).getUTCDate();
+            const day = Number(formatInTimeZone(new Date(a.startAt), AR_TZ, "d"));
             if (!appointmentsByDay[day]) appointmentsByDay[day] = [];
             appointmentsByDay[day].push(a);
         });
@@ -105,9 +122,9 @@ export default function CalendarPage() {
                     const day = i + 1;
                     const dayAppointments = appointmentsByDay[day] || [];
                     const isToday =
-                        day === today.getDate() &&
-                        currentMonth === today.getMonth() &&
-                        currentYear === today.getFullYear();
+                        day === arToday.getDate() &&
+                        currentMonth === arToday.getMonth() &&
+                        currentYear === arToday.getFullYear();
 
                     return (
                         <div
@@ -124,10 +141,7 @@ export default function CalendarPage() {
                                         href={`/dashboard/pacientes/${a.patient.id}`}
                                         className="block text-[10px] rounded px-1 py-0.5 bg-primary/10 hover:bg-primary/20 truncate"
                                     >
-                                        {new Date(a.startAt).toLocaleTimeString("es-AR", {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })}{" "}
+                                        {formatInTimeZone(new Date(a.startAt), AR_TZ, "HH:mm")}{" "}
                                         {a.patient.firstName}
                                     </Link>
                                 ))}
