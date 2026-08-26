@@ -12,6 +12,8 @@ const patientInclude = {
             measurements: true,
             nutritionPlans: true,
             followUps: true,
+            files: true,
+            consents: true,
         },
     },
 } satisfies Prisma.PatientInclude;

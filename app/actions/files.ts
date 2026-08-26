@@ -44,13 +44,13 @@ export async function uploadPatientFile(data: {
         uploadedById: user?.id,
     });
 
-    revalidatePath(`/dashboard/patients/${data.patientId}`);
+    revalidatePath(`/dashboard/pacientes/${data.patientId}`);
     return serializePrisma(file);
 }
 
 export async function deletePatientFile(id: string) {
     await requireAuth("patients:update");
     await fileService.delete(id);
-    revalidatePath(`/dashboard/patients`);
+    revalidatePath(`/dashboard/pacientes`);
     return { success: true };
 }

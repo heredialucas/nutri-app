@@ -1,5 +1,5 @@
 import { getPatients } from "@/app/actions/patients";
-import { PlanForm } from "@/components/nutrition-plans/plan-form";
+import { NewPlanClient } from "@/components/nutrition-plans/new-plan-client";
 import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -16,7 +16,7 @@ export default async function NewPlanPage() {
     const patients = await getPatients();
 
     return (
-        <PlanForm
+        <NewPlanClient
             patients={(patients as any[]).map((p) => ({
                 id: p.id,
                 firstName: p.firstName,

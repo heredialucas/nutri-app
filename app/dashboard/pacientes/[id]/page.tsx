@@ -17,6 +17,8 @@ import {
     UtensilsCrossed,
     ClipboardList,
     TrendingUp,
+    FolderOpen,
+    ClipboardCheck,
 } from "lucide-react";
 
 export const metadata = {
@@ -75,6 +77,24 @@ export default async function PatientDetailPage({
                 </div>
                 <div className="flex items-center gap-2">
                     <Button asChild variant="outline">
+                        <Link href={`/dashboard/pacientes/${id}/archivos`}>
+                            <FolderOpen className="mr-2 h-4 w-4" />
+                            Archivos
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                        <Link href={`/dashboard/pacientes/${id}/consentimientos`}>
+                            <ClipboardCheck className="mr-2 h-4 w-4" />
+                            Consentimientos
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                        <Link href={`/dashboard/pacientes/${id}/seguimiento`}>
+                            <ClipboardList className="mr-2 h-4 w-4" />
+                            Seguimiento
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline">
                         <Link href={`/dashboard/pacientes/${id}/evolucion`}>
                             <TrendingUp className="mr-2 h-4 w-4" />
                             Evolución
@@ -89,7 +109,7 @@ export default async function PatientDetailPage({
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex items-center gap-3">
@@ -130,6 +150,28 @@ export default async function PatientDetailPage({
                             <div>
                                 <p className="text-2xl font-bold">{patient._count.followUps}</p>
                                 <p className="text-xs text-muted-foreground">Seguimientos</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <FolderOpen className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-2xl font-bold">{patient._count.files}</p>
+                                <p className="text-xs text-muted-foreground">Archivos</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                            <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                                <p className="text-2xl font-bold">{patient._count.consents}</p>
+                                <p className="text-xs text-muted-foreground">Consentimientos</p>
                             </div>
                         </div>
                     </CardContent>

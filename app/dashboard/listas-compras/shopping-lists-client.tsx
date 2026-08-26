@@ -22,13 +22,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { ShoppingCart, Plus, Loader2 } from "lucide-react";
+import { ShoppingCart, Plus, Loader2, Wand2 } from "lucide-react";
 import {
     createShoppingList,
     generateShoppingListFromPlan,
 } from "@/app/actions/shopping-lists";
 import { getNutritionPlans } from "@/app/actions/nutrition-plans";
 import { ShoppingListComponent } from "@/components/shopping-lists/shopping-list";
+import { AIShoppingListGenerator } from "@/components/shopping-lists/ai-shopping-list-generator";
+import { createShoppingList as createShoppingListDirect } from "@/app/actions/shopping-lists";
+import type { GeneratedShoppingList } from "@/lib/ai/shopping-list-generator";
 
 interface ShoppingListData {
     id: string;
@@ -57,7 +60,7 @@ export function ShoppingListsClient({ initialLists }: { initialLists: ShoppingLi
     const [plans, setPlans] = useState<Plan[]>([]);
     const [selectedPlanId, setSelectedPlanId] = useState("");
     const [manualTitle, setManualTitle] = useState("");
-    const [mode, setMode] = useState<"manual" | "from-plan">("manual");
+    const [mode, setMode] = useState<"manual" | "from-plan" | "ai">("manual");
     const [loading, setLoading] = useState(false);
     const [loadingPlans, setLoadingPlans] = useState(false);
 
@@ -92,6 +95,28 @@ export function ShoppingListsClient({ initialLists }: { initialLists: ShoppingLi
             }
             setOpen(false);
             setSelectedPlanId("");
+            setManualTitle("");
+            router.refresh();
+        } catch (err: any) {
+            toast.error(err.message || "Error al crear la lista");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function handleAIGenerated(generatedList: GeneratedShoppingList) {
+        setLoading(true);
+        try {
+            await createShoppingListDirect({
+                title: generatedList.title,
+                items: generatedList.items.map((item) => ({
+                    name: item.name,
+                    quantity: item.quantity || undefined,
+                    unit: item.unit || undefined,
+                })),
+            });
+            toast.success("Lista de compras creada con IA");
+            setOpen(false);
             setManualTitle("");
             router.refresh();
         } catch (err: any) {
@@ -141,6 +166,15 @@ export function ShoppingListsClient({ initialLists }: { initialLists: ShoppingLi
                             >
                                 Desde plan
                             </Button>
+                            <Button
+                                type="button"
+                                variant={mode === "ai" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setMode("ai")}
+                            >
+                                <Wand2 className="mr-1 size-3" />
+                                Con IA
+                            </Button>
                         </div>
 
                         {mode === "manual" ? (
@@ -152,7 +186,7 @@ export function ShoppingListsClient({ initialLists }: { initialLists: ShoppingLi
                                     onChange={(e) => setManualTitle(e.target.value)}
                                 />
                             </div>
-                        ) : (
+                        ) : mode === "from-plan" ? (
                             <div className="space-y-2">
                                 <Label>Plan alimentario *</Label>
                                 {loadingPlans ? (
@@ -179,19 +213,26 @@ export function ShoppingListsClient({ initialLists }: { initialLists: ShoppingLi
                                     </Select>
                                 )}
                             </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label>Describí la lista que necesitás</Label>
+                                <AIShoppingListGenerator onGenerated={handleAIGenerated} />
+                            </div>
                         )}
 
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                                Cancelar
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={loading || (mode === "from-plan" ? !selectedPlanId : !manualTitle.trim())}
-                            >
-                                {loading ? "Creando..." : "Crear lista"}
-                            </Button>
-                        </DialogFooter>
+                        {mode !== "ai" && (
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={loading || (mode === "from-plan" ? !selectedPlanId : !manualTitle.trim())}
+                                >
+                                    {loading ? "Creando..." : "Crear lista"}
+                                </Button>
+                            </DialogFooter>
+                        )}
                     </form>
                 </DialogContent>
             </Dialog>

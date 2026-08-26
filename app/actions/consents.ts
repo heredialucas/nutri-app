@@ -41,7 +41,7 @@ export async function createConsent(data: {
     if (!data.type?.trim()) throw new Error("El tipo de consentimiento es obligatorio");
 
     const consent = await consentService.create(data);
-    revalidatePath(`/dashboard/patients/${data.patientId}`);
+    revalidatePath(`/dashboard/pacientes/${data.patientId}`);
     return serializePrisma(consent);
 }
 
@@ -53,6 +53,6 @@ export async function checkActiveConsent(patientId: string, type: string) {
 export async function deleteConsent(id: string) {
     await requireAuth("patients:update");
     await consentService.delete(id);
-    revalidatePath(`/dashboard/patients`);
+    revalidatePath(`/dashboard/pacientes`);
     return { success: true };
 }

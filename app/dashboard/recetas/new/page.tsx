@@ -1,4 +1,4 @@
-import { RecipeForm } from "@/components/recipes/recipe-form";
+import { NewRecipeClient } from "@/components/recipes/new-recipe-client";
 import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -12,5 +12,5 @@ export default async function NewRecipePage() {
     if (!user) redirect("/auth/login");
     if (isPatientUser(user)) redirect("/paciente/dashboard");
 
-    return <RecipeForm />;
+    return <NewRecipeClient />;
 }

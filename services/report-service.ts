@@ -94,4 +94,62 @@ export const reportService = {
 
         return results;
     },
+
+    async getPatientsSummary() {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const [total, active, archived, newThisMonth] = await Promise.all([
+            prisma.patient.count({ where: { deletedAt: null } }),
+            prisma.patient.count({ where: { status: "ACTIVE", deletedAt: null } }),
+            prisma.patient.count({ where: { status: "ARCHIVED", deletedAt: null } }),
+            prisma.patient.count({ where: { createdAt: { gte: startOfMonth } } }),
+        ]);
+
+        return { total, active, archived, newThisMonth };
+    },
+
+    async getAppointmentsSummary(professionalId: string) {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+        const [total, completed, cancelled, noShow, pending] = await Promise.all([
+            prisma.appointment.count({
+                where: { professionalId, startAt: { gte: startOfMonth, lte: endOfMonth } },
+            }),
+            prisma.appointment.count({
+                where: { professionalId, startAt: { gte: startOfMonth, lte: endOfMonth }, status: "COMPLETED" },
+            }),
+            prisma.appointment.count({
+                where: { professionalId, startAt: { gte: startOfMonth, lte: endOfMonth }, status: "CANCELLED" },
+            }),
+            prisma.appointment.count({
+                where: { professionalId, startAt: { gte: startOfMonth, lte: endOfMonth }, status: "NO_SHOW" },
+            }),
+            prisma.appointment.count({
+                where: { professionalId, startAt: { gte: startOfMonth, lte: endOfMonth }, status: "PENDING" },
+            }),
+        ]);
+
+        return { total, completed, cancelled, noShow, pending };
+    },
+
+    async getRetentionSummary() {
+        const [totalPatients, activePatients, followUps] = await Promise.all([
+            prisma.patient.count({ where: { deletedAt: null } }),
+            prisma.patient.count({ where: { status: "ACTIVE", deletedAt: null } }),
+            prisma.followUp.findMany({ select: { adherence: true } }),
+        ]);
+
+        const adherences = followUps
+            .map((f) => (f.adherence ? parseInt(f.adherence) : null))
+            .filter((a): a is number => a !== null);
+
+        const averageAdherence = adherences.length > 0
+            ? Math.round(adherences.reduce((sum, a) => sum + a, 0) / adherences.length)
+            : null;
+
+        return { totalPatients, activePatients, averageAdherence, followUpCount: followUps.length };
+    },
 };

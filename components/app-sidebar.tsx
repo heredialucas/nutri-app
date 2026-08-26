@@ -113,7 +113,7 @@ const sidebarGroups: SidebarGroup[] = [
                 title: "Listas de compras",
                 href: "/dashboard/listas-compras",
                 icon: ShoppingCart,
-                permission: "recipes:read",
+                permission: "plans:read",
             },
         ],
     },

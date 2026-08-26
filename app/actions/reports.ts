@@ -32,3 +32,19 @@ export async function getMonthlyRevenue(months?: number) {
     const revenue = await reportService.getMonthlyRevenue(months);
     return revenue;
 }
+
+export async function getPatientsSummary() {
+    await requireAuth("reports:read");
+    return reportService.getPatientsSummary();
+}
+
+export async function getAppointmentsSummary() {
+    const user = await requireAuth();
+    if (isPatientUser(user)) throw new Error("Esta función es solo para profesionales");
+    return reportService.getAppointmentsSummary(user.id);
+}
+
+export async function getRetentionSummary() {
+    await requireAuth("reports:read");
+    return reportService.getRetentionSummary();
+}

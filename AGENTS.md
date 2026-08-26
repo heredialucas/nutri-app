@@ -111,6 +111,7 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET
 NEXT_PUBLIC_APP_URL
+OPENAI_API_KEY # OpenAI gpt-4o-mini for AI generators
 ```
 
 Los archivos `.env` y `.env.local` nunca se deben commitear. Las credenciales proporcionadas durante la planificación quedaron expuestas y deben rotarse antes de usar el proyecto en producción, especialmente la contraseña de PostgreSQL, el secreto de Cloudinary y cualquier secreto JWT.
@@ -143,15 +144,11 @@ Los documentos `sistema_gestion_stock.md`, `NEW_STRUCTURE.md` y `EXPLICACION_SCH
 - **Fase 2 — Rebranding:** `app/layout.tsx` (metadata Mauro Acosta), `app/page.tsx` (renderiza LandingPage), `components/hero.tsx` eliminado (era DMCE), todos los textos del sistema anterior eliminados.
 - **Fase 3 — Adaptación visual:** Hero cinematográfico con imagen de fondo, header flotante con glass morphism, menú móvil con curva SVG, loading intro, smooth scroll con Lenis, `globals.css` con animaciones. Dependencias `framer-motion` y `lenis` instaladas. Imagen `tritri.png` copiada como `public/images/hero-mauro.jpg`.
 - **Fase 4 — Landing completa y reserva pública:**
-  - Landing: Header, Hero (imagen + gradientes), Servicios, Cómo trabajo (zigzag), Beneficios, Muro de testimonios, CTA Reserva, Contacto, Footer.
-  - Reserva: `/reservar` (2 opciones: Presencial u Online), `/reservar/datos` (formulario), `/reservar/horario` (selección), `/reservar/confirmacion` (redirect a dashboard).
-  - Tipos de turno simplificados a `IN_PERSON` y `ONLINE` (enum consistente con Prisma Fase 5).
-  - Smooth scroll con `lenis.scrollTo()` en todos los nav links.
+  - Landing: Header, Hero, Servicios, Cómo trabajo, Beneficios, Testimonios, CTA Reserva, Contacto, Footer.
+  - Reserva: `/reservar` (Presencial/Online), `/reservar/datos`, `/reservar/horario`, `/reservar/confirmacion`.
+  - Tipos de turno simplificados a `IN_PERSON` y `ONLINE`.
+  - Smooth scroll con `lenis.scrollTo()`.
   - Datos de contacto: WhatsApp `+54 9 3816 70-9189`, ubicación `San Miguel de Tucumán, Tucumán`.
-  - Confirmación redirige a `/dashboard` después de 5s.
-
-### Pendiente
-
 - **Fase 5:** ✅ Nuevo modelo Prisma (schema actualizado, pendiente migración DB)
 - **Fase 6:** ✅ Migración de base de datos (schema → SQL → execute → verify)
 - **Fase 7:** ✅ Seed, roles y permisos nutricionales
@@ -164,13 +161,17 @@ Los documentos `sistema_gestion_stock.md`, `NEW_STRUCTURE.md` y `EXPLICACION_SCH
 - **Fase 14:** ✅ Turnos y agenda (lista, calendario mensual, disponibilidad horaria)
 - **Fase 15:** ✅ Mediciones y evolución (IMC server-side, fotos, gráficos)
 - **Fase 16:** ✅ Planes alimentarios (editor, días, comidas, PDF)
-- **Fase 17:** ✅ Recetas y listas de compras (CRUD recetas, listas de compras, generación desde plan)
-- **Fase 18:** Archivos, fotos y consentimientos (Cloudinary)
-- **Fase 19:** Seguimiento semanal
-- **Fase 20:** Cobros, gastos y reportes
-- **Fase 21:** Mensajes y videollamadas
-- **Fase 22:** Portal del paciente (`/paciente/`)
-- **Fase 23:** Automatizaciones y recordatorios
-- **Fase 24:** Eliminación del sistema anterior (rutas, componentes, acciones, modelos de inventario)
-- **Fase 25:** Documentación final (README, docs/)
-- **Fase 26:** Verificación final obligatoria
+- **Fase 17:** ✅ Generadores IA (planes, recetas, listas de compras con OpenAI gpt-4o-mini)
+- **Fase 18:** ✅ Recetas y listas de compras (CRUD recetas, listas de compras)
+- **Fase 19:** ✅ Persistencia de estado del plan con zustand (localStorage, persist middleware)
+- **Fase 20:** ✅ Archivos, fotos y consentimientos (Cloudinary) — file-upload, file-list, file-preview, consent-form, consent-history, páginas archivos y consentimientos, navegación desde detalle del paciente
+- **Fase 21:** ✅ Seguimiento semanal (followup-list, followup-form, adherence-field, followup-summary, ruta por paciente, botón de navegación)
+- **Fase 22:** ✅ Cobros, gastos y reportes (payment-list, payment-form, cash-summary, expense-list, expense-form, revenue-report, patients-report, appointments-report, retention-report)
+
+### Pendiente
+
+- **Fase 23:** Portal del paciente (`/paciente/`)
+- **Fase 24:** Automatizaciones y recordatorios
+- **Fase 25:** Eliminación del sistema anterior (rutas, componentes, acciones, modelos de inventario)
+- **Fase 26:** Documentación final (README, docs/)
+- **Fase 27:** Verificación final obligatoria

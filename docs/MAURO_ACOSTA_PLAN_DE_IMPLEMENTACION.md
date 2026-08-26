@@ -1258,7 +1258,69 @@ Crear en `app/actions/dashboard.ts`:
 
 ---
 
-## Fase 17: Recetas y listas de compras
+## Fase 17: Generadores IA (planes, recetas, listas de compras)
+
+### Descripción
+
+Integración de OpenAI SDK (`gpt-4o-mini`) para generar planes alimentarios, recetas y listas de compras mediante IA. UI simplificada con Sheet de opciones.
+
+### Paquete
+
+```bash
+pnpm add openai
+```
+
+### Variables de entorno
+
+- `OPENAI_API_KEY` en `.env.local`.
+
+### Servicios (`lib/ai/`)
+
+- `meal-plan-generator.ts` — `PlanOptions` (calorías, comidas/día, dieta, restricciones, incluir/excluir), `generateMealPlan()`, contexto del paciente, prompt estructurado, `GeneratedMealPlan` type.
+- `recipe-generator.ts` — `generateRecipe()`, `generateRecipesFromMealPlan()`.
+- `shopping-list-generator.ts` — `generateShoppingListFromPrompt()`, `generateShoppingListFromMealPlan()`.
+
+### Server Actions (`app/actions/`)
+
+- `ai-meal-plan.ts` — `generateMealPlanWithAI(patientId, options, customPrompt?)`.
+- `ai-recipes.ts` — `generateRecipeWithAI(prompt, patientId?)`, `generateRecipesFromPlan(plan, patientId)`.
+- `ai-shopping-lists.ts` — `generateShoppingListWithAI(prompt)`, `generateShoppingListFromPlanAI(plan)`.
+
+### Componentes
+
+- `components/nutrition-plans/ai-plan-generator.tsx` — Textarea + suggestion chips (no auto-envío) + botón "Opciones" al lado del selector de paciente que abre Sheet lateral con: calorías, comidas/día (+/-), tipo de dieta (toggle), restricciones (checkbox), incluir/excluir alimentos. Controlado desde `new-plan-client.tsx`.
+- `components/nutrition-plans/plan-editor.tsx` — Vista inline editable del plan generado, botones "Crear recetas del plan" y "Crear lista de compras" al fondo.
+- `components/nutrition-plans/new-plan-client.tsx` — Orquestador: selector paciente + botón opciones + AIPlanGenerator → PlanEditor.
+- `components/recipes/ai-recipe-generator.tsx` — Input con 8 sugerencias de recetas.
+- `components/recipes/new-recipe-client.tsx` — Página nueva receta con AI input → vista editable → guardar.
+- `components/shopping-lists/ai-shopping-list-generator.tsx` — Input con 8 sugerencias.
+- `components/shopping-lists/new-shopping-list-client.tsx` — Página nueva lista con AI input → vista editable → guardar.
+
+### Flujo plan
+
+1. Seleccionar paciente.
+2. (Opcional) Configurar opciones en Sheet (calorías, dieta, restricciones).
+3. (Opcional) Escribir prompt o clickear sugerencia (puebla textarea, no auto-envía).
+4. Click en Sparkles → generar plan con IA.
+5. PlanEditor muestra el plan editable inline.
+6. Desde PlanEditor se pueden crear recetas y lista de compras (se quedan en la vista).
+7. Guardar borrador o publicar.
+
+### Eliminado
+
+- `components/nutrition-plans/ai-generate-button.tsx` (botón viejo, reemplazado por Sheet).
+
+### Verificación
+
+- Build sin errores con `pnpm build`.
+- El botón "Opciones" aparece al lado del selector de paciente al seleccionar uno.
+- Las sugerencias poblan el textarea sin enviar.
+- Tipo de dieta es opcional (se puede deseleccionar).
+- Al crear recetas o lista de compras desde el plan, no se navega fuera (se queda en el editor).
+
+---
+
+## Fase 18: Recetas y listas de compras
 
 ### Rutas
 
@@ -1290,7 +1352,67 @@ Crear en `app/actions/dashboard.ts`:
 
 ---
 
-## Fase 18: Archivos, fotos y consentimientos
+## Fase 19: Persistencia de estado del plan con zustand
+
+### Problema
+
+El plan alimentario generado con IA se almacena en `useState` de React. Al navegar a otra vista (recetas, lista de compras, pacientes) y volver, el estado se pierde y el usuario debe generar el plan otra vez.
+
+### Solución
+
+Implementar un store global con **zustand** + **persist middleware** (localStorage) para mantener el estado del plan en curso entre navegaciones.
+
+### Paquete
+
+```bash
+pnpm add zustand
+```
+
+### Store
+
+- `stores/plan-draft-store.ts` — store con `persist` de zustand.
+- Estado a persistir:
+  - `patientId: string | null`
+  - `patientName: string`
+  - `plan: GeneratedMealPlan | null`
+  - `options: PlanOptions` (calorías, comidas, dieta, restricciones, incluir/excluir)
+  - `customPrompt: string`
+  - `lastModified: number` (timestamp)
+- Acciones:
+  - `setPlan(patientId, patientName, plan, options, customPrompt)`
+  - `clearPlan()`
+  - `isStale()` — devuelve true si `lastModified` tiene más de 24h.
+
+### Integración
+
+- `new-plan-client.tsx`: Al montar, si el store tiene un plan válido para el mismo paciente, preguntar si desea continuar o empezar de nuevo.
+- `ai-plan-generator.tsx`: Al generar, guardar en el store.
+- `plan-editor.tsx`: Al editar, sincronizar cambios al store.
+- `plan-editor.tsx` (recetas/lista de compras): Al crear recetas o lista, NO limpiar el store.
+- Botón "Volver" en plan-editor: limpiar el store al guardar publicar o al descartar.
+
+### Limpieza
+
+- `clearPlan()` al publicar, al descartar, o al crear un plan nuevo para otro paciente.
+- Auto-limpieza si `isStale()` es true al montar.
+
+### Archivos
+
+- `stores/plan-draft-store.ts` (nuevo).
+- `components/nutrition-plans/new-plan-client.tsx` (modificar).
+- `components/nutrition-plans/ai-plan-generator.tsx` (modificar).
+- `components/nutrition-plans/plan-editor.tsx` (modificar).
+
+### Verificación
+
+- Generar plan, navegar a recetas, volver → el plan sigue ahí.
+- Generar plan, cerrar navegador, abrir de nuevo → se ofrece continuar.
+- Publicar plan → el store se limpia.
+- Crear plan para otro paciente → se limpia el anterior.
+
+---
+
+## Fase 20: Archivos, fotos y consentimientos
 
 ### Rutas
 
@@ -1335,7 +1457,7 @@ Registrar:
 
 ---
 
-## Fase 19: Seguimiento
+## Fase 21: Seguimiento
 
 ### Rutas
 
@@ -1368,7 +1490,7 @@ Registrar:
 
 ---
 
-## Fase 20: Cobros, gastos y reportes
+## Fase 22: Cobros, gastos y reportes
 
 ### Rutas
 
@@ -1410,43 +1532,7 @@ Registrar:
 
 ---
 
-## Fase 21: Mensajes y videollamadas
-
-### Rutas
-
-- `app/dashboard/pacientes/[id]/mensajes/page.tsx`.
-- `app/paciente/dashboard/mensajes/page.tsx`.
-
-### Componentes
-
-- `components/messages/chat.tsx`.
-- `components/messages/message-list.tsx`.
-- `components/messages/message-form.tsx`.
-
-### Reglas
-
-- Un mensaje pertenece a un paciente y profesional.
-- Registrar autor y fecha.
-- Restringir acceso por relación.
-- No usar el chat para emergencias médicas.
-
-### Videollamada
-
-Usar inicialmente un proveedor externo y guardar solamente `meetingUrl` en `Appointment`.
-
-Opciones posibles:
-
-- Google Meet.
-- Zoom.
-- Whereby.
-- Daily.
-- Jitsi.
-
-No construir infraestructura propia de videollamadas en la primera versión.
-
----
-
-## Fase 22: Portal del paciente
+## Fase 23: Portal del paciente
 
 ### Rutas
 
@@ -1487,7 +1573,7 @@ No construir infraestructura propia de videollamadas en la primera versión.
 
 ---
 
-## Fase 23: Automatizaciones
+## Fase 24: Automatizaciones
 
 ### Archivos a crear
 
@@ -1524,7 +1610,7 @@ Usar posteriormente:
 
 ---
 
-## Fase 24: Eliminación del sistema anterior
+## Fase 25: Eliminación del sistema anterior
 
 Ejecutar esta fase únicamente después de que las nuevas rutas funcionen.
 
@@ -1612,7 +1698,7 @@ No dejar esos documentos como documentación pública activa.
 
 ---
 
-## Fase 25: Documentación final
+## Fase 26: Documentación final
 
 ### `README.md`
 
@@ -1652,7 +1738,7 @@ Estos documentos deben referirse a Mauro Acosta y Gestión nutricional.
 
 ---
 
-## Fase 26: Verificación final obligatoria
+## Fase 27: Verificación final obligatoria
 
 ### Comandos permitidos
 
@@ -1766,18 +1852,19 @@ El build debe finalizar correctamente y la aplicación debe representar exclusiv
 | 14 | ✅ | Turnos y agenda |
 | 15 | ✅ | Mediciones y evolución |
 | 16 | ✅ | Planes alimentarios |
+| 17 | ✅ | Generadores IA (planes, recetas, listas) |
+| 18 | ✅ | Recetas y listas de compras |
+| 19 | ✅ | Persistencia de estado con zustand |
+| 20 | ✅ | Archivos, fotos y consentimientos |
+| 21 | ✅ | Seguimiento semanal |
+| 22 | ✅ | Cobros, gastos y reportes |
 
 ### Pendiente
 
 | Fase | Estado | Descripción |
 |------|--------|-------------|
-| 17 | ⏳ | Recetas y listas de compras |
-| 18 | ⏳ | Archivos, fotos y consentimientos |
-| 19 | ⏳ | Seguimiento semanal |
-| 20 | ⏳ | Cobros, gastos y reportes |
-| 21 | ⏳ | Mensajes y videollamadas |
-| 22 | ⏳ | Portal del paciente |
-| 23 | ⏳ | Automatizaciones y recordatorios |
-| 24 | ⏳ | Eliminación del sistema anterior |
-| 25 | ⏳ | Documentación final |
-| 26 | ⏳ | Verificación final obligatoria |
+| 23 | ⏳ | Portal del paciente |
+| 24 | ⏳ | Automatizaciones y recordatorios |
+| 25 | ⏳ | Eliminación del sistema anterior |
+| 26 | ⏳ | Documentación final |
+| 27 | ⏳ | Verificación final obligatoria |
