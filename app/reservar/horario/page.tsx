@@ -7,19 +7,8 @@ import { useBooking } from "@/components/booking/booking-context";
 import { getPublicAvailableSlots } from "@/app/actions/public-booking";
 import { CalendarDays, Loader2 } from "lucide-react";
 
-interface HorarioFormProps {
-  loggedPatient: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    birthDate: string;
-    billingType: string;
-  } | null;
-}
-
-function HorarioForm({ loggedPatient }: HorarioFormProps) {
-  const { data, setStep3 } = useBooking();
+function HorarioForm() {
+  const { data, setStep3, loggedPatient } = useBooking();
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(data.time || null);
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -148,21 +137,10 @@ function HorarioForm({ loggedPatient }: HorarioFormProps) {
   );
 }
 
-interface HorarioPageProps {
-  loggedPatient: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    birthDate: string;
-    billingType: string;
-  } | null;
-}
-
-export default function HorarioPage({ loggedPatient }: HorarioPageProps) {
+export default function HorarioPage() {
   return (
     <Suspense fallback={<div className="text-sm text-[#999]">Cargando...</div>}>
-      <HorarioForm loggedPatient={loggedPatient} />
+      <HorarioForm />
     </Suspense>
   );
 }

@@ -16,19 +16,8 @@ const typeLabels: Record<string, string> = {
   ONLINE: "Consulta online",
 };
 
-interface ConfirmacionContentProps {
-  loggedPatient: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    birthDate: string;
-    billingType: string;
-  } | null;
-}
-
-function ConfirmacionContent({ loggedPatient }: ConfirmacionContentProps) {
-  const { data, isPrefilled, reset } = useBooking();
+function ConfirmacionContent() {
+  const { data, isPrefilled, loggedPatient, reset } = useBooking();
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
@@ -225,21 +214,10 @@ function ConfirmacionContent({ loggedPatient }: ConfirmacionContentProps) {
   );
 }
 
-interface ConfirmacionPageProps {
-  loggedPatient: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    birthDate: string;
-    billingType: string;
-  } | null;
-}
-
-export default function ConfirmacionPage({ loggedPatient }: ConfirmacionPageProps) {
+export default function ConfirmacionPage() {
   return (
     <Suspense fallback={<div className="text-sm text-[#999]">Cargando...</div>}>
-      <ConfirmacionContent loggedPatient={loggedPatient} />
+      <ConfirmacionContent />
     </Suspense>
   );
 }

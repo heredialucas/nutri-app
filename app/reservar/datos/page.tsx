@@ -5,29 +5,17 @@ import { useRouter } from "next/navigation";
 import { useBooking } from "@/components/booking/booking-context";
 import { useState, useEffect, useRef } from "react";
 
-interface DatosPageProps {
-  loggedPatient: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    birthDate: string;
-    billingType: string;
-  } | null;
-}
-
-export default function DatosPage({ loggedPatient }: DatosPageProps) {
-  const { data, setStep2, prefill } = useBooking();
+export default function DatosPage() {
+  const { data, setStep2, prefill, loggedPatient } = useBooking();
   const router = useRouter();
   const prefilledRef = useRef(false);
 
   useEffect(() => {
     if (loggedPatient && !prefilledRef.current) {
       prefilledRef.current = true;
-      prefill(loggedPatient);
       router.replace("/reservar/horario");
     }
-  }, [loggedPatient, prefill, router]);
+  }, [loggedPatient, router]);
 
   const [form, setForm] = useState({
     firstName: data.firstName,

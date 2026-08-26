@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import type { LoggedPatient } from "./booking-layout-client";
 
 export interface BookingData {
     type: "ONLINE" | "IN_PERSON";
@@ -18,6 +19,7 @@ export interface BookingData {
 interface BookingContextType {
     data: BookingData;
     isPrefilled: boolean;
+    loggedPatient: LoggedPatient | null;
     setStep1: (type: "ONLINE" | "IN_PERSON") => void;
     setStep2: (datos: Partial<BookingData>) => void;
     setStep3: (date: string, time: string) => void;
@@ -40,9 +42,27 @@ const initialData: BookingData = {
 
 const BookingContext = createContext<BookingContextType | null>(null);
 
-export function BookingProvider({ children }: { children: ReactNode }) {
-    const [data, setData] = useState<BookingData>(initialData);
-    const [isPrefilled, setIsPrefilled] = useState(false);
+interface BookingProviderProps {
+    children: ReactNode;
+    loggedPatient?: LoggedPatient | null;
+}
+
+export function BookingProvider({ children, loggedPatient = null }: BookingProviderProps) {
+    const [data, setData] = useState<BookingData>(() => {
+        if (loggedPatient) {
+            return {
+                ...initialData,
+                firstName: loggedPatient.firstName,
+                lastName: loggedPatient.lastName,
+                email: loggedPatient.email,
+                phone: loggedPatient.phone,
+                birthDate: loggedPatient.birthDate,
+                billingType: loggedPatient.billingType,
+            };
+        }
+        return initialData;
+    });
+    const [isPrefilled, setIsPrefilled] = useState(!!loggedPatient);
 
     const setStep1 = (type: "ONLINE" | "IN_PERSON") => {
         setData((prev) => ({ ...prev, type }));
@@ -67,7 +87,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <BookingContext.Provider value={{ data, isPrefilled, setStep1, setStep2, setStep3, prefill, reset }}>
+        <BookingContext.Provider value={{ data, isPrefilled, loggedPatient, setStep1, setStep2, setStep3, prefill, reset }}>
             {children}
         </BookingContext.Provider>
     );

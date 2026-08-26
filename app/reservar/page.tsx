@@ -5,17 +5,6 @@ import { useBooking } from "@/components/booking/booking-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-interface ReservarPageProps {
-  loggedPatient: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    birthDate: string;
-    billingType: string;
-  } | null;
-}
-
 const types = [
   {
     id: "IN_PERSON" as const,
@@ -31,18 +20,17 @@ const types = [
   },
 ];
 
-export default function ReservarPage({ loggedPatient }: ReservarPageProps) {
-  const { setStep1, prefill } = useBooking();
+export default function ReservarPage() {
+  const { setStep1, prefill, loggedPatient } = useBooking();
   const router = useRouter();
   const prefilledRef = useRef(false);
 
   useEffect(() => {
     if (loggedPatient && !prefilledRef.current) {
       prefilledRef.current = true;
-      prefill(loggedPatient);
       router.replace("/reservar/horario");
     }
-  }, [loggedPatient, prefill, router]);
+  }, [loggedPatient, router]);
 
   if (loggedPatient) {
     return (
