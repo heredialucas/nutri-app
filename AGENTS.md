@@ -170,8 +170,9 @@ Los documentos `sistema_gestion_stock.md`, `NEW_STRUCTURE.md` y `EXPLICACION_SCH
 - **Fase 23:** ✅ Portal del paciente (`/paciente/`) — login con redirect por rol, patient-nav (desktop sidebar + mobile bottom nav), dashboard mejorado con stats, turnos con cancelación, plan activo con días/comidas/recetas/listas de compras/tips, seguimiento semanal con check-in, archivos, patient→user link via `userId` FK
 - **Fase 24:** ✅ Automatizaciones y recordatorios
 - **Fase 25:** ✅ Eliminación del sistema anterior (92 archivos eliminados: 32 rutas dashboard, 34 componentes, 11 acciones, 12 servicios, 3 docs)
+- **Fase 26:** ✅ Documentación final (README.md, ARCHITECTURE.md, DATABASE.md, ROLES_AND_PERMISSIONS.md, BOOKING_FLOW.md, PRIVACY.md, DEPLOYMENT.md)
+- **Fase 27:** ✅ Verificación final obligatoria
 
 ### Pendiente
 
-- **Fase 26:** Documentación final (README, docs/)
-- **Fase 27:** Verificación final obligatoria
+Ninguna. Todas las fases completadas.

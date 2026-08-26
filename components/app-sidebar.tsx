@@ -17,7 +17,6 @@ import {
     TrendingDown,
     BarChart3,
     ClipboardList,
-    Shield,
     ChevronDown,
     ChevronRight,
     Stethoscope,
@@ -156,12 +155,6 @@ const sidebarGroups: SidebarGroup[] = [
                 permission: "users:read",
             },
             {
-                title: "Roles",
-                href: "/dashboard/roles",
-                icon: Shield,
-                requiresAdmin: true,
-            },
-            {
                 title: "WhatsApp",
                 href: "/dashboard/configuracion/whatsapp",
                 icon: MessageSquare,
@@ -264,19 +257,25 @@ export function AppSidebar({
                     "h-16 border-b flex items-center sticky top-0 bg-card z-10 shrink-0",
                     isCollapsed ? "justify-center px-0" : "px-5 gap-2",
                 )}>
-                    <Stethoscope className="h-5 w-5 text-primary shrink-0" />
-                    {!isCollapsed && (
-                        <div className="min-w-0">
-                            <h2 className="font-bold text-sm tracking-tight leading-none">Mauro Acosta</h2>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">Gestión nutricional</p>
-                        </div>
+                    {isCollapsed ? (
+                        <span className="flex items-center justify-center w-7 h-7 rounded-md bg-primary text-primary-foreground font-bold text-[11px] tracking-tight shrink-0">
+                            MA
+                        </span>
+                    ) : (
+                        <>
+                            <Stethoscope className="h-5 w-5 text-primary shrink-0" />
+                            <div className="min-w-0">
+                                <h2 className="font-bold text-sm tracking-tight leading-none">Mauro Acosta</h2>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">Gestión nutricional</p>
+                            </div>
+                        </>
                     )}
                     <button
                         type="button"
                         onClick={toggleCollapsed}
                         className={cn(
                             "p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors shrink-0",
-                            isCollapsed ? "mt-3" : "ml-auto",
+                            isCollapsed ? "" : "ml-auto",
                         )}
                         aria-label={isCollapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
                     >

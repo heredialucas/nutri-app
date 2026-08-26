@@ -16,6 +16,12 @@ export const metadata: Metadata = {
     },
     description:
         "Consultorio de gestión nutricional. Atención personalizada para pacientes y consultorios.",
+    icons: {
+        icon: [
+            { url: "/favicon.ico", sizes: "32x32" },
+            { url: "/favicon.svg", type: "image/svg+xml" },
+        ],
+    },
     openGraph: {
         title: "Mauro Acosta | Gestión nutricional",
         description: "Consultorio de gestión nutricional. Atención personalizada para pacientes y consultorios.",
