@@ -61,6 +61,12 @@ export function AIRecipeGenerator({ onGenerated, patientId }: AIRecipeGeneratorP
                     placeholder="Describí la receta que necesitás..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (!loading && prompt.trim()) handleGenerate();
+                        }
+                    }}
                     rows={3}
                     className="resize-none pr-12"
                     disabled={loading}

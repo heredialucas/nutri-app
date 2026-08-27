@@ -60,6 +60,12 @@ export function AIShoppingListGenerator({ onGenerated }: AIShoppingListGenerator
                     placeholder="Describí la lista de compras que necesitás..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (!loading && prompt.trim()) handleGenerate();
+                        }
+                    }}
                     rows={3}
                     className="resize-none pr-12"
                     disabled={loading}

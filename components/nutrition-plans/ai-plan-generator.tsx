@@ -137,6 +137,12 @@ export function AIPlanGenerator({
                     placeholder={`Instrucciones para ${patientName}... (opcional)`}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (!loading && calories > 0) handleGenerate();
+                        }
+                    }}
                     rows={2}
                     className="resize-none pr-12 text-sm"
                     disabled={loading}
@@ -179,10 +185,53 @@ export function AIPlanGenerator({
                     </SheetHeader>
 
                     <div className="space-y-5">
+                        {activeCount > 0 || dietaryType ? (
+                            <div className="rounded-lg border border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950 p-3 space-y-1">
+                                <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                                    <Sparkles className="size-3" /> Opciones seleccionadas
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                    <Badge variant="secondary" className="text-xs">
+                                        {calories} kcal
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-xs">
+                                        {mealsPerDay} comidas
+                                    </Badge>
+                                    {dietaryType && (
+                                        <Badge variant="secondary" className="text-xs">
+                                            {dietaryType}
+                                        </Badge>
+                                    )}
+                                    {restrictions.map((r) => (
+                                        <Badge key={r} variant="secondary" className="text-xs">
+                                            {r}
+                                        </Badge>
+                                    ))}
+                                    {includeFoods && (
+                                        <Badge variant="secondary" className="text-xs">
+                                            + {includeFoods}
+                                        </Badge>
+                                    )}
+                                    {excludeFoods && (
+                                        <Badge variant="destructive" className="text-xs">
+                                            - {excludeFoods}
+                                        </Badge>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">
+                                Tocá las opciones para configurar el plan que generará la IA
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <label className="text-sm font-medium flex items-center gap-1.5">
                                 <Flame className="size-3.5 text-orange-500" />
                                 Calorías diarias *
+                                <span className="ml-auto text-xs font-semibold text-orange-600 dark:text-orange-400">
+                                    {calories} kcal
+                                </span>
                             </label>
                             <Input
                                 type="number"
@@ -256,6 +305,7 @@ export function AIPlanGenerator({
                                             setDietaryType(dietaryType === type ? null : type)
                                         }
                                     >
+                                        {dietaryType === type && <span className="mr-1">✓</span>}
                                         {type}
                                     </Badge>
                                 ))}
@@ -265,7 +315,14 @@ export function AIPlanGenerator({
                         <Separator />
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Restricciones</label>
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-medium">Restricciones</label>
+                                <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                    {restrictions.length > 0
+                                        ? `${restrictions.length} seleccionada${restrictions.length > 1 ? "s" : ""}`
+                                        : "Ninguna"}
+                                </span>
+                            </div>
                             <div className="grid grid-cols-2 gap-1.5">
                                 {RESTRICTIONS.map((r) => {
                                     const active = restrictions.includes(r);
@@ -302,6 +359,11 @@ export function AIPlanGenerator({
                                 onChange={(e) => setIncludeFoods(e.target.value)}
                                 className="h-8 text-sm"
                             />
+                            {includeFoods && (
+                                <p className="text-xs text-muted-foreground pl-1">
+                                    Se incluirá: <span className="font-medium text-green-700 dark:text-green-400">{includeFoods}</span>
+                                </p>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-medium text-red-700 dark:text-red-400">
@@ -313,6 +375,11 @@ export function AIPlanGenerator({
                                 onChange={(e) => setExcludeFoods(e.target.value)}
                                 className="h-8 text-sm"
                             />
+                            {excludeFoods && (
+                                <p className="text-xs text-muted-foreground pl-1">
+                                    Se excluirá: <span className="font-medium text-red-700 dark:text-red-400">{excludeFoods}</span>
+                                </p>
+                            )}
                         </div>
                     </div>
                 </SheetContent>

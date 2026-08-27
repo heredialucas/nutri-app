@@ -40,6 +40,12 @@ export function NewPlanClient({ patients }: NewPlanClientProps) {
         }
     }, []);
 
+    useEffect(() => {
+        if (selectedPatientId) {
+            setOptionsOpen(true);
+        }
+    }, [selectedPatientId]);
+
     const handleContinueDraft = () => {
         if (draftPlan && draftPatientId) {
             setGeneratedPlan(draftPlan);
@@ -75,7 +81,7 @@ export function NewPlanClient({ patients }: NewPlanClientProps) {
                         Nuevo plan alimentario
                     </h1>
                     <p className="text-muted-foreground text-sm">
-                        Seleccioná un paciente y describí qué tipo de plan necesitás
+                        Seleccioná un paciente y configurá las opciones que usará la IA para crear el plan
                     </p>
                 </div>
             </div>
@@ -138,17 +144,17 @@ export function NewPlanClient({ patients }: NewPlanClientProps) {
                                 ))}
                             </select>
                         </div>
-                        {selectedPatientId && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-10"
-                                onClick={() => setOptionsOpen(true)}
-                            >
-                                <Settings2 className="mr-1.5 size-3.5" />
-                                Opciones
-                            </Button>
-                        )}
+                                {selectedPatientId && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-10"
+                                        onClick={() => setOptionsOpen(true)}
+                                    >
+                                        <Settings2 className="mr-1.5 size-3.5" />
+                                        Abrir opciones
+                                    </Button>
+                                )}
                     </div>
 
                     {selectedPatientId ? (
