@@ -50,6 +50,7 @@ export async function createNutritionPlan(data: {
     endDate?: string;
     calorieTarget?: number;
     notes?: string;
+    tips?: string;
     days?: {
         dayOrder: number;
         label: string;
@@ -86,6 +87,7 @@ export async function updateNutritionPlan(id: string, data: {
     status?: string;
     calorieTarget?: number;
     notes?: string;
+    tips?: string;
     pdfUrl?: string;
 }) {
     await requireAuth("plans:update");
@@ -98,6 +100,7 @@ export async function updateNutritionPlan(id: string, data: {
     if (data.status !== undefined) updateData.status = data.status;
     if (data.calorieTarget !== undefined) updateData.calorieTarget = data.calorieTarget;
     if (data.notes !== undefined) updateData.notes = data.notes;
+    if (data.tips !== undefined) updateData.tips = data.tips;
     if (data.pdfUrl !== undefined) updateData.pdfUrl = data.pdfUrl;
 
     const plan = await nutritionPlanService.update(id, updateData);

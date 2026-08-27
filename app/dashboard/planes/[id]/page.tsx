@@ -1,11 +1,13 @@
 import { getNutritionPlanById } from "@/app/actions/nutrition-plans";
 import { PlanPreview } from "@/components/nutrition-plans/plan-preview";
 import { PlanActions } from "@/components/nutrition-plans/plan-actions";
+import { PlanRecipes } from "@/components/nutrition-plans/plan-recipes";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, ChefHat } from "lucide-react";
 import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -66,6 +68,23 @@ export default async function PlanDetailPage({ params }: Props) {
                 </div>
             </div>
             <PlanPreview plan={plan as any} />
+
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                    <CardTitle className="flex items-center gap-2">
+                        <ChefHat className="h-5 w-5 text-muted-foreground" />
+                        Recetas del plan
+                    </CardTitle>
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href="/dashboard/recetas">
+                            Ver todas las recetas
+                        </Link>
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    <PlanRecipes recipes={(plan as any).recipes ?? []} />
+                </CardContent>
+            </Card>
         </div>
     );
 }

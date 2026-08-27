@@ -28,7 +28,7 @@ import {
 } from "@/app/actions/nutrition-plans";
 import { generateRecipesFromPlan } from "@/app/actions/ai-recipes";
 import { generateShoppingListFromPlanAI } from "@/app/actions/ai-shopping-lists";
-import { createRecipe } from "@/app/actions/recipes";
+import { createRecipe, linkRecipesToPlan } from "@/app/actions/recipes";
 import { createShoppingList } from "@/app/actions/shopping-lists";
 import { usePlanDraftStore } from "@/stores/plan-draft-store";
 import type { GeneratedMealPlan } from "@/lib/ai/meal-plan-generator";
@@ -50,6 +50,8 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
     });
 
     const { updatePlan: updateDraftPlan, clearPlan: clearDraftPlan, patientName } = usePlanDraftStore();
+
+    const [generatedRecipeIds, setGeneratedRecipeIds] = useState<string[]>([]);
 
     const toggleDay = (index: number) => {
         setExpandedDays((prev) => ({ ...prev, [index]: !prev[index] }));
@@ -160,15 +162,18 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
         setGeneratingRecipes(true);
         try {
             const result = await generateRecipesFromPlan(plan, patientId);
+            const ids: string[] = [];
             for (const recipe of result.recipes) {
-                await createRecipe({
+                const created = await createRecipe({
                     title: recipe.title,
                     description: recipe.description || undefined,
                     ingredients: recipe.ingredients || undefined,
                     instructions: recipe.instructions || undefined,
                 });
+                ids.push(created.id);
             }
-            toast.success(`${result.recipes.length} receta${result.recipes.length !== 1 ? "s" : ""} creada${result.recipes.length !== 1 ? "s" : ""}. Podés verlas en la sección de recetas.`);
+            setGeneratedRecipeIds((prev) => [...prev, ...ids]);
+            toast.success(`${result.recipes.length} receta${result.recipes.length !== 1 ? "s" : ""} creada${result.recipes.length !== 1 ? "s" : ""}. Se vincularán a tu plan al guardarlo.`);
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "Error al generar recetas");
         } finally {
@@ -206,6 +211,7 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
                 description: plan.description || undefined,
                 calorieTarget: plan.calorieTarget || undefined,
                 notes: plan.notes || undefined,
+                tips: plan.tips || undefined,
                 days: plan.days.map((d, i) => ({
                     dayOrder: i + 1,
                     label: d.label,
@@ -227,6 +233,10 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
             const created = await createNutritionPlan(planData as any);
             if (status) {
                 await updateNutritionPlan(created.id, { status });
+            }
+            if (generatedRecipeIds.length > 0) {
+                await linkRecipesToPlan(generatedRecipeIds, created.id);
+                setGeneratedRecipeIds([]);
             }
             clearDraftPlan();
             toast.success("Plan guardado");
@@ -302,6 +312,18 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
                             />
                         </div>
                     )}
+                    <div className="space-y-1">
+                        <span className="text-xs font-medium text-muted-foreground">
+                            Tips de nutrición para este plan:
+                        </span>
+                        <Textarea
+                            value={plan.tips ?? ""}
+                            onChange={(e) => updatePlanField("tips", e.target.value)}
+                            rows={3}
+                            className="resize-none text-sm"
+                            placeholder={"Escribí tips personalizados, uno por línea.\nEl paciente verá solo los tips de su plan."}
+                        />
+                    </div>
                 </CardContent>
             </Card>
 

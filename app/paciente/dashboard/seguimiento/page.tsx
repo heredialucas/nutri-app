@@ -49,7 +49,7 @@ export default async function SeguimientoPage() {
                 <div className="flex items-center gap-2 mb-3">
                     <ClipboardCheck size={16} className="text-[#1a1a1a]" />
                     <h2 className="text-sm font-semibold text-[#1a1a1a] m-0 uppercase tracking-wide">
-                        {thisWeek ? "Tu check-in de esta semana" : "Check-in de esta semana"}
+                        {thisWeek ? "Tu control semanal de esta semana" : "Control semanal de esta semana"}
                     </h2>
                 </div>
                 <FollowUpForm
@@ -160,7 +160,7 @@ export default async function SeguimientoPage() {
                 <div className="text-center py-8">
                     <ClipboardCheck size={36} strokeWidth={1.2} className="text-[#ccc] mx-auto mb-3" />
                     <p className="text-sm text-[#666] m-0">
-                        Aún no tenés seguimientos registrados. Completá tu primer check-in arriba.
+                        Aún no tenés seguimientos registrados. Completá tu primer control semanal arriba.
                     </p>
                 </div>
             )}

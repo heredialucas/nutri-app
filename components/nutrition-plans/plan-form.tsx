@@ -33,6 +33,7 @@ interface PlanFormProps {
         endDate: string | null;
         calorieTarget: number | null;
         notes: string | null;
+        tips: string | null;
         patientId: string;
         days: {
             id?: string;
@@ -71,6 +72,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
         initialPlan?.calorieTarget?.toString() || ""
     );
     const [notes, setNotes] = useState(initialPlan?.notes || "");
+    const [tips, setTips] = useState(initialPlan?.tips || "");
     const [days, setDays] = useState<DayData[]>(
         initialPlan?.days?.map((d) => ({
             ...d,
@@ -128,6 +130,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                 endDate: endDate || undefined,
                 calorieTarget: calorieTarget ? parseInt(calorieTarget) : undefined,
                 notes: notes.trim() || undefined,
+                tips: tips.trim() || undefined,
                 days: days.map((d, i) => ({
                     dayOrder: i + 1,
                     label: d.label || `Día ${i + 1}`,
@@ -270,6 +273,17 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             rows={2}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="tips">Tips de nutrición para el paciente</Label>
+                        <Textarea
+                            id="tips"
+                            placeholder={"Escribí tips personalizados, uno por línea.\nEl paciente verá solo los tips de este plan."}
+                            value={tips}
+                            onChange={(e) => setTips(e.target.value)}
+                            rows={4}
                         />
                     </div>
                 </CardContent>

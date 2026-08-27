@@ -2,6 +2,7 @@
 
 import { recipeService } from "@/services/recipe-service";
 import { getCurrentUser, hasPermission } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serializePrisma } from "@/lib/utils";
 
@@ -31,12 +32,30 @@ export async function getRecipeById(id: string) {
     return serializePrisma(recipe);
 }
 
+export async function getRecipesByPlan(nutritionPlanId: string) {
+    await requireAuth("recipes:read");
+    const recipes = await recipeService.listByPlan(nutritionPlanId);
+    return serializePrisma(recipes);
+}
+
+export async function linkRecipesToPlan(recipeIds: string[], nutritionPlanId: string) {
+    await requireAuth("recipes:update");
+    await prisma.recipe.updateMany({
+        where: { id: { in: recipeIds } },
+        data: { nutritionPlanId },
+    });
+    revalidatePath("/dashboard/recetas");
+    revalidatePath(`/dashboard/planes/${nutritionPlanId}`);
+    return { success: true };
+}
+
 export async function createRecipe(data: {
     title: string;
     description?: string;
     ingredients?: string;
     instructions?: string;
     imageUrl?: string;
+    nutritionPlanId?: string;
 }) {
     const user = await requireAuth("recipes:create");
     if (!data.title?.trim()) throw new Error("El título es obligatorio");
@@ -47,7 +66,7 @@ export async function createRecipe(data: {
         title: data.title.trim(),
     });
 
-    revalidatePath("/dashboard/recipes");
+    revalidatePath("/dashboard/recetas");
     return serializePrisma(recipe);
 }
 
@@ -60,14 +79,14 @@ export async function updateRecipe(id: string, data: {
 }) {
     await requireAuth("recipes:update");
     const recipe = await recipeService.update(id, data);
-    revalidatePath("/dashboard/recipes");
-    revalidatePath(`/dashboard/recipes/${id}`);
+    revalidatePath("/dashboard/recetas");
+    revalidatePath(`/dashboard/recetas/${id}`);
     return serializePrisma(recipe);
 }
 
 export async function deleteRecipe(id: string) {
     await requireAuth("recipes:delete");
     await recipeService.delete(id);
-    revalidatePath("/dashboard/recipes");
+    revalidatePath("/dashboard/recetas");
     return { success: true };
 }

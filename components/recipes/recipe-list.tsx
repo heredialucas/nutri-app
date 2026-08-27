@@ -6,8 +6,15 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ChefHat, Trash2, Pencil } from "lucide-react";
+import { Search, ChefHat, Trash2, Pencil, Eye } from "lucide-react";
 import { deleteRecipe } from "@/app/actions/recipes";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -35,6 +42,7 @@ export function RecipeList({ initialRecipes }: { initialRecipes: Recipe[] }) {
     const router = useRouter();
     const [search, setSearch] = useState("");
     const [deleting, setDeleting] = useState<string | null>(null);
+    const [viewing, setViewing] = useState<Recipe | null>(null);
 
     const filtered = initialRecipes.filter(
         (r) =>
@@ -108,6 +116,9 @@ export function RecipeList({ initialRecipes }: { initialRecipes: Recipe[] }) {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
+                                    <Button variant="ghost" size="icon" onClick={() => setViewing(recipe)} aria-label={`Ver ${recipe.title}`}>
+                                        <Eye className="h-4 w-4" />
+                                    </Button>
                                     <Button variant="ghost" size="icon" asChild>
                                         <Link href={`/dashboard/recetas/${recipe.id}/edit`}>
                                             <Pencil className="h-4 w-4" />
@@ -143,6 +154,51 @@ export function RecipeList({ initialRecipes }: { initialRecipes: Recipe[] }) {
                     })}
                 </div>
             )}
+
+            <Dialog open={!!viewing} onOpenChange={(open) => !open && setViewing(null)}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <ChefHat className="h-5 w-5" />
+                            {viewing?.title}
+                        </DialogTitle>
+                        {viewing?.description && (
+                            <DialogDescription>{viewing.description}</DialogDescription>
+                        )}
+                    </DialogHeader>
+                    {viewing && (
+                        <div className="space-y-4">
+                            {viewing.imageUrl && (
+                                <img
+                                    src={viewing.imageUrl}
+                                    alt={viewing.title}
+                                    className="w-full max-h-56 object-cover rounded-lg"
+                                />
+                            )}
+                            {viewing.ingredients && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide mb-1">
+                                        Ingredientes
+                                    </p>
+                                    <p className="text-sm text-muted-foreground whitespace-pre-line">
+                                        {viewing.ingredients}
+                                    </p>
+                                </div>
+                            )}
+                            {viewing.instructions && (
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide mb-1">
+                                        Preparación
+                                    </p>
+                                    <p className="text-sm text-muted-foreground whitespace-pre-line">
+                                        {viewing.instructions}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

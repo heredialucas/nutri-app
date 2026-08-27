@@ -14,6 +14,7 @@ export const nutritionPlanService = {
             include: {
                 patient: { select: { id: true, firstName: true, lastName: true } },
                 professional: { select: { id: true, fullName: true } },
+                recipes: true,
                 days: {
                     include: {
                         meals: {
@@ -34,6 +35,7 @@ export const nutritionPlanService = {
             include: {
                 patient: { select: { id: true, firstName: true, lastName: true } },
                 professional: { select: { id: true, fullName: true } },
+                recipes: true,
                 days: {
                     include: {
                         meals: {
@@ -56,6 +58,7 @@ export const nutritionPlanService = {
         endDate?: Date;
         calorieTarget?: number;
         notes?: string;
+        tips?: string;
         days?: {
             dayOrder: number;
             label: string;
@@ -112,6 +115,7 @@ export const nutritionPlanService = {
         status?: string;
         calorieTarget?: number;
         notes?: string;
+        tips?: string;
         pdfUrl?: string;
     }) {
         return prisma.nutritionPlan.update({
@@ -145,6 +149,7 @@ export const nutritionPlanService = {
         return prisma.nutritionPlan.findFirst({
             where: { patientId, status: "ACTIVE" },
             include: {
+                recipes: true,
                 days: {
                     include: {
                         meals: {
@@ -169,6 +174,7 @@ export const nutritionPlanService = {
             description: original.description ?? undefined,
             calorieTarget: original.calorieTarget ?? undefined,
             notes: original.notes ?? undefined,
+            tips: original.tips ?? undefined,
             days: original.days.map((day) => ({
                 dayOrder: day.dayOrder,
                 label: day.label,

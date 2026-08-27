@@ -69,7 +69,10 @@ export async function getMyShoppingLists(planId?: string) {
 }
 
 export async function getMyRecipes() {
-    const recipes = await recipeService.list();
+    const { patient } = await requirePatient();
+    const activePlan = await nutritionPlanService.getActiveForPatient(patient.id);
+    if (!activePlan) return [];
+    const recipes = await recipeService.listByPlan(activePlan.id);
     return serializePrisma(recipes);
 }
 

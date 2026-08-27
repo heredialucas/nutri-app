@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { patientService } from "@/services/patient-service";
 import { nutritionPlanService } from "@/services/nutrition-plan-service";
 import { shoppingListService } from "@/services/shopping-list-service";
-import { recipeService } from "@/services/recipe-service";
 import { UtensilsCrossed, ShoppingCart, BookOpen, Lightbulb, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -15,12 +14,17 @@ export default async function PlanPage() {
     const patient = await patientService.getByUserId(user.id);
     if (!patient) redirect("/auth/login");
 
-    const [activePlan, allPlans, shoppingLists, recipes] = await Promise.all([
+    const [activePlan, allPlans, shoppingLists] = await Promise.all([
         nutritionPlanService.getActiveForPatient(patient.id),
         nutritionPlanService.list({ patientId: patient.id }),
         shoppingListService.list({ patientId: patient.id }),
-        recipeService.list(),
     ]);
+
+    const planRecipes = activePlan?.recipes ?? [];
+    const planTips = (activePlan?.tips ?? "")
+        .split("\n")
+        .map((t) => t.trim())
+        .filter(Boolean);
 
     return (
         <div>
@@ -181,7 +185,7 @@ export default async function PlanPage() {
             )}
 
             {/* Recipes */}
-            {recipes.length > 0 && (
+            {planRecipes.length > 0 && (
                 <section className="mb-8">
                     <div className="flex items-center gap-2 mb-3">
                         <BookOpen size={16} className="text-[#1a1a1a]" />
@@ -190,7 +194,7 @@ export default async function PlanPage() {
                         </h2>
                     </div>
                     <div className="space-y-2">
-                        {recipes.slice(0, 6).map((recipe: any) => (
+                        {planRecipes.map((recipe: any) => (
                             <details key={recipe.id} className="group">
                                 <summary className="flex items-center justify-between cursor-pointer p-3 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white hover:border-[rgba(0,0,0,0.12)] transition-colors list-none">
                                     <div className="flex-1 min-w-0">
@@ -234,21 +238,23 @@ export default async function PlanPage() {
             )}
 
             {/* Nutrition Tips */}
-            <section className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                    <Lightbulb size={16} className="text-[#eab308]" />
-                    <h2 className="text-sm font-semibold text-[#1a1a1a] m-0 uppercase tracking-wide">
-                        Tips de nutrición
-                    </h2>
-                </div>
-                <div className="space-y-2">
-                    {nutritionTips.map((tip, i) => (
-                        <div key={i} className="p-3 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white">
-                            <p className="text-sm text-[#1a1a1a] m-0">{tip}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
+            {planTips.length > 0 && (
+                <section className="mb-8">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Lightbulb size={16} className="text-[#eab308]" />
+                        <h2 className="text-sm font-semibold text-[#1a1a1a] m-0 uppercase tracking-wide">
+                            Tips de nutrición
+                        </h2>
+                    </div>
+                    <div className="space-y-2">
+                        {planTips.map((tip, i) => (
+                            <div key={i} className="p-3 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white">
+                                <p className="text-sm text-[#1a1a1a] m-0">{tip}</p>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Past Plans */}
             {allPlans.length > 1 && (
@@ -273,11 +279,3 @@ export default async function PlanPage() {
     );
 }
 
-const nutritionTips = [
-    "Tomá al menos 8 vasos de agua al día. Mantené una botella a mano durante el día.",
-    "Comé frutas y verduras en cada comida. Intentá que la mitad de tu plato sean vegetales.",
-    "Masticá despacio y prestando atención a la comida. Ayuda a la digestión y a reconocer la saciedad.",
-    "Incorporá proteínas magras en cada comida: pollo, pescado, huevos, legumbres o tofu.",
-    "Evitá las dietas extremas. Los cambios sostenibles a largo plazo son los que funcionan.",
-    "Planificá tus comidas con anticipación. Un poco de preparación semanal facilita las decisiones del día.",
-];

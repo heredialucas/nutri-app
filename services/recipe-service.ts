@@ -31,6 +31,16 @@ export const recipeService = {
         });
     },
 
+    async listByPlan(nutritionPlanId: string) {
+        return prisma.recipe.findMany({
+            where: { nutritionPlanId },
+            include: {
+                professional: { select: { id: true, fullName: true } },
+            },
+            orderBy: { createdAt: "desc" },
+        });
+    },
+
     async create(data: {
         professionalId: string;
         title: string;
@@ -38,6 +48,7 @@ export const recipeService = {
         ingredients?: string;
         instructions?: string;
         imageUrl?: string;
+        nutritionPlanId?: string;
     }) {
         return prisma.recipe.create({ data });
     },

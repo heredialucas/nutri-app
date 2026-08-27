@@ -23,6 +23,7 @@ export interface GeneratedMealPlan {
     description: string;
     calorieTarget: number;
     notes: string;
+    tips?: string;
     days: {
         dayOrder: number;
         label: string;

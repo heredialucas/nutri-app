@@ -75,7 +75,7 @@ export function FollowUpForm({ existingFollowUp }: FollowUpFormProps) {
                     <Check size={20} className="text-[#22c55e]" />
                 </div>
                 <p className="text-sm font-medium text-[#1a1a1a] m-0 mb-1">
-                    ¡Check-in enviado!
+                    ¡Control semanal enviado!
                 </p>
                 <p className="text-xs text-[#666] m-0">
                     Gracias por compartir tu progreso. Mauro Acosta lo revisará.
@@ -202,7 +202,7 @@ export function FollowUpForm({ existingFollowUp }: FollowUpFormProps) {
 
             <div className="mt-5">
                 <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Enviando..." : existingFollowUp ? "Actualizar check-in" : "Enviar check-in"}
+                    {loading ? "Enviando..." : existingFollowUp ? "Actualizar control semanal" : "Enviar control semanal"}
                 </Button>
             </div>
         </form>

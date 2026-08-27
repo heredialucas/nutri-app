@@ -11,6 +11,7 @@ interface PlanData {
     status: string;
     calorieTarget: number | null;
     notes: string | null;
+    tips: string | null;
     startDate: string | null;
     endDate: string | null;
     createdAt: string;
@@ -132,6 +133,19 @@ export function PlanPreview({ plan }: { plan: PlanData }) {
                     <div className="mt-4 p-3 rounded-lg bg-muted/50">
                         <p className="text-xs font-medium text-muted-foreground mb-1">Notas privadas</p>
                         <p className="text-sm">{plan.notes}</p>
+                    </div>
+                )}
+
+                {plan.tips && (
+                    <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-100">
+                        <p className="text-xs font-medium text-amber-700 mb-1">Tips para el paciente</p>
+                        <ul className="space-y-1">
+                            {plan.tips.split("\n").filter((t) => t.trim()).map((tip, i) => (
+                                <li key={i} className="text-sm text-amber-900">
+                                    • {tip}
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 )}
             </CardContent>
