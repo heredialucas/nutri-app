@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { NavMenu } from "./landing-menu";
 import Lenis from "lenis";
 
@@ -50,13 +51,15 @@ export function LandingHeader() {
             : "text-white border border-transparent h-[clamp(50px,5.5vw,60px)] px-[clamp(16px,4vw,40px)] top-0"
         }`}
       >
-        <Link href="/" className="flex items-baseline gap-1 text-lg font-semibold no-underline">
-          <span className={scrolled ? "text-[#2c2c2c]" : "text-white"}>
-            Mauro
-          </span>
-          <span className={scrolled ? "text-[rgba(0,0,0,0.32)]" : "text-white/60"}>
-            Acosta
-          </span>
+        <Link href="/" className="flex items-center no-underline">
+          <Image
+            src={scrolled ? "/images/iconMauroAcosta.png" : "/images/iconMauroAcostaWhite.png"}
+            alt="Mauro Acosta"
+            width={688}
+            height={363}
+            priority
+            className="h-[clamp(28px,3vw,36px)] w-auto"
+          />
         </Link>
 
         <div className="flex items-center gap-6">

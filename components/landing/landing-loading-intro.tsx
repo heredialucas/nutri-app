@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 export function LandingLoadingIntro() {
   const [progress, setProgress] = useState(0);
@@ -59,16 +60,18 @@ export function LandingLoadingIntro() {
           </svg>
 
           <div className="relative z-10 flex flex-col items-center gap-8">
-            <h1 className="text-white text-[clamp(2rem,8vw,5rem)] font-bold tracking-[0.05em] m-0 leading-none">
-              Mauro
-              <span className="block text-[clamp(1rem,3vw,2rem)] font-light tracking-[0.25em] text-white/40 mt-3">
-                Acosta
-              </span>
-            </h1>
+            <Image
+              src="/images/iconMauroAcostaWhite.png"
+              alt="Mauro Acosta"
+              width={688}
+              height={363}
+              priority
+              className="w-[clamp(200px,36vw,420px)] h-auto"
+            />
 
             <div className="w-[clamp(160px,25vw,360px)] h-[2px] bg-[#ffffff15] overflow-hidden rounded-full">
               <motion.div
-                className="h-full bg-white/80 rounded-full"
+                className="h-full bg-[#1E442F] rounded-full"
                 style={{ width: `${Math.min(progress, 100)}%` }}
               />
             </div>
