@@ -26,7 +26,9 @@ interface PlanData {
     startDate: string | null;
     endDate: string | null;
     createdAt: string;
-    patient: { firstName: string; lastName: string };
+    patients: Array<{
+        patient: { firstName: string; lastName: string };
+    }>;
     professional: { fullName: string };
     days: {
         id?: string;
@@ -66,7 +68,12 @@ export function PlanPreview({ plan }: { plan: PlanData }) {
                     <div className="space-y-1">
                         <CardTitle className="text-xl">{plan.title}</CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            Para: {plan.patient.firstName} {plan.patient.lastName}
+                            Para:{" "}
+                            {plan.patients && plan.patients.length > 0
+                                ? plan.patients
+                                      .map((x) => `${x.patient.firstName} ${x.patient.lastName}`)
+                                      .join(", ")
+                                : "Sin asignar"}
                         </p>
                         {plan.description && (
                             <p className="text-sm text-muted-foreground">{plan.description}</p>

@@ -41,7 +41,10 @@ export default async function EditPlanPage({ params }: Props) {
                 firstName: p.firstName,
                 lastName: p.lastName,
             }))}
-            initialPlan={plan as any}
+            initialPlan={{
+                ...(plan as any),
+                patientIds: (plan as any)?.patients?.map((p: any) => p.patientId) ?? [],
+            }}
         />
     );
 }

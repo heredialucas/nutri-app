@@ -71,9 +71,9 @@ export async function deleteShoppingList(id: string) {
     return { success: true };
 }
 
-export async function generateShoppingListFromPlan(nutritionPlanId: string) {
+export async function generateShoppingListFromPlan(nutritionPlanId: string, patientId?: string) {
     await requireAuth("plans:create");
-    const list = await shoppingListService.generateFromPlan(nutritionPlanId);
+    const list = await shoppingListService.generateFromPlan(nutritionPlanId, patientId || null);
     revalidatePath("/dashboard/shopping-lists");
     return serializePrisma(list);
 }

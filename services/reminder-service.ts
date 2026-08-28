@@ -160,7 +160,7 @@ export const reminderService = {
     ): Promise<{ sent: boolean; reason: string }> {
         const activePlan = await prisma.nutritionPlan.findFirst({
             where: {
-                patientId,
+                patients: { some: { patientId } },
                 status: "ACTIVE",
             },
             include: {

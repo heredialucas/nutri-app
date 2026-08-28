@@ -130,7 +130,7 @@ model Patient {
   goals                     PatientGoal[]
   measurements              AnthropometricMeasurement[]
   progressPhotos            ProgressPhoto[]
-  nutritionPlans            NutritionPlan[]
+  nutritionPlans            NutritionPlanPatient[]
   followUps                 FollowUp[]
   files                     PatientFile[]
   consents                  Consent[]
@@ -298,7 +298,6 @@ model ProgressPhoto {
 
 model NutritionPlan {
   id              String   @id @default(uuid()) @db.Uuid
-  patientId       String   @db.Uuid
   professionalId  String   @db.Uuid
   title           String
   description     String?
@@ -315,13 +314,25 @@ model NutritionPlan {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  patient     Patient @relation(fields: [patientId], references: [id])
-  professional User   @relation("CreatedPlans", fields: [professionalId], references: [id])
+  professional User                 @relation("CreatedPlans", fields: [professionalId], references: [id])
+  patients     NutritionPlanPatient[]
   days         NutritionPlanDay[]
   recipes      Recipe[]
   supplements  PlanSupplement[]
 
   @@map("nutrition_plans")
+}
+
+model NutritionPlanPatient {
+  planId     String   @db.Uuid
+  patientId  String   @db.Uuid
+  assignedAt DateTime @default(now())
+
+  plan    NutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  patient Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@id([planId, patientId])
+  @@map("nutrition_plan_patients")
 }
 
 model NutritionPlanDay {

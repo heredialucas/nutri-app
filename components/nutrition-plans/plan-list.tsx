@@ -16,7 +16,9 @@ interface Plan {
     startDate: string | null;
     endDate: string | null;
     createdAt: string;
-    patient: { id: string; firstName: string; lastName: string };
+    patients: {
+        patient: { id: string; firstName: string; lastName: string };
+    }[];
     professional: { id: string; fullName: string };
     days: {
         meals: {
@@ -30,10 +32,13 @@ export function PlanList({ initialPlans }: { initialPlans: Plan[] }) {
     const [filter, setFilter] = useState<"all" | "DRAFT" | "ACTIVE" | "ARCHIVED">("all");
 
     const filtered = initialPlans.filter((p) => {
+        const names = p.patients
+            ? p.patients.map((x) => `${x.patient.firstName} ${x.patient.lastName}`).join(" ")
+            : "";
         const matchesSearch =
             !search ||
             p.title.toLowerCase().includes(search.toLowerCase()) ||
-            `${p.patient.firstName} ${p.patient.lastName}`.toLowerCase().includes(search.toLowerCase());
+            names.toLowerCase().includes(search.toLowerCase());
 
         const matchesFilter = filter === "all" || p.status === filter;
         return matchesSearch && matchesFilter;
@@ -95,7 +100,15 @@ export function PlanList({ initialPlans }: { initialPlans: Plan[] }) {
                                 <div className="min-w-0">
                                     <p className="font-medium truncate">{plan.title}</p>
                                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span>{plan.patient.firstName} {plan.patient.lastName}</span>
+                                        {plan.patients && plan.patients.length > 0 ? (
+                                            <span>
+                                                {plan.patients
+                                                    .map((x) => `${x.patient.firstName} ${x.patient.lastName}`)
+                                                    .join(", ")}
+                                            </span>
+                                        ) : (
+                                            <span className="italic">Sin asignar</span>
+                                        )}
                                         <span>·</span>
                                         <span>{plan.days.length} día{plan.days.length !== 1 ? "s" : ""}</span>
                                         <span>·</span>

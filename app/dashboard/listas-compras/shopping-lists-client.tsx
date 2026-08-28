@@ -51,7 +51,7 @@ interface ShoppingListData {
 interface Plan {
     id: string;
     title: string;
-    patient: { firstName: string; lastName: string };
+    patients: Array<{ patient: { firstName: string; lastName: string } }>;
 }
 
 export function ShoppingListsClient({ initialLists }: { initialLists: ShoppingListData[] }) {
@@ -206,7 +206,9 @@ export function ShoppingListsClient({ initialLists }: { initialLists: ShoppingLi
                                         <SelectContent>
                                             {plans.map((plan) => (
                                                 <SelectItem key={plan.id} value={plan.id}>
-                                                    {plan.title} — {plan.patient.firstName} {plan.patient.lastName}
+                                                    {plan.title} — {plan.patients && plan.patients.length > 0
+                                                        ? plan.patients.map((x) => `${x.patient.firstName} ${x.patient.lastName}`).join(", ")
+                                                        : "Sin asignar"}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>

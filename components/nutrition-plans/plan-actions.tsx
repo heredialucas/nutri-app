@@ -39,18 +39,23 @@ import {
 interface PlanActionsProps {
     planId: string;
     planStatus: string;
-    patientId: string;
+    patientIds?: string[];
 }
 
-export function PlanActions({ planId, planStatus, patientId }: PlanActionsProps) {
+export function PlanActions({ planId, planStatus, patientIds = [] }: PlanActionsProps) {
     const router = useRouter();
     const [showDelete, setShowDelete] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handlePublish = async () => {
+        const targetPatientId = patientIds[0];
+        if (!targetPatientId) {
+            toast.error("Asigná al menos un paciente antes de publicar");
+            return;
+        }
         setLoading(true);
         try {
-            await setActivePlan(planId, patientId);
+            await setActivePlan(planId, targetPatientId);
             toast.success("Plan publicado");
             router.refresh();
         } catch (error) {

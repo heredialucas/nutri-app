@@ -13,7 +13,7 @@ interface PlanDraftState {
 
 interface PlanDraftActions {
     setPlan: (
-        patientId: string,
+        patientId: string | null,
         patientName: string,
         plan: GeneratedMealPlan,
         options: PlanOptions,

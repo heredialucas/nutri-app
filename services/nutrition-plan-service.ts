@@ -1,31 +1,36 @@
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
+const planInclude = {
+    professional: { select: { id: true, fullName: true } },
+    patients: {
+        include: { patient: { select: { id: true, firstName: true, lastName: true } } },
+        orderBy: { assignedAt: "asc" as const },
+    },
+    recipes: true,
+    supplements: true,
+    days: {
+        include: {
+            meals: {
+                include: { foods: true },
+                orderBy: { mealOrder: "asc" },
+            },
+        },
+        orderBy: { dayOrder: "asc" },
+    },
+} satisfies Prisma.NutritionPlanInclude;
+
 export const nutritionPlanService = {
     async list(filters?: { patientId?: string; professionalId?: string; status?: string }) {
         const where: Prisma.NutritionPlanWhereInput = {};
 
-        if (filters?.patientId) where.patientId = filters.patientId;
+        if (filters?.patientId) where.patients = { some: { patientId: filters.patientId } };
         if (filters?.professionalId) where.professionalId = filters.professionalId;
         if (filters?.status) where.status = filters.status;
 
         return prisma.nutritionPlan.findMany({
             where,
-            include: {
-                patient: { select: { id: true, firstName: true, lastName: true } },
-                professional: { select: { id: true, fullName: true } },
-                recipes: true,
-                supplements: true,
-                days: {
-                    include: {
-                        meals: {
-                            include: { foods: true },
-                            orderBy: { mealOrder: "asc" },
-                        },
-                    },
-                    orderBy: { dayOrder: "asc" },
-                },
-            },
+            include: planInclude,
             orderBy: { createdAt: "desc" },
         });
     },
@@ -33,26 +38,11 @@ export const nutritionPlanService = {
     async getById(id: string) {
         return prisma.nutritionPlan.findUnique({
             where: { id },
-            include: {
-                patient: { select: { id: true, firstName: true, lastName: true } },
-                professional: { select: { id: true, fullName: true } },
-                recipes: true,
-                supplements: true,
-                days: {
-                    include: {
-                        meals: {
-                            include: { foods: true },
-                            orderBy: { mealOrder: "asc" },
-                        },
-                    },
-                    orderBy: { dayOrder: "asc" },
-                },
-            },
+            include: planInclude,
         });
     },
 
     async create(data: {
-        patientId: string;
         professionalId: string;
         title: string;
         description?: string;
@@ -64,6 +54,7 @@ export const nutritionPlanService = {
         fatTarget?: number;
         notes?: string;
         tips?: string;
+        patientIds?: string[];
         supplements?: {
             name: string;
             dosage?: string;
@@ -91,11 +82,14 @@ export const nutritionPlanService = {
             }[];
         }[];
     }) {
-        const { days, supplements, ...planData } = data;
+        const { days, supplements, patientIds, ...planData } = data;
 
         return prisma.nutritionPlan.create({
             data: {
                 ...planData,
+                patients: patientIds && patientIds.length > 0
+                    ? { create: patientIds.map((patientId) => ({ patientId })) }
+                    : undefined,
                 supplements: supplements
                     ? {
                         create: supplements.map((s) => ({
@@ -158,6 +152,7 @@ export const nutritionPlanService = {
         notes?: string;
         tips?: string;
         pdfUrl?: string;
+        patientIds?: string[];
         supplements?: {
             name: string;
             dosage?: string;
@@ -185,12 +180,20 @@ export const nutritionPlanService = {
             }[];
         }[];
     }) {
-        const { days, supplements, ...planData } = data;
+        const { days, supplements, patientIds, ...planData } = data;
 
         return prisma.nutritionPlan.update({
             where: { id },
             data: {
                 ...planData,
+                ...(patientIds
+                    ? {
+                        patients: {
+                            deleteMany: {},
+                            create: patientIds.map((patientId) => ({ patientId })),
+                        },
+                    }
+                    : undefined),
                 ...(supplements
                     ? {
                         supplements: {
@@ -207,7 +210,6 @@ export const nutritionPlanService = {
                     : undefined),
                 ...(days
                     ? {
-                        // Reemplaza la estructura de días/comidas/alimentos (cascade borra los hijos)
                         days: {
                             deleteMany: {},
                             create: days.map((day) => ({
@@ -240,16 +242,52 @@ export const nutritionPlanService = {
         });
     },
 
+    async assignPatients(id: string, patientIds: string[]) {
+        const uniqueIds = Array.from(new Set(patientIds.filter(Boolean)));
+        return prisma.$transaction([
+            prisma.nutritionPlanPatient.deleteMany({ where: { planId: id } }),
+            ...(uniqueIds.length > 0
+                ? [
+                    prisma.nutritionPlanPatient.createMany({
+                        data: uniqueIds.map((patientId) => ({ planId: id, patientId })),
+                    }),
+                ]
+                : []),
+        ]);
+    },
+
+    async getActiveForPatient(patientId: string) {
+        return prisma.nutritionPlan.findFirst({
+            where: { status: "ACTIVE", patients: { some: { patientId } } },
+            include: planInclude,
+        });
+    },
+
+    async listForPatient(patientId: string) {
+        return prisma.nutritionPlan.findMany({
+            where: { patients: { some: { patientId } } },
+            include: planInclude,
+            orderBy: { createdAt: "desc" },
+        });
+    },
+
     async delete(id: string) {
         return prisma.nutritionPlan.delete({ where: { id } });
     },
 
     async setActive(id: string, patientId: string) {
-        // Desactivar planes anteriores del mismo paciente
+        // Asegurar que el paciente esté asignado al plan
+        await prisma.nutritionPlanPatient.upsert({
+            where: { planId_patientId: { planId: id, patientId } },
+            create: { planId: id, patientId },
+            update: {},
+        });
+
+        // Desactivar planes activos anteriores del mismo paciente
         await prisma.nutritionPlan.updateMany({
             where: {
-                patientId,
                 status: "ACTIVE",
+                patients: { some: { patientId } },
                 id: { not: id },
             },
             data: { status: "ARCHIVED" },
@@ -261,31 +299,11 @@ export const nutritionPlanService = {
         });
     },
 
-    async getActiveForPatient(patientId: string) {
-        return prisma.nutritionPlan.findFirst({
-            where: { patientId, status: "ACTIVE" },
-            include: {
-                recipes: true,
-                supplements: true,
-                days: {
-                    include: {
-                        meals: {
-                            include: { foods: true },
-                            orderBy: { mealOrder: "asc" },
-                        },
-                    },
-                    orderBy: { dayOrder: "asc" },
-                },
-            },
-        });
-    },
-
     async duplicate(id: string, professionalId: string) {
         const original = await this.getById(id);
         if (!original) throw new Error("Plan no encontrado");
 
         const newPlan = await this.create({
-            patientId: original.patientId,
             professionalId,
             title: `${original.title} (copia)`,
             description: original.description ?? undefined,
@@ -295,6 +313,7 @@ export const nutritionPlanService = {
             fatTarget: original.fatTarget ?? undefined,
             notes: original.notes ?? undefined,
             tips: original.tips ?? undefined,
+            patientIds: original.patients?.map((p) => p.patientId) ?? [],
             supplements: (original.supplements || []).map((s) => ({
                 name: s.name,
                 dosage: s.dosage ?? undefined,
@@ -323,7 +342,6 @@ export const nutritionPlanService = {
             })),
         });
 
-        // Set status to DRAFT after creation
         return this.update(newPlan.id, { status: "DRAFT" });
     },
 };

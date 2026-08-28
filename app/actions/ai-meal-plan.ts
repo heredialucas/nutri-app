@@ -4,7 +4,7 @@ import { generateMealPlan, type GeneratedMealPlan, type PlanOptions } from "@/li
 import { getCurrentUser, hasPermission } from "@/lib/auth";
 
 export async function generateMealPlanWithAI(
-    patientId: string,
+    patientId: string | null,
     options: PlanOptions,
     customPrompt?: string
 ): Promise<GeneratedMealPlan> {
@@ -14,7 +14,6 @@ export async function generateMealPlanWithAI(
         throw new Error("No tienes permisos para crear planes alimentarios");
     }
 
-    if (!patientId) throw new Error("El paciente es obligatorio");
     if (!options.calorieTarget || options.calorieTarget <= 0) {
         throw new Error("Las calorías diarias son obligatorias");
     }

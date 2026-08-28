@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlanDayEditor, DayData } from "./plan-day-editor";
 import { SupplementEditor, SupplementData } from "./supplement-editor";
@@ -38,7 +38,7 @@ interface PlanFormProps {
         fatTarget: number | null;
         notes: string | null;
         tips: string | null;
-        patientId: string;
+        patientIds?: string[];
         supplements?: {
             id?: string;
             name: string;
@@ -78,7 +78,9 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
 
     const [title, setTitle] = useState(initialPlan?.title || "");
     const [description, setDescription] = useState(initialPlan?.description || "");
-    const [patientId, setPatientId] = useState(initialPlan?.patientId || "");
+    const [patientIds, setPatientIds] = useState<string[]>(
+        initialPlan?.patientIds || []
+    );
     const [startDate, setStartDate] = useState(
         initialPlan?.startDate ? initialPlan.startDate.split("T")[0] : ""
     );
@@ -167,13 +169,15 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
         setDays(days.filter((_, i) => i !== index));
     };
 
+    const togglePatient = (id: string) => {
+        setPatientIds((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+        );
+    };
+
     const handleSubmit = async (status?: string) => {
         if (!title.trim()) {
             toast.error("El título es obligatorio");
-            return;
-        }
-        if (!patientId) {
-            toast.error("Seleccioná un paciente");
             return;
         }
 
@@ -182,7 +186,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
             const planData = {
                 title: title.trim(),
                 description: description.trim() || undefined,
-                patientId,
+                patientIds,
                 startDate: startDate || undefined,
                 endDate: endDate || undefined,
                 calorieTarget: calorieTarget ? parseInt(calorieTarget) : undefined,
@@ -280,20 +284,43 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="patient">Paciente *</Label>
-                            <select
-                                id="patient"
-                                value={patientId}
-                                onChange={(e) => setPatientId(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            >
-                                <option value="">Seleccionar paciente</option>
-                                {patients.map((p) => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.firstName} {p.lastName}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="flex items-center justify-between">
+                                <Label>Pacientes asignados</Label>
+                                <span className="text-xs text-muted-foreground">
+                                    {patientIds.length > 0
+                                        ? `${patientIds.length} seleccionado${patientIds.length > 1 ? "s" : ""}`
+                                        : "Opcional — podrás asignarlo luego"}
+                                </span>
+                            </div>
+                            <div className="rounded-md border border-input bg-background px-3 py-2 flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+                                {patients.length === 0 ? (
+                                    <span className="text-sm text-muted-foreground">
+                                        No hay pacientes cargados
+                                    </span>
+                                ) : (
+                                    patients.map((p) => {
+                                        const active = patientIds.includes(p.id);
+                                        return (
+                                            <Badge
+                                                key={p.id}
+                                                variant={active ? "default" : "outline"}
+                                                className={`cursor-pointer text-xs py-0.5 px-2 ${
+                                                    active
+                                                        ? "bg-green-600 text-white hover:bg-green-700"
+                                                        : "hover:bg-green-50 hover:text-green-700"
+                                                }`}
+                                                onClick={() => togglePatient(p.id)}
+                                            >
+                                                {active && <span className="mr-1">✓</span>}
+                                                {p.firstName} {p.lastName}
+                                            </Badge>
+                                        );
+                                    })
+                                )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Un plan puede asignarse a uno o varios pacientes, o crearse sin asignar.
+                            </p>
                         </div>
                     </div>
 

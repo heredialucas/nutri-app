@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { extractJsonFromResponse } from "./extract-json";
 import { patientService } from "@/services/patient-service";
 import { medicalHistoryService } from "@/services/medical-history-service";
 import { measurementService } from "@/services/measurement-service";
@@ -322,22 +323,32 @@ FORMATO DE RESPUESTA - JSON con la siguiente estructura exacta:
 }
 
 export async function generateMealPlan(
-    patientId: string,
-    options: PlanOptions,
+    patientId?: string | null,
+    options?: PlanOptions,
     customPrompt?: string
 ): Promise<GeneratedMealPlan> {
-    // Gather all patient data
-    const patient = await patientService.getById(patientId);
-    if (!patient) throw new Error("Paciente no encontrado");
+    if (!options) {
+        throw new Error("Faltan las opciones del plan");
+    }
 
-    const [measurements, followUps] = await Promise.all([
-        measurementService.getByPatient(patientId),
-        followupService.getByPatient(patientId),
-    ]);
+    let patientContext = "[DATOS DEMOGRÁFICOS]\n- Paciente no especificado (plan genérico)";
+    let measurementContext = "[MEDICIONES ANTROPOMÉTRICAS]\nNo hay mediciones registradas";
+    let followUpContext = "[SEGUIMIENTOS]\nNo hay seguimientos previos registrados";
 
-    const patientContext = buildPatientContext(patient);
-    const measurementContext = buildMeasurementContext(measurements);
-    const followUpContext = buildFollowUpContext(followUps);
+    if (patientId) {
+        const patient = await patientService.getById(patientId);
+        if (!patient) throw new Error("Paciente no encontrado");
+
+        const [measurements, followUps] = await Promise.all([
+            measurementService.getByPatient(patientId),
+            followupService.getByPatient(patientId),
+        ]);
+
+        patientContext = buildPatientContext(patient);
+        measurementContext = buildMeasurementContext(measurements);
+        followUpContext = buildFollowUpContext(followUps);
+    }
+
     const userPrompt = buildUserPrompt(patientContext, measurementContext, followUpContext, options, customPrompt);
 
     const completion = await openai.chat.completions.create({
@@ -346,12 +357,14 @@ export async function generateMealPlan(
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
-        max_tokens: 8000,
+        max_completion_tokens: 60000,
         response_format: { type: "json_object" },
     });
 
-    const content = completion.choices[0]?.message?.content;
+    let content = completion.choices[0]?.message?.content ?? "";
+    if (!content) {
+        content = extractJsonFromResponse(completion.choices[0]?.message as any);
+    }
     if (!content) throw new Error("La IA no devolvió una respuesta válida");
 
     try {

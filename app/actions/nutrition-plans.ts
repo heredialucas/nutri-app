@@ -43,7 +43,7 @@ export async function getNutritionPlanById(id: string) {
 }
 
 export async function createNutritionPlan(data: {
-    patientId: string;
+    patientIds?: string[];
     title: string;
     description?: string;
     startDate?: string;
@@ -83,7 +83,6 @@ export async function createNutritionPlan(data: {
 }) {
     const user = await requireAuth("plans:create");
 
-    if (!data.patientId) throw new Error("El paciente es obligatorio");
     if (!data.title?.trim()) throw new Error("El título es obligatorio");
 
     const plan = await nutritionPlanService.create({
@@ -94,8 +93,10 @@ export async function createNutritionPlan(data: {
         endDate: data.endDate ? new Date(data.endDate) : undefined,
     });
 
-    revalidatePath("/dashboard/nutrition-plans");
-    revalidatePath(`/dashboard/patients/${data.patientId}`);
+    revalidatePath("/dashboard/planes");
+    for (const patientId of data.patientIds || []) {
+        revalidatePath(`/dashboard/pacientes/${patientId}`);
+    }
     return serializePrisma(plan);
 }
 
@@ -112,6 +113,7 @@ export async function updateNutritionPlan(id: string, data: {
     notes?: string;
     tips?: string;
     pdfUrl?: string;
+    patientIds?: string[];
     supplements?: {
         name: string;
         dosage?: string;
@@ -156,32 +158,44 @@ export async function updateNutritionPlan(id: string, data: {
     if (data.pdfUrl !== undefined) updateData.pdfUrl = data.pdfUrl;
     if (data.supplements !== undefined) updateData.supplements = data.supplements;
     if (data.days !== undefined) updateData.days = data.days;
+    if (data.patientIds !== undefined) updateData.patientIds = data.patientIds;
 
     const plan = await nutritionPlanService.update(id, updateData);
-    revalidatePath("/dashboard/nutrition-plans");
-    revalidatePath(`/dashboard/nutrition-plans/${id}`);
+    revalidatePath("/dashboard/planes");
+    revalidatePath(`/dashboard/planes/${id}`);
     return serializePrisma(plan);
+}
+
+export async function assignPatientsToPlan(id: string, patientIds: string[]) {
+    await requireAuth("plans:update");
+    const result = await nutritionPlanService.assignPatients(id, patientIds);
+    revalidatePath("/dashboard/planes");
+    revalidatePath(`/dashboard/planes/${id}`);
+    for (const patientId of patientIds) {
+        revalidatePath(`/dashboard/pacientes/${patientId}`);
+    }
+    return result;
 }
 
 export async function deleteNutritionPlan(id: string) {
     await requireAuth("plans:delete");
     await nutritionPlanService.delete(id);
-    revalidatePath("/dashboard/nutrition-plans");
+    revalidatePath("/dashboard/planes");
     return { success: true };
 }
 
 export async function setActivePlan(id: string, patientId: string) {
     await requireAuth("plans:update");
     await nutritionPlanService.setActive(id, patientId);
-    revalidatePath("/dashboard/nutrition-plans");
-    revalidatePath(`/dashboard/patients/${patientId}`);
+    revalidatePath("/dashboard/planes");
+    revalidatePath(`/dashboard/pacientes/${patientId}`);
     return { success: true };
 }
 
 export async function duplicateNutritionPlan(id: string) {
     const user = await requireAuth("plans:create");
     const plan = await nutritionPlanService.duplicate(id, user.id);
-    revalidatePath("/dashboard/nutrition-plans");
+    revalidatePath("/dashboard/planes");
     return serializePrisma(plan);
 }
 

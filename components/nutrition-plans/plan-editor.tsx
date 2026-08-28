@@ -62,11 +62,11 @@ function MacroField({ label, color, value, onChange }: MacroFieldProps) {
 
 interface PlanEditorProps {
     plan: GeneratedMealPlan;
-    patientId: string;
+    patientIds?: string[];
     onBack: () => void;
 }
 
-export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorProps) {
+export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanEditorProps) {
     const router = useRouter();
     const [plan, setPlan] = useState(initialPlan);
     const [saving, setSaving] = useState(false);
@@ -79,6 +79,7 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
     const { updatePlan: updateDraftPlan, clearPlan: clearDraftPlan, patientName } = usePlanDraftStore();
 
     const [generatedRecipeIds, setGeneratedRecipeIds] = useState<string[]>([]);
+    const primaryPatientId: string | undefined = patientIds[0];
 
     const toggleDay = (index: number) => {
         setExpandedDays((prev) => ({ ...prev, [index]: !prev[index] }));
@@ -239,7 +240,7 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
     const handleGenerateRecipes = async () => {
         setGeneratingRecipes(true);
         try {
-            const result = await generateRecipesFromPlan(plan, patientId);
+            const result = await generateRecipesFromPlan(plan, primaryPatientId);
             const ids: string[] = [];
             for (const recipe of result.recipes) {
                 const created = await createRecipe({
@@ -265,7 +266,7 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
             const result = await generateShoppingListFromPlanAI(plan);
             await createShoppingList({
                 title: result.title,
-                patientId,
+                patientId: primaryPatientId || undefined,
                 items: result.items.map((item) => ({
                     name: item.name,
                     quantity: item.quantity || undefined,
@@ -284,7 +285,7 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
         setSaving(true);
         try {
             const planData = {
-                patientId,
+                patientIds,
                 title: plan.title,
                 description: plan.description || undefined,
                 calorieTarget: plan.calorieTarget || undefined,

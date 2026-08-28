@@ -65,7 +65,7 @@ export const shoppingListService = {
         return prisma.shoppingList.delete({ where: { id } });
     },
 
-    async generateFromPlan(nutritionPlanId: string) {
+    async generateFromPlan(nutritionPlanId: string, patientId?: string | null) {
         const plan = await prisma.nutritionPlan.findUnique({
             where: { id: nutritionPlanId },
             include: {
@@ -107,7 +107,7 @@ export const shoppingListService = {
 
         return this.create({
             title: `Lista de compras - ${plan.title}`,
-            patientId: plan.patientId,
+            patientId: patientId || undefined,
             nutritionPlanId,
             items,
         });

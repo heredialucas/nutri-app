@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { extractJsonFromResponse } from "./extract-json";
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -43,12 +44,11 @@ Respondé con JSON con esta estructura exacta:
             { role: "system", content: RECIPE_SYSTEM_PROMPT },
             { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
-        max_tokens: 3000,
+        max_completion_tokens: 16000,
         response_format: { type: "json_object" },
     });
 
-    const content = completion.choices[0]?.message?.content;
+    const content = extractJsonFromResponse(completion.choices[0]?.message as any);
     if (!content) throw new Error("La IA no devolvió una respuesta válida");
 
     const parsed = JSON.parse(content) as GeneratedRecipe;
@@ -97,12 +97,11 @@ Respondé con JSON con esta estructura exacta:
             { role: "system", content: RECIPE_SYSTEM_PROMPT },
             { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
-        max_tokens: 6000,
+        max_completion_tokens: 32000,
         response_format: { type: "json_object" },
     });
 
-    const content = completion.choices[0]?.message?.content;
+    const content = extractJsonFromResponse(completion.choices[0]?.message as any);
     if (!content) throw new Error("La IA no devolvió una respuesta válida");
 
     const parsed = JSON.parse(content) as GeneratedRecipeBatch;

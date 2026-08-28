@@ -22,6 +22,7 @@ import {
     Flame,
     Minus,
     Plus,
+    Pill,
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateMealPlanWithAI } from "@/app/actions/ai-meal-plan";
@@ -62,6 +63,32 @@ const RESTRICTIONS = [
     "Sin mariscos",
     "Sin huevos",
     "Alto en proteína",
+];
+
+const PROTEIN_PRESETS = [
+    { value: 90, label: "Estándar", desc: "~1-1.2 g/kg", color: "text-rose-600 dark:text-rose-400" },
+    { value: 120, label: "Medio", desc: "~1.4-1.6 g/kg", color: "text-rose-600 dark:text-rose-400" },
+    { value: 150, label: "Musculación", desc: "~1.8-2 g/kg", color: "text-rose-600 dark:text-rose-400" },
+    { value: 160, label: "Definición", desc: "~2-2.2 g/kg", color: "text-rose-600 dark:text-rose-400" },
+];
+
+const SUPPLEMENT_SUGGESTIONS = [
+    "Proteína en polvo (whey)",
+    "Creatina monohidrato",
+    "Omega-3 (EPA/DHA)",
+    "Vitamina D3",
+    "Complejo B",
+    "Magnesio",
+    "Hierro",
+    "Calcio",
+    "Zinc",
+    "Probióticos",
+    "Fibra (psyllium)",
+    "Multivitamínico",
+    "BCAA / EAA",
+    "Citrulina",
+    "Cafeína",
+    "Electrolitos",
 ];
 
 const DAY_COLORS = [
@@ -118,7 +145,7 @@ function DaySkeleton({ index, meals }: DaySkeletonProps) {
 }
 
 interface AIPlanGeneratorProps {
-    patientId: string;
+    patientIds?: string[];
     patientName: string;
     onGenerated: (plan: GeneratedMealPlan) => void;
     optionsOpen: boolean;
@@ -126,7 +153,7 @@ interface AIPlanGeneratorProps {
 }
 
 export function AIPlanGenerator({
-    patientId,
+    patientIds = [],
     patientName,
     onGenerated,
     optionsOpen,
@@ -134,6 +161,8 @@ export function AIPlanGenerator({
 }: AIPlanGeneratorProps) {
     const [loading, setLoading] = useState(false);
     const [prompt, setPrompt] = useState("");
+
+    const primaryPatientId = patientIds[0] || null;
 
     const [calories, setCalories] = useState(2000);
     const [mealsPerDay, setMealsPerDay] = useState(5);
@@ -145,11 +174,23 @@ export function AIPlanGenerator({
     const [customProtein, setCustomProtein] = useState(120);
     const [customCarbs, setCustomCarbs] = useState(250);
     const [customFat, setCustomFat] = useState(70);
+    const [selectedSupplements, setSelectedSupplements] = useState<string[]>([]);
 
     const toggleRestriction = (r: string) => {
         setRestrictions((prev) =>
             prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
         );
+    };
+
+    const toggleSupplement = (s: string) => {
+        setSelectedSupplements((prev) =>
+            prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+        );
+    };
+
+    const applyProteinPreset = (value: number) => {
+        setCustomProtein(value);
+        setMacroPreset("custom");
     };
 
     const getMacroTargets = (): {
@@ -190,6 +231,12 @@ export function AIPlanGenerator({
         const preset = macroPresetById(macroPreset);
         const macroTargets = getMacroTargets();
 
+        let notes = prompt.trim();
+        if (selectedSupplements.length > 0) {
+            const suppText = `Considerá incluir estos suplementos en el plan (si corresponde para el paciente): ${selectedSupplements.join(", ")}.`;
+            notes = notes ? `${notes}\n${suppText}` : suppText;
+        }
+
         const options: PlanOptions = {
             calorieTarget: calories,
             mealsPerDay,
@@ -197,15 +244,15 @@ export function AIPlanGenerator({
             restrictions,
             includeFoods,
             excludeFoods,
-            additionalNotes: prompt.trim(),
+            additionalNotes: notes,
             macroPreset: macroPreset === "custom" ? "Personalizado" : preset?.label || undefined,
             ...macroTargets,
         };
 
         setLoading(true);
         try {
-            const plan = await generateMealPlanWithAI(patientId, options, prompt.trim() || undefined);
-            usePlanDraftStore.getState().setPlan(patientId, patientName, plan, options, prompt.trim());
+            const plan = await generateMealPlanWithAI(primaryPatientId, options, notes || undefined);
+            usePlanDraftStore.getState().setPlan(primaryPatientId, patientName, plan, options, prompt.trim());
             onGenerated(plan);
             toast.success("Plan generado correctamente");
         } catch (error) {
@@ -245,6 +292,12 @@ export function AIPlanGenerator({
                         - {excludeFoods}
                     </Badge>
                 )}
+                {selectedSupplements.map((s) => (
+                    <Badge key={s} variant="outline" className="text-xs border-violet-300 text-violet-700 bg-violet-50 dark:text-violet-300">
+                        <Pill className="mr-1 size-2.5" />
+                        {s}
+                    </Badge>
+                ))}
             </div>
 
             <div className="relative">
@@ -451,6 +504,84 @@ export function AIPlanGenerator({
                                     </p>
                                 </div>
                             )}
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-medium">Objetivo proteico</label>
+                                <span
+                                    className={`text-xs font-semibold ${
+                                        macroPreset === "custom"
+                                            ? "text-rose-600 dark:text-rose-400"
+                                            : "text-muted-foreground"
+                                    }`}
+                                >
+                                    {macroPreset === "custom" ? `${customProtein} g/día` : "Usa preset de macros"}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                                {PROTEIN_PRESETS.map((p) => {
+                                    const active = macroPreset === "custom" && customProtein === p.value;
+                                    return (
+                                        <button
+                                            key={p.value}
+                                            type="button"
+                                            onClick={() => applyProteinPreset(p.value)}
+                                            className={`text-left rounded-md border px-2 py-1.5 text-xs transition-colors ${
+                                                active
+                                                    ? "border-rose-400 bg-rose-50 dark:bg-rose-950"
+                                                    : "hover:bg-muted"
+                                            }`}
+                                        >
+                                            <span className={`font-medium block ${
+                                                active ? "text-rose-700 dark:text-rose-300" : ""
+                                            }`}>
+                                                {active && <span className="mr-0.5">✓</span>}
+                                                {p.label} · {p.value}g
+                                            </span>
+                                            <span className="text-[11px] text-muted-foreground">{p.desc}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                                Al elegir un objetivo, se activa la configuración personalizada de macronutrientes.
+                            </p>
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-medium">Suplementos sugeridos</label>
+                                <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">
+                                    {selectedSupplements.length > 0
+                                        ? `${selectedSupplements.length} seleccionado${selectedSupplements.length > 1 ? "s" : ""}`
+                                        : "Opcional"}
+                                </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {SUPPLEMENT_SUGGESTIONS.map((s) => {
+                                    const active = selectedSupplements.includes(s);
+                                    return (
+                                        <Badge
+                                            key={s}
+                                            variant={active ? "default" : "outline"}
+                                            className={`cursor-pointer text-xs py-0.5 px-2 ${
+                                                active
+                                                    ? "bg-violet-600 text-white hover:bg-violet-700"
+                                                    : "hover:bg-violet-50 hover:text-violet-700"
+                                            }`}
+                                            onClick={() => toggleSupplement(s)}
+                                        >
+                                            {active && <span className="mr-1">✓</span>}
+                                            {s}
+                                        </Badge>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         <Separator />

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Settings2, Sparkles, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { AIPlanGenerator } from "./ai-plan-generator";
 import { PlanEditor } from "./plan-editor";
@@ -21,30 +22,30 @@ interface NewPlanClientProps {
 }
 
 export function NewPlanClient({ patients }: NewPlanClientProps) {
-    const [selectedPatientId, setSelectedPatientId] = useState("");
+    const [selectedPatientIds, setSelectedPatientIds] = useState<string[]>([]);
     const [generatedPlan, setGeneratedPlan] = useState<GeneratedMealPlan | null>(null);
     const [optionsOpen, setOptionsOpen] = useState(false);
     const [showDraftBanner, setShowDraftBanner] = useState(false);
 
     const { plan: draftPlan, patientId: draftPatientId, patientName: draftPatientName, clearPlan, isStale } = usePlanDraftStore();
 
-    const selectedPatient = patients.find((p) => p.id === selectedPatientId);
-    const patientName = selectedPatient
-        ? `${selectedPatient.firstName} ${selectedPatient.lastName}`
-        : "";
+    const selectedPatients = patients.filter((p) => selectedPatientIds.includes(p.id));
+    const patientName = selectedPatients.length > 0
+        ? selectedPatients.map((p) => `${p.firstName} ${p.lastName}`).join(", ")
+        : "plan genérico";
 
     useEffect(() => {
         if (draftPlan && draftPatientId && !isStale()) {
-            setSelectedPatientId(draftPatientId);
+            setSelectedPatientIds([draftPatientId]);
             setShowDraftBanner(true);
         }
     }, []);
 
-    useEffect(() => {
-        if (selectedPatientId) {
-            setOptionsOpen(true);
-        }
-    }, [selectedPatientId]);
+    const togglePatient = (id: string) => {
+        setSelectedPatientIds((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+        );
+    };
 
     const handleContinueDraft = () => {
         if (draftPlan && draftPatientId) {
@@ -58,11 +59,11 @@ export function NewPlanClient({ patients }: NewPlanClientProps) {
         setShowDraftBanner(false);
     };
 
-    if (generatedPlan && selectedPatientId) {
+    if (generatedPlan) {
         return (
             <PlanEditor
                 plan={generatedPlan}
-                patientId={selectedPatientId}
+                patientIds={selectedPatientIds}
                 onBack={() => setGeneratedPlan(null)}
             />
         );
@@ -81,7 +82,7 @@ export function NewPlanClient({ patients }: NewPlanClientProps) {
                         Nuevo plan alimentario
                     </h1>
                     <p className="text-muted-foreground text-sm">
-                        Seleccioná un paciente y configurá las opciones que usará la IA para crear el plan
+                        Asigná opcionalmente uno o varios pacientes, o creá un plan genérico que podrás asignar luego
                     </p>
                 </div>
             </div>
@@ -128,48 +129,71 @@ export function NewPlanClient({ patients }: NewPlanClientProps) {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-end gap-3">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Paciente *</label>
-                            <select
-                                value={selectedPatientId}
-                                onChange={(e) => setSelectedPatientId(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            >
-                                <option value="">Seleccionar paciente</option>
-                                {patients.map((p) => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.firstName} {p.lastName}
-                                    </option>
-                                ))}
-                            </select>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium">Paciente/s</label>
+                            <span className="text-xs text-muted-foreground">
+                                {selectedPatientIds.length > 0
+                                    ? `${selectedPatientIds.length} seleccionado${selectedPatientIds.length > 1 ? "s" : ""}`
+                                    : "Plan genérico (opcional)"}
+                            </span>
                         </div>
-                                {selectedPatientId && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-10"
-                                        onClick={() => setOptionsOpen(true)}
-                                    >
-                                        <Settings2 className="mr-1.5 size-3.5" />
-                                        Abrir opciones
-                                    </Button>
-                                )}
+                        <div className="flex flex-wrap gap-1.5">
+                            {patients.length === 0 ? (
+                                <span className="text-sm text-muted-foreground">
+                                    No hay pacientes cargados — podés crear un plan genérico
+                                </span>
+                            ) : (
+                                patients.map((p) => {
+                                    const active = selectedPatientIds.includes(p.id);
+                                    return (
+                                        <Badge
+                                            key={p.id}
+                                            variant={active ? "default" : "outline"}
+                                            className={`cursor-pointer text-xs py-0.5 px-2 ${
+                                                active
+                                                    ? "bg-green-600 text-white hover:bg-green-700"
+                                                    : "hover:bg-green-50 hover:text-green-700"
+                                            }`}
+                                            onClick={() => togglePatient(p.id)}
+                                        >
+                                            {active && <span className="mr-1">✓</span>}
+                                            {p.firstName} {p.lastName}
+                                        </Badge>
+                                    );
+                                })
+                            )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9"
+                                onClick={() => setOptionsOpen(true)}
+                            >
+                                <Settings2 className="mr-1.5 size-3.5" />
+                                Abrir opciones
+                            </Button>
+                            {selectedPatientIds.length > 0 && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-9 text-muted-foreground"
+                                    onClick={() => setSelectedPatientIds([])}
+                                >
+                                    Quitar selección
+                                </Button>
+                            )}
+                        </div>
                     </div>
 
-                    {selectedPatientId ? (
-                        <AIPlanGenerator
-                            patientId={selectedPatientId}
-                            patientName={patientName}
-                            onGenerated={setGeneratedPlan}
-                            optionsOpen={optionsOpen}
-                            onOptionsOpenChange={setOptionsOpen}
-                        />
-                    ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <p className="text-sm">Seleccioná un paciente para comenzar</p>
-                        </div>
-                    )}
+                    <AIPlanGenerator
+                        patientIds={selectedPatientIds}
+                        patientName={patientName}
+                        onGenerated={setGeneratedPlan}
+                        optionsOpen={optionsOpen}
+                        onOptionsOpenChange={setOptionsOpen}
+                    />
                 </CardContent>
             </Card>
         </div>

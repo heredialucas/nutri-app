@@ -45,7 +45,7 @@ export const reportService = {
                 orderBy: { weekStart: "asc" },
             }),
             prisma.nutritionPlan.findMany({
-                where: { patientId },
+                where: { patients: { some: { patientId } } },
                 orderBy: { createdAt: "asc" },
             }),
         ]);
