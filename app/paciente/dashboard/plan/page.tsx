@@ -63,7 +63,7 @@ export default async function PlanPage() {
                                 fatTarget: activePlan.fatTarget,
                                 notes: activePlan.notes,
                                 tips: activePlan.tips,
-                                startDate: activePlan.startDate,
+                                startDate: activePlan.startDate ? activePlan.startDate.toISOString() : null,
                                 days: (activePlan.days || []).map((d: any) => ({
                                     label: d.label,
                                     meals: (d.meals || []).map((m: any) => ({
