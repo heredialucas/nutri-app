@@ -140,3 +140,10 @@ export async function reactivatePatient(id: string) {
     revalidatePath("/dashboard/patients");
     return { success: true };
 }
+
+export async function deletePatient(id: string) {
+    await requireAuth("patients:delete");
+    await patientService.softDelete(id);
+    revalidatePath("/dashboard/patients");
+    return { success: true };
+}

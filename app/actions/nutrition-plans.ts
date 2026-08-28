@@ -49,6 +49,9 @@ export async function createNutritionPlan(data: {
     startDate?: string;
     endDate?: string;
     calorieTarget?: number;
+    proteinTarget?: number;
+    carbTarget?: number;
+    fatTarget?: number;
     notes?: string;
     tips?: string;
     days?: {
@@ -57,7 +60,17 @@ export async function createNutritionPlan(data: {
         meals: {
             label: string;
             mealOrder: number;
-            foods: { name: string; quantity?: string; unit?: string; notes?: string }[];
+            notes?: string;
+            foods: {
+                name: string;
+                quantity?: string;
+                unit?: string;
+                notes?: string;
+                calories?: number;
+                protein?: number;
+                carbs?: number;
+                fat?: number;
+            }[];
         }[];
     }[];
 }) {
@@ -86,9 +99,31 @@ export async function updateNutritionPlan(id: string, data: {
     endDate?: string;
     status?: string;
     calorieTarget?: number;
+    proteinTarget?: number;
+    carbTarget?: number;
+    fatTarget?: number;
     notes?: string;
     tips?: string;
     pdfUrl?: string;
+    days?: {
+        dayOrder: number;
+        label: string;
+        meals: {
+            label: string;
+            mealOrder: number;
+            notes?: string;
+            foods: {
+                name: string;
+                quantity?: string;
+                unit?: string;
+                notes?: string;
+                calories?: number;
+                protein?: number;
+                carbs?: number;
+                fat?: number;
+            }[];
+        }[];
+    }[];
 }) {
     await requireAuth("plans:update");
 
@@ -99,9 +134,13 @@ export async function updateNutritionPlan(id: string, data: {
     if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
     if (data.status !== undefined) updateData.status = data.status;
     if (data.calorieTarget !== undefined) updateData.calorieTarget = data.calorieTarget;
+    if (data.proteinTarget !== undefined) updateData.proteinTarget = data.proteinTarget;
+    if (data.carbTarget !== undefined) updateData.carbTarget = data.carbTarget;
+    if (data.fatTarget !== undefined) updateData.fatTarget = data.fatTarget;
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.tips !== undefined) updateData.tips = data.tips;
     if (data.pdfUrl !== undefined) updateData.pdfUrl = data.pdfUrl;
+    if (data.days !== undefined) updateData.days = data.days;
 
     const plan = await nutritionPlanService.update(id, updateData);
     revalidatePath("/dashboard/nutrition-plans");

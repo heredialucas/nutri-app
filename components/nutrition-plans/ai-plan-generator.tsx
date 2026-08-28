@@ -25,6 +25,11 @@ import {
 import { toast } from "sonner";
 import { generateMealPlanWithAI } from "@/app/actions/ai-meal-plan";
 import { usePlanDraftStore } from "@/stores/plan-draft-store";
+import {
+    MACRO_PRESETS,
+    macrosFromRatio,
+    macroPresetById,
+} from "@/lib/ai/macro-presets";
 import type { GeneratedMealPlan, PlanOptions } from "@/lib/ai/meal-plan-generator";
 
 const SUGGESTIONS = [
@@ -82,12 +87,38 @@ export function AIPlanGenerator({
     const [restrictions, setRestrictions] = useState<string[]>([]);
     const [includeFoods, setIncludeFoods] = useState("");
     const [excludeFoods, setExcludeFoods] = useState("");
+    const [macroPreset, setMacroPreset] = useState<string>("balanced");
+    const [customProtein, setCustomProtein] = useState(120);
+    const [customCarbs, setCustomCarbs] = useState(250);
+    const [customFat, setCustomFat] = useState(70);
 
     const toggleRestriction = (r: string) => {
         setRestrictions((prev) =>
             prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
         );
     };
+
+    const getMacroTargets = (): {
+        proteinTarget: number;
+        carbTarget: number;
+        fatTarget: number;
+    } => {
+        if (macroPreset === "custom") {
+            return { proteinTarget: customProtein, carbTarget: customCarbs, fatTarget: customFat };
+        }
+        const preset = macroPresetById(macroPreset);
+        if (!preset) return { proteinTarget: 0, carbTarget: 0, fatTarget: 0 };
+        return macrosFromRatio(calories, preset.ratio);
+    };
+
+    const resolvedMacros = getMacroTargets();
+    const macroSummary = (() => {
+        if (macroPreset === "custom") {
+            return `P ${customProtein} · HC ${customCarbs} · G ${customFat} g`;
+        }
+        const preset = macroPresetById(macroPreset);
+        return preset ? `${preset.label}: P ${resolvedMacros.proteinTarget} · HC ${resolvedMacros.carbTarget} · G ${resolvedMacros.fatTarget} g` : "";
+    })();
 
     const handleSuggestionClick = (suggestion: string) => {
         setPrompt((prev) => {
@@ -102,6 +133,9 @@ export function AIPlanGenerator({
             return;
         }
 
+        const preset = macroPresetById(macroPreset);
+        const macroTargets = getMacroTargets();
+
         const options: PlanOptions = {
             calorieTarget: calories,
             mealsPerDay,
@@ -110,6 +144,8 @@ export function AIPlanGenerator({
             includeFoods,
             excludeFoods,
             additionalNotes: prompt.trim(),
+            macroPreset: macroPreset === "custom" ? "Personalizado" : preset?.label || undefined,
+            ...macroTargets,
         };
 
         setLoading(true);
@@ -125,13 +161,38 @@ export function AIPlanGenerator({
         }
     };
 
-    const activeCount =
-        restrictions.length +
-        (includeFoods ? 1 : 0) +
-        (excludeFoods ? 1 : 0);
-
     return (
         <div className="space-y-3">
+            {/* Opciones seleccionadas visibles junto al chat */}
+            <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant="secondary" className="text-xs">
+                    <Flame className="mr-1 size-2.5 text-orange-500" />
+                    {calories} kcal
+                </Badge>
+                <Badge variant="secondary" className="text-xs">
+                    {mealsPerDay} comidas
+                </Badge>
+                {dietaryType && (
+                    <Badge variant="secondary" className="text-xs">{dietaryType}</Badge>
+                )}
+                {restrictions.map((r) => (
+                    <Badge key={r} variant="secondary" className="text-xs">{r}</Badge>
+                ))}
+                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800">
+                    P {resolvedMacros.proteinTarget ?? "–"} · HC {resolvedMacros.carbTarget ?? "–"} · G {resolvedMacros.fatTarget ?? "–"} g
+                </Badge>
+                {includeFoods && (
+                    <Badge variant="outline" className="text-xs border-green-300 text-green-700 bg-green-50">
+                        + {includeFoods}
+                    </Badge>
+                )}
+                {excludeFoods && (
+                    <Badge variant="destructive" className="text-xs">
+                        - {excludeFoods}
+                    </Badge>
+                )}
+            </div>
+
             <div className="relative">
                 <Textarea
                     placeholder={`Instrucciones para ${patientName}... (opcional)`}
@@ -185,45 +246,9 @@ export function AIPlanGenerator({
                     </SheetHeader>
 
                     <div className="space-y-5">
-                        {activeCount > 0 || dietaryType ? (
-                            <div className="rounded-lg border border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950 p-3 space-y-1">
-                                <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1">
-                                    <Sparkles className="size-3" /> Opciones seleccionadas
-                                </p>
-                                <div className="flex flex-wrap gap-1">
-                                    <Badge variant="secondary" className="text-xs">
-                                        {calories} kcal
-                                    </Badge>
-                                    <Badge variant="secondary" className="text-xs">
-                                        {mealsPerDay} comidas
-                                    </Badge>
-                                    {dietaryType && (
-                                        <Badge variant="secondary" className="text-xs">
-                                            {dietaryType}
-                                        </Badge>
-                                    )}
-                                    {restrictions.map((r) => (
-                                        <Badge key={r} variant="secondary" className="text-xs">
-                                            {r}
-                                        </Badge>
-                                    ))}
-                                    {includeFoods && (
-                                        <Badge variant="secondary" className="text-xs">
-                                            + {includeFoods}
-                                        </Badge>
-                                    )}
-                                    {excludeFoods && (
-                                        <Badge variant="destructive" className="text-xs">
-                                            - {excludeFoods}
-                                        </Badge>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">
-                                Tocá las opciones para configurar el plan que generará la IA
-                            </div>
-                        )}
+                        <div className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">
+                            Las opciones seleccionadas se ven junto al chat de generación
+                        </div>
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium flex items-center gap-1.5">
@@ -273,6 +298,77 @@ export function AIPlanGenerator({
                                     {mealsPerDay === 6 && "Desayuno, Media mañana, Almuerzo, Merienda, Cena, Colación"}
                                 </span>
                             </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-medium">Macronutrientes</label>
+                                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">
+                                    {macroSummary}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                                {MACRO_PRESETS.map((p) => (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        onClick={() => setMacroPreset(p.id)}
+                                        className={`text-left rounded-md border px-2 py-1.5 text-xs transition-colors ${
+                                            macroPreset === p.id
+                                                ? "border-purple-400 bg-purple-50 dark:bg-purple-950"
+                                                : "hover:bg-muted"
+                                        }`}
+                                    >
+                                        <span className={`font-medium block ${
+                                            macroPreset === p.id ? "text-purple-700 dark:text-purple-300" : ""
+                                        }`}>
+                                            {macroPreset === p.id && <span className="mr-0.5">✓</span>}
+                                            {p.label}
+                                        </span>
+                                        <span className="text-[11px] text-muted-foreground">{p.description}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {macroPreset === "custom" && (
+                                <div className="rounded-lg border p-3 space-y-2 bg-muted/20">
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-medium text-rose-600 dark:text-rose-400">Proteína (g)</label>
+                                            <Input
+                                                type="number"
+                                                value={customProtein}
+                                                onChange={(e) => setCustomProtein(parseInt(e.target.value) || 0)}
+                                                className="h-8 text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-medium text-sky-600 dark:text-sky-400">Carb. (g)</label>
+                                            <Input
+                                                type="number"
+                                                value={customCarbs}
+                                                onChange={(e) => setCustomCarbs(parseInt(e.target.value) || 0)}
+                                                className="h-8 text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-medium text-amber-600 dark:text-amber-400">Grasas (g)</label>
+                                            <Input
+                                                type="number"
+                                                value={customFat}
+                                                onChange={(e) => setCustomFat(parseInt(e.target.value) || 0)}
+                                                className="h-8 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        ={" "}
+                                        {Math.round((customProtein * 4) + (customCarbs * 4) + (customFat * 9))} kcal aprox.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         <Separator />

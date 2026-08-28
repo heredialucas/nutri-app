@@ -1,6 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { FoodRow, FoodData } from "./food-row";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
@@ -10,6 +11,7 @@ export interface MealData {
     id?: string;
     label: string;
     mealOrder: number;
+    notes?: string;
     foods: FoodData[];
 }
 
@@ -74,6 +76,13 @@ export function MealEditor({ meal, index, onChange, onRemove }: MealEditorProps)
 
             {!collapsed && (
                 <div className="space-y-2 pl-10">
+                    <Textarea
+                        placeholder="Comentario de esta comida (ej: Elegí una infusión para acompañar esta comida)..."
+                        value={meal.notes ?? ""}
+                        onChange={(e) => onChange(index, { ...meal, notes: e.target.value })}
+                        rows={1}
+                        className="resize-none text-xs text-muted-foreground"
+                    />
                     {meal.foods.map((food, foodIndex) => (
                         <FoodRow
                             key={foodIndex}

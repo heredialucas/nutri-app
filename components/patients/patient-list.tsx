@@ -6,7 +6,19 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Phone, Mail } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { deletePatient } from "@/app/actions/patients";
+import { Search, Phone, Mail, Trash2 } from "lucide-react";
 
 interface Patient {
     id: string;
@@ -88,48 +100,93 @@ export function PatientList({ initialPatients }: { initialPatients: Patient[] })
             ) : (
                 <div className="grid gap-3">
                     {filtered.map((patient) => (
-                        <Link
+                        <div
                             key={patient.id}
-                            href={`/dashboard/pacientes/${patient.id}`}
-                            className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                            className="flex items-stretch gap-2"
                         >
-                            <div className="flex items-center gap-4 min-w-0">
-                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                    <span className="text-sm font-medium">
-                                        {patient.firstName[0]}{patient.lastName[0]}
-                                    </span>
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="font-medium truncate">
-                                        {patient.firstName} {patient.lastName}
-                                    </p>
-                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                        {patient.email && (
-                                            <span className="flex items-center gap-1 truncate">
-                                                <Mail className="h-3 w-3" />
-                                                {patient.email}
-                                            </span>
-                                        )}
-                                        {patient.phone && (
-                                            <span className="flex items-center gap-1">
-                                                <Phone className="h-3 w-3" />
-                                                {patient.phone}
-                                            </span>
-                                        )}
+                            <Link
+                                href={`/dashboard/pacientes/${patient.id}`}
+                                className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors group flex-1 min-w-0"
+                            >
+                                <div className="flex items-center gap-4 min-w-0">
+                                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                        <span className="text-sm font-medium">
+                                            {patient.firstName[0]}{patient.lastName[0]}
+                                        </span>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="font-medium truncate">
+                                            {patient.firstName} {patient.lastName}
+                                        </p>
+                                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                            {patient.email && (
+                                                <span className="flex items-center gap-1 truncate">
+                                                    <Mail className="h-3 w-3" />
+                                                    {patient.email}
+                                                </span>
+                                            )}
+                                            {patient.phone && (
+                                                <span className="flex items-center gap-1">
+                                                    <Phone className="h-3 w-3" />
+                                                    {patient.phone}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-3 shrink-0">
-                                <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span>{patient._count.appointments} turnos</span>
-                                    <span>·</span>
-                                    <span>{patient._count.measurements} mediciones</span>
+                                <div className="flex items-center gap-3 shrink-0">
+                                    <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span>{patient._count.appointments} turnos</span>
+                                        <span>·</span>
+                                        <span>{patient._count.measurements} mediciones</span>
+                                    </div>
+                                    <Badge variant={patient.status === "ACTIVE" ? "default" : "secondary"}>
+                                        {patient.status === "ACTIVE" ? "Activo" : "Archivado"}
+                                    </Badge>
                                 </div>
-                                <Badge variant={patient.status === "ACTIVE" ? "default" : "secondary"}>
-                                    {patient.status === "ACTIVE" ? "Activo" : "Archivado"}
-                                </Badge>
+                            </Link>
+                            <div className="flex items-center">
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                            aria-label={`Eliminar paciente ${patient.firstName} ${patient.lastName}`}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                                ¿Eliminar paciente?
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Se eliminará a{" "}
+                                                <span className="font-medium text-foreground">
+                                                    {patient.firstName} {patient.lastName}
+                                                </span>{" "}
+                                                de la lista. Sus registros clínicos y estadísticas se conservan,
+                                                pero dejará de aparecer en el listado.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                onClick={async () => {
+                                                    await deletePatient(patient.id);
+                                                    router.refresh();
+                                                }}
+                                            >
+                                                Eliminar
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
-                        </Link>
+                        </div>
                     ))}
                 </div>
             )}

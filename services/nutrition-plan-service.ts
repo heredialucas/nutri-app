@@ -57,6 +57,9 @@ export const nutritionPlanService = {
         startDate?: Date;
         endDate?: Date;
         calorieTarget?: number;
+        proteinTarget?: number;
+        carbTarget?: number;
+        fatTarget?: number;
         notes?: string;
         tips?: string;
         days?: {
@@ -65,7 +68,17 @@ export const nutritionPlanService = {
             meals: {
                 label: string;
                 mealOrder: number;
-                foods: { name: string; quantity?: string; unit?: string; notes?: string }[];
+                notes?: string;
+                foods: {
+                    name: string;
+                    quantity?: string;
+                    unit?: string;
+                    notes?: string;
+                    calories?: number;
+                    protein?: number;
+                    carbs?: number;
+                    fat?: number;
+                }[];
             }[];
         }[];
     }) {
@@ -83,12 +96,17 @@ export const nutritionPlanService = {
                                 create: day.meals.map((meal) => ({
                                     label: meal.label,
                                     mealOrder: meal.mealOrder,
+                                    notes: meal.notes,
                                     foods: {
                                         create: meal.foods.map((food) => ({
                                             name: food.name,
                                             quantity: food.quantity,
                                             unit: food.unit,
                                             notes: food.notes,
+                                            calories: food.calories,
+                                            protein: food.protein,
+                                            carbs: food.carbs,
+                                            fat: food.fat,
                                         })),
                                     },
                                 })),
@@ -114,13 +132,70 @@ export const nutritionPlanService = {
         endDate?: Date;
         status?: string;
         calorieTarget?: number;
+        proteinTarget?: number;
+        carbTarget?: number;
+        fatTarget?: number;
         notes?: string;
         tips?: string;
         pdfUrl?: string;
+        days?: {
+            dayOrder: number;
+            label: string;
+            meals: {
+                label: string;
+                mealOrder: number;
+                notes?: string;
+                foods: {
+                    name: string;
+                    quantity?: string;
+                    unit?: string;
+                    notes?: string;
+                    calories?: number;
+                    protein?: number;
+                    carbs?: number;
+                    fat?: number;
+                }[];
+            }[];
+        }[];
     }) {
+        const { days, ...planData } = data;
+
         return prisma.nutritionPlan.update({
             where: { id },
-            data,
+            data: {
+                ...planData,
+                ...(days
+                    ? {
+                        // Reemplaza la estructura de días/comidas/alimentos (cascade borra los hijos)
+                        days: {
+                            deleteMany: {},
+                            create: days.map((day) => ({
+                                dayOrder: day.dayOrder,
+                                label: day.label,
+                                meals: {
+                                    create: day.meals.map((meal) => ({
+                                        label: meal.label,
+                                        mealOrder: meal.mealOrder,
+                                        notes: meal.notes,
+                                        foods: {
+                                            create: meal.foods.map((food) => ({
+                                                name: food.name,
+                                                quantity: food.quantity,
+                                                unit: food.unit,
+                                                notes: food.notes,
+                                                calories: food.calories,
+                                                protein: food.protein,
+                                                carbs: food.carbs,
+                                                fat: food.fat,
+                                            })),
+                                        },
+                                    })),
+                                },
+                            })),
+                        },
+                    }
+                    : undefined),
+            },
         });
     },
 
@@ -173,6 +248,9 @@ export const nutritionPlanService = {
             title: `${original.title} (copia)`,
             description: original.description ?? undefined,
             calorieTarget: original.calorieTarget ?? undefined,
+            proteinTarget: original.proteinTarget ?? undefined,
+            carbTarget: original.carbTarget ?? undefined,
+            fatTarget: original.fatTarget ?? undefined,
             notes: original.notes ?? undefined,
             tips: original.tips ?? undefined,
             days: original.days.map((day) => ({
@@ -181,11 +259,16 @@ export const nutritionPlanService = {
                 meals: day.meals.map((meal) => ({
                     label: meal.label,
                     mealOrder: meal.mealOrder,
+                    notes: meal.notes ?? undefined,
                     foods: meal.foods.map((food) => ({
                         name: food.name,
                         quantity: food.quantity ?? undefined,
                         unit: food.unit ?? undefined,
                         notes: food.notes ?? undefined,
+                        calories: food.calories ?? undefined,
+                        protein: food.protein ? Number(food.protein) : undefined,
+                        carbs: food.carbs ? Number(food.carbs) : undefined,
+                        fat: food.fat ? Number(food.fat) : undefined,
                     })),
                 })),
             })),

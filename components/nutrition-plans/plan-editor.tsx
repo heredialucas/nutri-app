@@ -19,6 +19,7 @@ import {
     ChefHat,
     ShoppingCart,
     Loader2,
+    Dumbbell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -32,6 +33,31 @@ import { createRecipe, linkRecipesToPlan } from "@/app/actions/recipes";
 import { createShoppingList } from "@/app/actions/shopping-lists";
 import { usePlanDraftStore } from "@/stores/plan-draft-store";
 import type { GeneratedMealPlan } from "@/lib/ai/meal-plan-generator";
+
+interface MacroFieldProps {
+    label: string;
+    color: string;
+    value: number;
+    onChange: (v: number) => void;
+}
+
+function MacroField({ label, color, value, onChange }: MacroFieldProps) {
+    return (
+        <div className="space-y-1">
+            <label className={`text-[11px] font-medium ${color}`}>{label}</label>
+            <div className="flex items-center gap-1">
+                <Input
+                    type="number"
+                    value={value}
+                    onChange={(e) => onChange(parseInt(e.target.value) || 0)}
+                    className="h-8 text-sm text-center"
+                    min={0}
+                />
+                <span className="text-xs text-muted-foreground">g</span>
+            </div>
+        </div>
+    );
+}
 
 interface PlanEditorProps {
     plan: GeneratedMealPlan;
@@ -97,8 +123,25 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
         const days = [...plan.days];
         const meals = [...days[dayIndex].meals];
         const foods = [...meals[mealIndex].foods];
-        foods[foodIndex] = { ...foods[foodIndex], [field]: value };
+        const numericFields = ["calories", "protein", "carbs", "fat"];
+        const next =
+            numericFields.includes(field) && value !== ""
+                ? { ...foods[foodIndex], [field]: parseFloat(value) || 0 }
+                : { ...foods[foodIndex], [field]: value };
+        foods[foodIndex] = next;
         meals[mealIndex] = { ...meals[mealIndex], foods };
+        days[dayIndex] = { ...days[dayIndex], meals };
+        setPlan((prev) => {
+            const updated = { ...prev, days };
+            updateDraftPlan(updated);
+            return updated;
+        });
+    };
+
+    const updateMealNotes = (dayIndex: number, mealIndex: number, value: string) => {
+        const days = [...plan.days];
+        const meals = [...days[dayIndex].meals];
+        meals[mealIndex] = { ...meals[mealIndex], notes: value };
         days[dayIndex] = { ...days[dayIndex], meals };
         setPlan((prev) => {
             const updated = { ...prev, days };
@@ -110,7 +153,10 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
     const addFood = (dayIndex: number, mealIndex: number) => {
         const days = [...plan.days];
         const meals = [...days[dayIndex].meals];
-        const foods = [...meals[mealIndex].foods, { name: "", quantity: "", unit: "", notes: "" }];
+        const foods = [
+            ...meals[mealIndex].foods,
+            { name: "", quantity: "", unit: "", notes: "", calories: 0, protein: 0, carbs: 0, fat: 0 },
+        ];
         meals[mealIndex] = { ...meals[mealIndex], foods };
         days[dayIndex] = { ...days[dayIndex], meals };
         setPlan((prev) => {
@@ -210,6 +256,9 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
                 title: plan.title,
                 description: plan.description || undefined,
                 calorieTarget: plan.calorieTarget || undefined,
+                proteinTarget: (plan.dailyProtein ?? 0) || undefined,
+                carbTarget: (plan.dailyCarbs ?? 0) || undefined,
+                fatTarget: (plan.dailyFat ?? 0) || undefined,
                 notes: plan.notes || undefined,
                 tips: plan.tips || undefined,
                 days: plan.days.map((d, i) => ({
@@ -218,6 +267,7 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
                     meals: d.meals.map((m, mi) => ({
                         label: m.label,
                         mealOrder: mi + 1,
+                        notes: (m.notes ?? "").trim() || undefined,
                         foods: m.foods
                             .filter((f) => f.name.trim())
                             .map((f) => ({
@@ -225,6 +275,10 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
                                 quantity: f.quantity.trim() || undefined,
                                 unit: f.unit.trim() || undefined,
                                 notes: f.notes.trim() || undefined,
+                                calories: (f.calories ?? 0) > 0 ? f.calories : undefined,
+                                protein: (f.protein ?? 0) > 0 ? f.protein : undefined,
+                                carbs: (f.carbs ?? 0) > 0 ? f.carbs : undefined,
+                                fat: (f.fat ?? 0) > 0 ? f.fat : undefined,
                             })),
                     })),
                 })),
@@ -301,6 +355,43 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
                             </Badge>
                         </div>
                     </div>
+
+                    {/* Distribución diaria de macros objetivo */}
+                    {(plan.dailyProtein !== undefined ||
+                        plan.dailyCarbs !== undefined ||
+                        plan.dailyFat !== undefined) && (
+                        <div className="rounded-lg border bg-muted/40 p-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                    <Dumbbell className="size-3.5" />
+                                    Distribución de macronutrientes (diaria)
+                                </span>
+                                <span className="text-xs font-semibold text-muted-foreground">
+                                    {plan.dailyCalories ?? plan.calorieTarget} kcal
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                <MacroField
+                                    label="Proteína"
+                                    color="text-rose-600 dark:text-rose-400"
+                                    value={plan.dailyProtein ?? 0}
+                                    onChange={(v) => updatePlanField("dailyProtein", v)}
+                                />
+                                <MacroField
+                                    label="Carbohidratos"
+                                    color="text-sky-600 dark:text-sky-400"
+                                    value={plan.dailyCarbs ?? 0}
+                                    onChange={(v) => updatePlanField("dailyCarbs", v)}
+                                />
+                                <MacroField
+                                    label="Grasas"
+                                    color="text-amber-600 dark:text-amber-400"
+                                    value={plan.dailyFat ?? 0}
+                                    onChange={(v) => updatePlanField("dailyFat", v)}
+                                />
+                            </div>
+                        </div>
+                    )}
                     {plan.notes && (
                         <div className="space-y-1">
                             <span className="text-xs font-medium text-muted-foreground">Notas:</span>
@@ -395,6 +486,37 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
                                                 </Button>
                                             </div>
 
+                                            {(meal.calories !== undefined ||
+                                                meal.protein !== undefined ||
+                                                meal.carbs !== undefined ||
+                                                meal.fat !== undefined) && (
+                                                <div className="flex flex-wrap gap-1.5 text-[11px] pl-6">
+                                                    {meal.calories !== undefined && (
+                                                        <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{meal.calories} kcal</span>
+                                                    )}
+                                                    {meal.protein !== undefined && (
+                                                        <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300">P {meal.protein}g</span>
+                                                    )}
+                                                    {meal.carbs !== undefined && (
+                                                        <span className="px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300">HC {meal.carbs}g</span>
+                                                    )}
+                                                    {meal.fat !== undefined && (
+                                                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300">G {meal.fat}g</span>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Comentario/indicación de la comida */}
+                                            <div className="pl-6">
+                                                <Textarea
+                                                    value={meal.notes ?? ""}
+                                                    onChange={(e) => updateMealNotes(dayIndex, mealIndex, e.target.value)}
+                                                    placeholder="Comentario de esta comida (ej: Elegí una infusión para acompañar esta comida)"
+                                                    rows={1}
+                                                    className="h-8 min-h-0 text-xs resize-none text-muted-foreground bg-transparent"
+                                                />
+                                            </div>
+
                                             <div className="pl-6 space-y-1">
                                                 {meal.foods.map((food, foodIndex) => (
                                                     <div
@@ -457,6 +579,70 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
                                                             }
                                                             placeholder="Notas"
                                                             className="w-24 h-8 text-sm bg-transparent border-transparent hover:border-input focus:border-input"
+                                                        />
+                                                        <Input
+                                                            type="number"
+                                                            value={food.calories ?? ""}
+                                                            onChange={(e) =>
+                                                                updateFood(
+                                                                    dayIndex,
+                                                                    mealIndex,
+                                                                    foodIndex,
+                                                                    "calories",
+                                                                    e.target.value
+                                                                )
+                                                            }
+                                                            placeholder="kcal"
+                                                            className="w-16 h-8 text-sm text-center bg-transparent border-transparent hover:border-input focus:border-input text-muted-foreground"
+                                                            title="Calorías"
+                                                        />
+                                                        <Input
+                                                            type="number"
+                                                            value={food.protein ?? ""}
+                                                            onChange={(e) =>
+                                                                updateFood(
+                                                                    dayIndex,
+                                                                    mealIndex,
+                                                                    foodIndex,
+                                                                    "protein",
+                                                                    e.target.value
+                                                                )
+                                                            }
+                                                            placeholder="P(g)"
+                                                            className="w-14 h-8 text-sm text-center bg-transparent border-transparent hover:border-input focus:border-input text-rose-600/70 dark:text-rose-400/70"
+                                                            title="Proteína (g)"
+                                                        />
+                                                        <Input
+                                                            type="number"
+                                                            value={food.carbs ?? ""}
+                                                            onChange={(e) =>
+                                                                updateFood(
+                                                                    dayIndex,
+                                                                    mealIndex,
+                                                                    foodIndex,
+                                                                    "carbs",
+                                                                    e.target.value
+                                                                )
+                                                            }
+                                                            placeholder="HC(g)"
+                                                            className="w-14 h-8 text-sm text-center bg-transparent border-transparent hover:border-input focus:border-input text-sky-600/70 dark:text-sky-400/70"
+                                                            title="Carbohidratos (g)"
+                                                        />
+                                                        <Input
+                                                            type="number"
+                                                            value={food.fat ?? ""}
+                                                            onChange={(e) =>
+                                                                updateFood(
+                                                                    dayIndex,
+                                                                    mealIndex,
+                                                                    foodIndex,
+                                                                    "fat",
+                                                                    e.target.value
+                                                                )
+                                                            }
+                                                            placeholder="G(g)"
+                                                            className="w-14 h-8 text-sm text-center bg-transparent border-transparent hover:border-input focus:border-input text-amber-600/70 dark:text-amber-400/70"
+                                                            title="Grasas (g)"
                                                         />
                                                         <Button
                                                             variant="ghost"

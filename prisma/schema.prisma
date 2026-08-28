@@ -306,6 +306,9 @@ model NutritionPlan {
   endDate         DateTime?
   status          String   @default("DRAFT")
   calorieTarget   Int?
+  proteinTarget   Int?
+  carbTarget      Int?
+  fatTarget       Int?
   notes           String?
   tips            String?
   pdfUrl          String?
@@ -337,6 +340,7 @@ model Meal {
   dayId     String @db.Uuid
   label     String
   mealOrder Int
+  notes     String?
 
   day   NutritionPlanDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
   foods MealFood[]
@@ -345,12 +349,16 @@ model Meal {
 }
 
 model MealFood {
-  id       String  @id @default(uuid()) @db.Uuid
-  mealId   String  @db.Uuid
+  id       String   @id @default(uuid()) @db.Uuid
+  mealId   String   @db.Uuid
   name     String
   quantity String?
   unit     String?
   notes    String?
+  calories Int?
+  protein  Decimal? @db.Decimal(5, 2)
+  carbs    Decimal? @db.Decimal(5, 2)
+  fat      Decimal? @db.Decimal(5, 2)
 
   meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
 

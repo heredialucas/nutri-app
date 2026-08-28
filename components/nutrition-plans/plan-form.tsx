@@ -32,6 +32,9 @@ interface PlanFormProps {
         startDate: string | null;
         endDate: string | null;
         calorieTarget: number | null;
+        proteinTarget: number | null;
+        carbTarget: number | null;
+        fatTarget: number | null;
         notes: string | null;
         tips: string | null;
         patientId: string;
@@ -43,12 +46,17 @@ interface PlanFormProps {
                 id?: string;
                 label: string;
                 mealOrder: number;
+                notes?: string | null;
                 foods: {
                     id?: string;
                     name: string;
                     quantity: string | null;
                     unit: string | null;
                     notes: string | null;
+                    calories?: number | null;
+                    protein?: number | null;
+                    carbs?: number | null;
+                    fat?: number | null;
                 }[];
             }[];
         }[];
@@ -71,6 +79,15 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
     const [calorieTarget, setCalorieTarget] = useState(
         initialPlan?.calorieTarget?.toString() || ""
     );
+    const [proteinTarget, setProteinTarget] = useState(
+        initialPlan?.proteinTarget?.toString() || ""
+    );
+    const [carbTarget, setCarbTarget] = useState(
+        initialPlan?.carbTarget?.toString() || ""
+    );
+    const [fatTarget, setFatTarget] = useState(
+        initialPlan?.fatTarget?.toString() || ""
+    );
     const [notes, setNotes] = useState(initialPlan?.notes || "");
     const [tips, setTips] = useState(initialPlan?.tips || "");
     const [days, setDays] = useState<DayData[]>(
@@ -78,11 +95,16 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
             ...d,
             meals: d.meals.map((m) => ({
                 ...m,
+                notes: m.notes || "",
                 foods: m.foods.map((f) => ({
                     ...f,
                     quantity: f.quantity || "",
                     unit: f.unit || "",
                     notes: f.notes || "",
+                    calories: f.calories ?? undefined,
+                    protein: f.protein ? Number(f.protein) : undefined,
+                    carbs: f.carbs ? Number(f.carbs) : undefined,
+                    fat: f.fat ? Number(f.fat) : undefined,
                 })),
             })),
         })) || []
@@ -129,6 +151,9 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                 startDate: startDate || undefined,
                 endDate: endDate || undefined,
                 calorieTarget: calorieTarget ? parseInt(calorieTarget) : undefined,
+                proteinTarget: proteinTarget ? parseInt(proteinTarget) : undefined,
+                carbTarget: carbTarget ? parseInt(carbTarget) : undefined,
+                fatTarget: fatTarget ? parseInt(fatTarget) : undefined,
                 notes: notes.trim() || undefined,
                 tips: tips.trim() || undefined,
                 days: days.map((d, i) => ({
@@ -137,6 +162,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                     meals: d.meals.map((m, mi) => ({
                         label: m.label || `Comida ${mi + 1}`,
                         mealOrder: mi + 1,
+                        notes: (m.notes ?? "").trim() || undefined,
                         foods: m.foods
                             .filter((f) => f.name.trim())
                             .map((f) => ({
@@ -144,6 +170,10 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                                 quantity: f.quantity.trim() || undefined,
                                 unit: f.unit.trim() || undefined,
                                 notes: f.notes.trim() || undefined,
+                                calories: (f.calories ?? 0) > 0 ? f.calories : undefined,
+                                protein: (f.protein ?? 0) > 0 ? f.protein : undefined,
+                                carbs: (f.carbs ?? 0) > 0 ? f.carbs : undefined,
+                                fat: (f.fat ?? 0) > 0 ? f.fat : undefined,
                             })),
                     })),
                 })),
@@ -261,6 +291,39 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                                 placeholder="Ej: 2000"
                                 value={calorieTarget}
                                 onChange={(e) => setCalorieTarget(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="space-y-2">
+                            <Label htmlFor="protein">Proteína (g/día)</Label>
+                            <Input
+                                id="protein"
+                                type="number"
+                                placeholder="Ej: 120"
+                                value={proteinTarget}
+                                onChange={(e) => setProteinTarget(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="carbs">Carbohidratos (g/día)</Label>
+                            <Input
+                                id="carbs"
+                                type="number"
+                                placeholder="Ej: 250"
+                                value={carbTarget}
+                                onChange={(e) => setCarbTarget(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="fat">Grasas (g/día)</Label>
+                            <Input
+                                id="fat"
+                                type="number"
+                                placeholder="Ej: 70"
+                                value={fatTarget}
+                                onChange={(e) => setFatTarget(e.target.value)}
                             />
                         </div>
                     </div>

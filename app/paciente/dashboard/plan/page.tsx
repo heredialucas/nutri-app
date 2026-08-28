@@ -47,11 +47,26 @@ export default async function PlanPage() {
                             <p className="text-sm text-[#666] m-0 mb-3">{activePlan.description}</p>
                         )}
                         <div className="flex flex-wrap gap-2 mb-4">
-                            {activePlan.calorieTarget && (
-                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[rgba(0,0,0,0.03)] text-[#666]">
-                                    {activePlan.calorieTarget} kcal/día
-                                </span>
-                            )}
+                                            {activePlan.calorieTarget && (
+                                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[rgba(0,0,0,0.03)] text-[#666]">
+                                                    {activePlan.calorieTarget} kcal/día
+                                                </span>
+                                            )}
+                                            {activePlan.proteinTarget && (
+                                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[rgba(0,0,0,0.03)] text-[#666]">
+                                                    {activePlan.proteinTarget}g P
+                                                </span>
+                                            )}
+                                            {activePlan.carbTarget && (
+                                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[rgba(0,0,0,0.03)] text-[#666]">
+                                                    {activePlan.carbTarget}g HC
+                                                </span>
+                                            )}
+                                            {activePlan.fatTarget && (
+                                                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[rgba(0,0,0,0.03)] text-[#666]">
+                                                    {activePlan.fatTarget}g G
+                                                </span>
+                                            )}
                             <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[rgba(0,0,0,0.03)] text-[#666]">
                                 {activePlan.days?.length || 0} días
                             </span>
@@ -84,6 +99,11 @@ export default async function PlanPage() {
                                                     <p className="text-xs font-semibold text-[#1a1a1a] m-0 mb-1.5 uppercase tracking-wide">
                                                         {meal.label}
                                                     </p>
+                                                    {meal.notes && (
+                                                        <p className="text-xs italic text-[#854d0e] bg-[#fef9c3] border border-[rgba(234,179,8,0.2)] rounded-md px-2 py-1.5 m-0 mb-1.5">
+                                                            {meal.notes}
+                                                        </p>
+                                                    )}
                                                     <div className="space-y-1">
                                                         {meal.foods?.map((food: any) => (
                                                             <div key={food.id} className="flex items-baseline gap-2 text-sm">

@@ -81,6 +81,14 @@ export const patientService = {
         });
     },
 
+    // Soft delete: only marks deletedAt so clinical data and statistics remain usable
+    async softDelete(id: string) {
+        return prisma.patient.update({
+            where: { id },
+            data: { deletedAt: new Date(), status: "ARCHIVED" },
+        });
+    },
+
     async getActiveCount() {
         return prisma.patient.count({ where: { status: "ACTIVE", deletedAt: null } });
     },

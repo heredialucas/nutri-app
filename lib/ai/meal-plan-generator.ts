@@ -16,6 +16,38 @@ export interface PlanOptions {
     includeFoods: string;
     excludeFoods: string;
     additionalNotes: string;
+    proteinTarget?: number; // g/día
+    carbTarget?: number; // g/día
+    fatTarget?: number; // g/día
+    macroPreset?: string; // nombre del preset elegido (opcional, para el prompt)
+}
+
+export interface GeneratedFood {
+    name: string;
+    quantity: string;
+    unit: string;
+    notes: string;
+    calories?: number; // kcal aproximadas
+    protein?: number; // g
+    carbs?: number; // g
+    fat?: number; // g
+}
+
+export interface GeneratedMeal {
+    label: string;
+    mealOrder: number;
+    foods: GeneratedFood[];
+    calories?: number; // kcal totales de la comida
+    protein?: number; // g totales
+    carbs?: number; // g totales
+    fat?: number; // g totales
+    notes?: string; // comentario/indicación de la comida
+}
+
+export interface GeneratedDay {
+    dayOrder: number;
+    label: string;
+    meals: GeneratedMeal[];
 }
 
 export interface GeneratedMealPlan {
@@ -24,20 +56,11 @@ export interface GeneratedMealPlan {
     calorieTarget: number;
     notes: string;
     tips?: string;
-    days: {
-        dayOrder: number;
-        label: string;
-        meals: {
-            label: string;
-            mealOrder: number;
-            foods: {
-                name: string;
-                quantity: string;
-                unit: string;
-                notes: string;
-            }[];
-        }[];
-    }[];
+    dailyCalories?: number;
+    dailyProtein?: number; // g
+    dailyCarbs?: number; // g
+    dailyFat?: number; // g
+    days: GeneratedDay[];
 }
 
 function calculateAge(birthDate: Date | string): number {
@@ -158,6 +181,7 @@ Reglas estrictas:
 - Respetá TODAS las alergias e intolerancias alimentarias del paciente. Nunca incluyas alimentos que provoquen reacciones alérgicas.
 - Considerá interacciones medicamento-nutriente cuando el paciente tome medicación.
 - Alineá las calorías y macronutrientes con los objetivos del paciente.
+- Calculá y reportá los macronutrientes: para cada alimento indicá sus calorías aproximadas (kcal) y gramos de proteína, carbohidratos y grasas. Sumá estos valores por comida y luego el total diario.
 - Incluí alimentos variados, accesibles y económicos en Argentina.
 - Usá unidades métricas (gramos, ml).
 - Las porciones deben ser realistas y específicas.
@@ -200,6 +224,16 @@ function buildUserPrompt(
         ? `Alimentos que DEBE EXCLUIR: ${options.excludeFoods.trim()}`
         : "";
 
+    const macroTargets: string[] = [];
+    if (options.proteinTarget) macroTargets.push(`${options.proteinTarget} g de proteína`);
+    if (options.carbTarget) macroTargets.push(`${options.carbTarget} g de carbohidratos`);
+    if (options.fatTarget) macroTargets.push(`${options.fatTarget} g de grasas`);
+    const macroPresetText = options.macroPreset
+        ? `\n- Distribución de macronutrientes elegida: ${options.macroPreset}${macroTargets.length ? ` (objetivos: ${macroTargets.join(", ")})` : ""}`
+        : macroTargets.length
+        ? `\n- Objetivos de macronutrientes por día: ${macroTargets.join(", ")}`
+        : "";
+
     const customSection = customPrompt?.trim()
         ? `\nINSTRUCCIONES ADICIONALES DEL PROFESIONAL:\n${customPrompt.trim()}`
         : "";
@@ -215,12 +249,14 @@ ${followUpContext}
 CONFIGURACIÓN DEL PLAN:
 - Duración: 7 días (Lunes a Domingo)
 - Comidas por día: ${options.mealsPerDay} (${meals.join(", ")})
-- Calorías objetivo: ${options.calorieTarget} kcal/día
+- Calorías objetivo: ${options.calorieTarget} kcal/día${macroPresetText}
 ${restrictionsText ? `- ${restrictionsText}` : ""}
 ${allergiesText ? `- ${allergiesText}` : ""}
 ${includeText ? `- ${includeText}` : ""}
 ${excludeText ? `- ${excludeText}` : ""}
 ${customSection}
+
+La suma de las calorías y macronutrientes de los 7 días debe ser CONSISTENTE con las calorías objetivo y los objetivos de macronutrientes indicados. Calculá en cada alimento sus calorías (kcal) y gramos de proteína, carbohidratos y grasas; sumá por comida y por día.
 
 FORMATO DE RESPUESTA - JSON con la siguiente estructura exacta:
 
@@ -228,6 +264,10 @@ FORMATO DE RESPUESTA - JSON con la siguiente estructura exacta:
   "title": "Título descriptivo del plan",
   "description": "Breve descripción del enfoque nutricional del plan",
   "calorieTarget": ${options.calorieTarget},
+  "dailyCalories": <número entero, kcal diarias totales>,
+  "dailyProtein": <número entero, gramos de proteína diarios>,
+  "dailyCarbs": <número entero, gramos de carbohidratos diarios>,
+  "dailyFat": <número entero, gramos de grasas diarias>,
   "notes": "Notas privadas para el profesional sobre decisiones tomadas en el plan",
   "days": [
     {
@@ -237,11 +277,20 @@ FORMATO DE RESPUESTA - JSON con la siguiente estructura exacta:
         {
           "label": "Nombre de la comida",
           "mealOrder": 1,
+          "calories": <kcal totales de la comida>,
+          "protein": <gramos de proteína de la comida>,
+          "carbs": <gramos de carbohidratos de la comida>,
+          "fat": <gramos de grasas de la comida>,
+          "notes": "Comentario o indicación para el paciente sobre esta comida (opcional, puede ser vacío)",
           "foods": [
             {
               "name": "Nombre del alimento",
               "quantity": "cantidad numérica",
               "unit": "unidades (g, ml, unidades, taza, cucharada, etc.)",
+              "calories": <kcal aproximadas del alimento>,
+              "protein": <gramos aproximados>,
+              "carbs": <gramos aproximados>,
+              "fat": <gramos aproximados>,
               "notes": "preparación o aclaración"
             }
           ]
@@ -312,6 +361,91 @@ export async function generateMealPlan(
                 });
             }
             parsed.days = parsed.days.slice(0, 7);
+        }
+
+        // Normalize: compute per-meal totals from foods if not provided by the AI
+        for (const day of parsed.days) {
+            for (const meal of day.meals) {
+                meal.foods = (meal.foods || []).map((f) => {
+                    const num = (v: unknown) => (typeof v === "number" && !Number.isNaN(v) ? v : undefined);
+                    return {
+                        name: f.name || "",
+                        quantity: f.quantity ?? "",
+                        unit: f.unit ?? "",
+                        notes: f.notes ?? "",
+                        calories: num(f.calories),
+                        protein: num(f.protein),
+                        carbs: num(f.carbs),
+                        fat: num(f.fat),
+                    };
+                });
+                if (
+                    meal.calories === undefined &&
+                    meal.foods.some((f) => f.calories !== undefined)
+                ) {
+                    meal.calories = Math.round(
+                        meal.foods.reduce((sum, f) => sum + (f.calories || 0), 0)
+                    );
+                }
+                if (
+                    meal.protein === undefined &&
+                    meal.foods.some((f) => f.protein !== undefined)
+                ) {
+                    meal.protein = Math.round(
+                        meal.foods.reduce((sum, f) => sum + (f.protein || 0), 0) * 10
+                    ) / 10;
+                }
+                if (
+                    meal.carbs === undefined &&
+                    meal.foods.some((f) => f.carbs !== undefined)
+                ) {
+                    meal.carbs = Math.round(
+                        meal.foods.reduce((sum, f) => sum + (f.carbs || 0), 0) * 10
+                    ) / 10;
+                }
+                if (
+                    meal.fat === undefined &&
+                    meal.foods.some((f) => f.fat !== undefined)
+                ) {
+                    meal.fat = Math.round(
+                        meal.foods.reduce((sum, f) => sum + (f.fat || 0), 0) * 10
+                    ) / 10;
+                }
+            }
+        }
+
+        // Compute daily totals if not provided
+        if (parsed.dailyCalories === undefined) {
+            parsed.dailyCalories = Math.round(
+                parsed.days.reduce(
+                    (sum, d) => sum + d.meals.reduce((s, m) => s + (m.calories || 0), 0),
+                    0
+                ) / Math.max(1, parsed.days.length)
+            );
+        }
+        if (parsed.dailyProtein === undefined) {
+            parsed.dailyProtein = Math.round(
+                parsed.days.reduce(
+                    (sum, d) => sum + d.meals.reduce((s, m) => s + (m.protein || 0), 0),
+                    0
+                ) * 10 / Math.max(1, parsed.days.length)
+            ) / 10;
+        }
+        if (parsed.dailyCarbs === undefined) {
+            parsed.dailyCarbs = Math.round(
+                parsed.days.reduce(
+                    (sum, d) => sum + d.meals.reduce((s, m) => s + (m.carbs || 0), 0),
+                    0
+                ) * 10 / Math.max(1, parsed.days.length)
+            ) / 10;
+        }
+        if (parsed.dailyFat === undefined) {
+            parsed.dailyFat = Math.round(
+                parsed.days.reduce(
+                    (sum, d) => sum + d.meals.reduce((s, m) => s + (m.fat || 0), 0),
+                    0
+                ) * 10 / Math.max(1, parsed.days.length)
+            ) / 10;
         }
 
         return parsed;

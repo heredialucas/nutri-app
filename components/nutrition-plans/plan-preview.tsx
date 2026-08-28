@@ -10,6 +10,9 @@ interface PlanData {
     description: string | null;
     status: string;
     calorieTarget: number | null;
+    proteinTarget: number | null;
+    carbTarget: number | null;
+    fatTarget: number | null;
     notes: string | null;
     tips: string | null;
     startDate: string | null;
@@ -25,12 +28,17 @@ interface PlanData {
             id?: string;
             label: string;
             mealOrder: number;
+            notes: string | null;
             foods: {
                 id?: string;
                 name: string;
                 quantity: string | null;
                 unit: string | null;
                 notes: string | null;
+                calories?: number | null;
+                protein?: number | null;
+                carbs?: number | null;
+                fat?: number | null;
             }[];
         }[];
     }[];
@@ -75,7 +83,14 @@ export function PlanPreview({ plan }: { plan: PlanData }) {
                     {plan.endDate && (
                         <span>Fin: {new Date(plan.endDate).toLocaleDateString("es-AR")}</span>
                     )}
-                    {plan.calorieTarget && <span>Meta: {plan.calorieTarget} kcal</span>}
+                    {plan.calorieTarget && (
+                        <span>
+                            Meta: {plan.calorieTarget} kcal
+                            {plan.proteinTarget && ` · ${plan.proteinTarget}g P`}
+                            {plan.carbTarget && ` · ${plan.carbTarget}g HC`}
+                            {plan.fatTarget && ` · ${plan.fatTarget}g G`}
+                        </span>
+                    )}
                     <span>Creado por: {plan.professional.fullName}</span>
                 </div>
             </CardHeader>
@@ -96,6 +111,11 @@ export function PlanPreview({ plan }: { plan: PlanData }) {
                                 day.meals.map((meal) => (
                                     <div key={meal.id || meal.mealOrder} className="pl-4 space-y-2">
                                         <h4 className="font-medium text-base">{meal.label}</h4>
+                                        {meal.notes && (
+                                            <p className="text-xs italic text-amber-700 bg-amber-50 border border-amber-100 rounded-md px-2 py-1.5">
+                                                {meal.notes}
+                                            </p>
+                                        )}
                                         {meal.foods.length === 0 ? (
                                             <p className="text-sm text-muted-foreground">Sin alimentos</p>
                                         ) : (
@@ -115,6 +135,17 @@ export function PlanPreview({ plan }: { plan: PlanData }) {
                                                         {food.notes && (
                                                             <span className="text-xs text-muted-foreground italic">
                                                                 ({food.notes})
+                                                            </span>
+                                                        )}
+                                                        {(food.calories ||
+                                                            food.protein ||
+                                                            food.carbs ||
+                                                            food.fat) && (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {food.calories ? `${food.calories} kcal` : ""}
+                                                                {food.protein ? ` · ${food.protein}g P` : ""}
+                                                                {food.carbs ? ` · ${food.carbs}g HC` : ""}
+                                                                {food.fat ? ` · ${food.fat}g G` : ""}
                                                             </span>
                                                         )}
                                                     </li>
