@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { Calculator } from "lucide-react";
+import Lenis from "lenis";
 
 export function LandingHero() {
   const [ready, setReady] = useState(false);
@@ -11,6 +13,14 @@ export function LandingHero() {
     const timer = setTimeout(() => setReady(true), 1000);
     return () => clearTimeout(timer);
   }, []);
+
+  const scrollToCalculator = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const target = document.querySelector("#calculadora");
+    if (!target) return;
+    const w = window as unknown as { lenis?: Lenis };
+    w.lenis?.scrollTo(target as HTMLElement, { offset: -80, duration: 1.4 });
+  };
 
   return (
     <div className="relative w-full h-svh bg-[#0c0c0e] overflow-hidden">
@@ -119,6 +129,15 @@ export function LandingHero() {
             transition={{ duration: 0.8, delay: 0.9, ease: [0.22, 1, 0.36, 1] }}
             className="flex flex-wrap gap-4 mt-10"
           >
+            <a
+              href="#calculadora"
+              onClick={scrollToCalculator}
+              className="inline-flex items-center gap-2.5 rounded-[50px] border cursor-pointer no-underline uppercase tracking-[0.1em] bg-emerald-500/15 border-emerald-400/40 text-emerald-300 px-[clamp(20px,2.5vw,32px)] py-[clamp(12px,1.5vw,16px)] text-[clamp(11px,1.1vw,13px)] font-semibold transition-all duration-300 hover:bg-emerald-500/25 hover:border-emerald-300/60"
+            >
+              <Calculator size={14} strokeWidth={2} />
+              <span>Calculadora gratuita</span>
+            </a>
+
             <Link
               href="/reservar"
               className="inline-flex items-center gap-2.5 bg-white text-[#0c0c0e] uppercase tracking-[0.1em] cursor-pointer rounded-[50px] px-[clamp(20px,2.5vw,32px)] py-[clamp(12px,1.5vw,16px)] text-[clamp(11px,1.1vw,13px)] font-semibold transition-all duration-300 hover:bg-white/90 no-underline"

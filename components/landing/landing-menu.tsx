@@ -9,6 +9,7 @@ const ease = [0.76, 0, 0.24, 1] as const;
 
 const navLinks = [
   { href: "#servicios", label: "Servicios" },
+  { href: "#calculadora", label: "Calculadora" },
   { href: "#como-trabajo", label: "Cómo trabajo" },
   { href: "#muro", label: "Muro" },
   { href: "#reservar", label: "Reservar" },

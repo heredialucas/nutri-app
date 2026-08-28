@@ -9,6 +9,7 @@ import Lenis from "lenis";
 
 const navLinks = [
   { href: "#servicios", label: "Servicios" },
+  { href: "#calculadora", label: "Calculadora" },
   { href: "#como-trabajo", label: "Cómo trabajo" },
   { href: "#muro", label: "Muro" },
   { href: "#reservar", label: "Reservar" },

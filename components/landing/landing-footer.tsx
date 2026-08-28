@@ -24,6 +24,9 @@ export function LandingFooter() {
           <a href="#servicios" className="text-[rgba(255,255,255,0.4)] text-xs no-underline transition-colors hover:text-white">
             Servicios
           </a>
+          <a href="#calculadora" className="text-[rgba(255,255,255,0.4)] text-xs no-underline transition-colors hover:text-white">
+            Calculadora
+          </a>
           <a href="#como-trabajo" className="text-[rgba(255,255,255,0.4)] text-xs no-underline transition-colors hover:text-white">
             Cómo trabajo
           </a>

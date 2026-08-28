@@ -2,6 +2,7 @@
 
 import { LandingHeader } from "./landing-header";
 import { LandingHero } from "./landing-hero";
+import { CalorieCalculator } from "./calorie-calculator";
 import { LandingServices } from "./landing-services";
 import { LandingApproach } from "./landing-approach";
 import { LandingFeatures } from "./landing-features";
@@ -20,6 +21,7 @@ export function LandingPage() {
         <LandingHeader />
         <main>
           <LandingHero />
+          <CalorieCalculator />
           <LandingServices />
           <LandingApproach />
           <LandingFeatures />
