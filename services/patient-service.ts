@@ -19,10 +19,15 @@ const patientInclude = {
 } satisfies Prisma.PatientInclude;
 
 export const patientService = {
-    async list(filters?: { search?: string; status?: string }) {
-        const where: Prisma.PatientWhereInput = {
-            deletedAt: null,
-        };
+    async list(filters?: { search?: string; status?: string; trashed?: boolean }) {
+        const where: Prisma.PatientWhereInput = {};
+
+        // Por defecto excluye eliminados; con trashed:true devuelve solo eliminados
+        if (filters?.trashed) {
+            where.deletedAt = { not: null };
+        } else {
+            where.deletedAt = null;
+        }
 
         if (filters?.status) {
             where.status = filters.status;

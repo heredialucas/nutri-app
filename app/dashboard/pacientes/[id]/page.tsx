@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPatientById } from "@/app/actions/patients";
+import { getPatientById, reactivatePatient } from "@/app/actions/patients";
 import { getPatientFiles } from "@/app/actions/files";
 import { getProgressPhotos } from "@/app/actions/progress-photos";
 import { getConsents } from "@/app/actions/consents";
@@ -46,6 +46,7 @@ import {
     User,
     AlertCircle,
     Pill,
+    RotateCcw,
 } from "lucide-react";
 
 export const metadata = {
@@ -131,8 +132,11 @@ export default async function PatientDetailPage({
                                 {patient.firstName} {patient.lastName}
                             </h1>
                             <div className="flex items-center gap-2 mt-0.5">
-                                <Badge variant={patient.status === "ACTIVE" ? "default" : "secondary"} className="text-xs">
-                                    {patient.status === "ACTIVE" ? "Activo" : "Archivado"}
+                                <Badge
+                                    variant={patient.deletedAt ? "destructive" : patient.status === "ACTIVE" ? "default" : "secondary"}
+                                    className="text-xs"
+                                >
+                                    {patient.deletedAt ? "Eliminado" : patient.status === "ACTIVE" ? "Activo" : "Archivado"}
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">
                                     {billingLabel(patient.billingType)}
@@ -141,12 +145,22 @@ export default async function PatientDetailPage({
                         </div>
                     </div>
                 </div>
-                <Button asChild variant="outline" size="sm">
-                    <Link href={`/dashboard/pacientes/${id}/edit`}>
-                        <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                        Editar
-                    </Link>
-                </Button>
+                <div className="flex items-center gap-2">
+                    {patient.deletedAt && (
+                        <form action={reactivatePatient.bind(null, id)}>
+                            <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-600/40 hover:bg-emerald-500/10">
+                                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                                Activar cuenta
+                            </Button>
+                        </form>
+                    )}
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/pacientes/${id}/edit`}>
+                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                            Editar
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
             {/* Stats */}

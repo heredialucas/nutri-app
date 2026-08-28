@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +17,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deletePatient } from "@/app/actions/patients";
-import { Search, Phone, Mail, Trash2 } from "lucide-react";
+import { deletePatient, reactivatePatient } from "@/app/actions/patients";
+import { Search, Phone, Mail, Trash2, RotateCcw } from "lucide-react";
 
 interface Patient {
     id: string;
@@ -30,6 +30,7 @@ interface Patient {
     billingType: string;
     healthInsurance: string | null;
     createdAt: string;
+    deletedAt: string | null;
     _count: {
         appointments: number;
         measurements: number;
@@ -38,10 +39,30 @@ interface Patient {
     };
 }
 
-export function PatientList({ initialPatients }: { initialPatients: Patient[] }) {
+type Tab = "all" | "ACTIVE" | "ARCHIVED" | "trashed";
+
+export function PatientList({
+    initialPatients,
+    defaultTab = "all",
+}: {
+    initialPatients: Patient[];
+    defaultTab?: Tab;
+}) {
     const [search, setSearch] = useState("");
-    const [filter, setFilter] = useState<"all" | "ACTIVE" | "ARCHIVED">("all");
+    const [filter, setFilter] = useState<Tab | null>(defaultTab === "trashed" ? null : defaultTab);
     const router = useRouter();
+    const pathname = usePathname();
+
+    const isTrashed = defaultTab === "trashed";
+
+    const goToTab = (tab: Tab) => {
+        if (tab === "trashed") {
+            router.push(`${pathname}?tab=trashed`);
+        } else {
+            router.push(pathname);
+            setFilter(tab);
+        }
+    };
 
     const filtered = initialPatients.filter((p) => {
         const matchesSearch =
@@ -50,9 +71,20 @@ export function PatientList({ initialPatients }: { initialPatients: Patient[] })
             p.email?.toLowerCase().includes(search.toLowerCase()) ||
             p.phone?.includes(search);
 
-        const matchesFilter = filter === "all" || p.status === filter;
+        const matchesFilter = filter === null || filter === "all" || p.status === filter;
         return matchesSearch && matchesFilter;
     });
+
+    const handleDelete = async (id: string) => {
+        await deletePatient(id);
+        router.refresh();
+    };
+
+    const handleReactivate = async (id: string) => {
+        await reactivatePatient(id);
+        router.push(pathname);
+        router.refresh();
+    };
 
     return (
         <div className="space-y-4">
@@ -66,27 +98,34 @@ export function PatientList({ initialPatients }: { initialPatients: Patient[] })
                         className="pl-9"
                     />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <Button
-                        variant={filter === "all" ? "default" : "outline"}
+                        variant={!isTrashed && (filter === "all" || filter === null) ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setFilter("all")}
+                        onClick={() => goToTab("all")}
                     >
                         Todos
                     </Button>
                     <Button
                         variant={filter === "ACTIVE" ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setFilter("ACTIVE")}
+                        onClick={() => goToTab("ACTIVE")}
                     >
                         Activos
                     </Button>
                     <Button
                         variant={filter === "ARCHIVED" ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setFilter("ARCHIVED")}
+                        onClick={() => goToTab("ARCHIVED")}
                     >
                         Archivados
+                    </Button>
+                    <Button
+                        variant={isTrashed ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToTab("trashed")}
+                    >
+                        Eliminados
                     </Button>
                 </div>
             </div>
@@ -94,7 +133,11 @@ export function PatientList({ initialPatients }: { initialPatients: Patient[] })
             {filtered.length === 0 ? (
                 <div className="text-center py-12">
                     <p className="text-muted-foreground">
-                        {search ? "No se encontraron pacientes con esa búsqueda" : "No hay pacientes registrados"}
+                        {search
+                            ? "No se encontraron pacientes con esa búsqueda"
+                            : isTrashed
+                              ? "No hay pacientes eliminados"
+                              : "No hay pacientes registrados"}
                     </p>
                 </div>
             ) : (
@@ -140,51 +183,92 @@ export function PatientList({ initialPatients }: { initialPatients: Patient[] })
                                         <span>·</span>
                                         <span>{patient._count.measurements} mediciones</span>
                                     </div>
-                                    <Badge variant={patient.status === "ACTIVE" ? "default" : "secondary"}>
-                                        {patient.status === "ACTIVE" ? "Activo" : "Archivado"}
+                                    <Badge
+                                        variant={
+                                            isTrashed
+                                                ? "destructive"
+                                                : patient.status === "ACTIVE"
+                                                  ? "default"
+                                                  : "secondary"
+                                        }
+                                    >
+                                        {isTrashed ? "Eliminado" : patient.status === "ACTIVE" ? "Activo" : "Archivado"}
                                     </Badge>
                                 </div>
                             </Link>
                             <div className="flex items-center">
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                            aria-label={`Eliminar paciente ${patient.firstName} ${patient.lastName}`}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>
-                                                ¿Eliminar paciente?
-                                            </AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Se eliminará a{" "}
-                                                <span className="font-medium text-foreground">
-                                                    {patient.firstName} {patient.lastName}
-                                                </span>{" "}
-                                                de la lista. Sus registros clínicos y estadísticas se conservan,
-                                                pero dejará de aparecer en el listado.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction
-                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                onClick={async () => {
-                                                    await deletePatient(patient.id);
-                                                    router.refresh();
-                                                }}
+                                {isTrashed ? (
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-10 w-10 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
+                                                aria-label={`Reactivar paciente ${patient.firstName} ${patient.lastName}`}
                                             >
-                                                Eliminar
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                                                <RotateCcw className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>
+                                                    ¿Activar cuenta?
+                                                </AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Se reactivará a{" "}
+                                                    <span className="font-medium text-foreground">
+                                                        {patient.firstName} {patient.lastName}
+                                                    </span>{" "}
+                                                    y su cuenta podrá iniciar sesión nuevamente. Sus registros
+                                                    quedarán visibles en el listado.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleReactivate(patient.id)}>
+                                                    Activar
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                ) : (
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                aria-label={`Eliminar paciente ${patient.firstName} ${patient.lastName}`}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>
+                                                    ¿Eliminar paciente?
+                                                </AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Se eliminará a{" "}
+                                                    <span className="font-medium text-foreground">
+                                                        {patient.firstName} {patient.lastName}
+                                                    </span>{" "}
+                                                    de la lista. Sus registros clínicos y estadísticas se conservan,
+                                                    pero dejará de aparecer en el listado.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    onClick={() => handleDelete(patient.id)}
+                                                >
+                                                    Eliminar
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                )}
                             </div>
                         </div>
                     ))}

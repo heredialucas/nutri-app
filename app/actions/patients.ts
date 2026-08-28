@@ -14,7 +14,7 @@ async function requireAuth(permission?: string) {
     return user;
 }
 
-export async function getPatients(filters?: { search?: string; status?: string }) {
+export async function getPatients(filters?: { search?: string; status?: string; trashed?: boolean }) {
     const user = await requireAuth("patients:read");
 
     // Pacientes solo ven su propio registro
@@ -81,7 +81,7 @@ export async function createPatient(data: {
         notes: data.notes?.trim() || undefined,
     });
 
-    revalidatePath("/dashboard/patients");
+    revalidatePath("/dashboard/pacientes");
     return serializePrisma(patient);
 }
 
@@ -122,28 +122,30 @@ export async function updatePatient(id: string, data: {
     if (data.status !== undefined) updateData.status = data.status;
 
     const patient = await patientService.update(id, updateData);
-    revalidatePath("/dashboard/patients");
-    revalidatePath(`/dashboard/patients/${id}`);
+    revalidatePath("/dashboard/pacientes");
+    revalidatePath(`/dashboard/pacientes/${id}`);
     return serializePrisma(patient);
 }
 
 export async function archivePatient(id: string) {
     await requireAuth("patients:delete");
     await patientService.archive(id);
-    revalidatePath("/dashboard/patients");
+    revalidatePath("/dashboard/pacientes");
+    revalidatePath(`/dashboard/pacientes/${id}`);
     return { success: true };
 }
 
 export async function reactivatePatient(id: string) {
     await requireAuth("patients:update");
     await patientService.reactivate(id);
-    revalidatePath("/dashboard/patients");
-    return { success: true };
+    revalidatePath("/dashboard/pacientes");
+    revalidatePath(`/dashboard/pacientes/${id}`);
 }
 
 export async function deletePatient(id: string) {
     await requireAuth("patients:delete");
     await patientService.softDelete(id);
-    revalidatePath("/dashboard/patients");
+    revalidatePath("/dashboard/pacientes");
+    revalidatePath(`/dashboard/pacientes/${id}`);
     return { success: true };
 }

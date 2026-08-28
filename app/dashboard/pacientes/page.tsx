@@ -11,12 +11,18 @@ export const metadata = {
     description: "Gestión de pacientes",
 };
 
-export default async function PatientsPage() {
+export default async function PatientsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ tab?: string }>;
+}) {
     const user = await getCurrentUser();
     if (!user) redirect("/auth/login");
     if (isPatientUser(user)) redirect("/paciente/dashboard");
 
-    const patients = await getPatients();
+    const { tab } = await searchParams;
+    const isTrashed = tab === "trashed";
+    const patients = await getPatients({ trashed: isTrashed });
 
     return (
         <div className="space-y-6">
@@ -24,7 +30,7 @@ export default async function PatientsPage() {
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Pacientes</h1>
                     <p className="text-muted-foreground text-sm">
-                        {patients.length} paciente{patients.length !== 1 ? "s" : ""} registrado{patients.length !== 1 ? "s" : ""}
+                        {patients.length} paciente{patients.length !== 1 ? "s" : ""} {isTrashed ? "eliminado" : "registrado"}{patients.length !== 1 ? "s" : ""}
                     </p>
                 </div>
                 <Button asChild>
@@ -34,7 +40,7 @@ export default async function PatientsPage() {
                     </Link>
                 </Button>
             </div>
-            <PatientList initialPatients={patients as any} />
+            <PatientList initialPatients={patients as any} defaultTab={isTrashed ? "trashed" : "all"} />
         </div>
     );
 }
