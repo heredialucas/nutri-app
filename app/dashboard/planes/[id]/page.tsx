@@ -93,7 +93,7 @@ export default async function PlanDetailPage({ params }: Props) {
                             fatTarget: plan.fatTarget,
                             notes: plan.notes,
                             tips: plan.tips,
-                            startDate: plan.startDate,
+                            startDate: plan.startDate ? plan.startDate.toISOString() : null,
                             days: (plan.days || []).map((d: any) => ({
                                 label: d.label,
                                 meals: (d.meals || []).map((m: any) => ({
