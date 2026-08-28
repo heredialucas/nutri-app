@@ -125,13 +125,13 @@ export async function getLatestIsak(patientId: string) {
 }
 
 export async function getAllIsakAssessments() {
-    const user = await requireAuth("patients:read");
-    const list = await isakService.getAll(user.id);
+    await requireAuth("patients:read");
+    const list = await isakService.getAll();
     return serializePrisma(list);
 }
 
 export async function getPatientsWithIsak() {
-    const user = await requireAuth("patients:read");
-    const list = await isakService.getPatientsWithIsak(user.id);
+    await requireAuth("patients:read");
+    const list = await isakService.getPatientsWithIsak();
     return serializePrisma(list);
 }

@@ -5,6 +5,7 @@ import { nutritionPlanService } from "@/services/nutrition-plan-service";
 import { shoppingListService } from "@/services/shopping-list-service";
 import { UtensilsCrossed, ShoppingCart, BookOpen, Lightbulb, ChevronDown, ChevronRight, Pill } from "lucide-react";
 import Link from "next/link";
+import { PlanExportButton } from "@/components/nutrition-plans/plan-export-button";
 
 export default async function PlanPage() {
     const user = await getCurrentUser();
@@ -48,10 +49,53 @@ export default async function PlanPage() {
                     </div>
 
                     <div className="p-5 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white mb-4">
-                        <h3 className="text-base font-semibold text-[#1a1a1a] m-0 mb-1">{activePlan.title}</h3>
-                        {activePlan.description && (
-                            <p className="text-sm text-[#666] m-0 mb-3">{activePlan.description}</p>
-                        )}
+                    <div className="flex items-start justify-between gap-3 mb-1">
+                        <h3 className="text-base font-semibold text-[#1a1a1a] m-0">{activePlan.title}</h3>
+                        <PlanExportButton
+                            data={{
+                                title: activePlan.title,
+                                description: activePlan.description,
+                                patientName: `${patient.firstName} ${patient.lastName}`,
+                                professionalName: "Mauro Acosta",
+                                calorieTarget: activePlan.calorieTarget,
+                                proteinTarget: activePlan.proteinTarget,
+                                carbTarget: activePlan.carbTarget,
+                                fatTarget: activePlan.fatTarget,
+                                notes: activePlan.notes,
+                                tips: activePlan.tips,
+                                startDate: activePlan.startDate,
+                                days: (activePlan.days || []).map((d: any) => ({
+                                    label: d.label,
+                                    meals: (d.meals || []).map((m: any) => ({
+                                        label: m.label,
+                                        notes: m.notes,
+                                        foods: (m.foods || []).map((f: any) => ({
+                                            name: f.name,
+                                            quantity: f.quantity,
+                                            unit: f.unit,
+                                            notes: f.notes,
+                                        })),
+                                    })),
+                                })),
+                                supplements: (activePlan.supplements || []).map((s: any) => ({
+                                    name: s.name,
+                                    dosage: s.dosage,
+                                    timing: s.timing,
+                                    frequency: s.frequency,
+                                    notes: s.notes,
+                                })),
+                                recipes: (activePlan.recipes || []).map((r: any) => ({
+                                    title: r.title,
+                                    ingredients: r.ingredients,
+                                    instructions: r.instructions,
+                                })),
+                            }}
+                            label="Descargar mi plan (PDF)"
+                        />
+                    </div>
+                    {activePlan.description && (
+                        <p className="text-sm text-[#666] m-0 mb-3">{activePlan.description}</p>
+                    )}
                         <div className="flex flex-wrap gap-2 mb-4">
                             <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[rgba(16,185,129,0.1)] text-[#047857] border border-[rgba(16,185,129,0.25)]">
                                 Plan {activePlanNumber} · Actual

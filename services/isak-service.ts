@@ -51,9 +51,9 @@ export const isakService = {
         });
     },
 
-    async getAll(userId: string) {
+    async getAll() {
         return prisma.isakAssessment.findMany({
-            where: { patient: { userId } },
+            where: { patient: { deletedAt: null } },
             include: {
                 patient: {
                     select: {
@@ -70,9 +70,9 @@ export const isakService = {
         });
     },
 
-    async getPatientsWithIsak(userId: string) {
+    async getPatientsWithIsak() {
         return prisma.patient.findMany({
-            where: { userId },
+            where: { deletedAt: null },
             orderBy: { createdAt: "desc" },
             include: {
                 _count: { select: { isakAssessments: true } },

@@ -10,6 +10,7 @@ import { ArrowLeft, Pencil, ChefHat, UserPlus } from "lucide-react";
 import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlanExportButton } from "@/components/nutrition-plans/plan-export-button";
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -78,6 +79,48 @@ export default async function PlanDetailPage({ params }: Props) {
                             Editar
                         </Link>
                     </Button>
+                    <PlanExportButton
+                        variant="outline"
+                        label="Exportar PDF"
+                        data={{
+                            title: plan.title,
+                            description: plan.description,
+                            patientName: names || "Paciente",
+                            professionalName: user.fullName || "Mauro Acosta",
+                            calorieTarget: plan.calorieTarget,
+                            proteinTarget: plan.proteinTarget,
+                            carbTarget: plan.carbTarget,
+                            fatTarget: plan.fatTarget,
+                            notes: plan.notes,
+                            tips: plan.tips,
+                            startDate: plan.startDate,
+                            days: (plan.days || []).map((d: any) => ({
+                                label: d.label,
+                                meals: (d.meals || []).map((m: any) => ({
+                                    label: m.label,
+                                    notes: m.notes,
+                                    foods: (m.foods || []).map((f: any) => ({
+                                        name: f.name,
+                                        quantity: f.quantity,
+                                        unit: f.unit,
+                                        notes: f.notes,
+                                    })),
+                                })),
+                            })),
+                            supplements: (plan.supplements || []).map((s: any) => ({
+                                name: s.name,
+                                dosage: s.dosage,
+                                timing: s.timing,
+                                frequency: s.frequency,
+                                notes: s.notes,
+                            })),
+                            recipes: (plan.recipes || []).map((r: any) => ({
+                                title: r.title,
+                                ingredients: r.ingredients,
+                                instructions: r.instructions,
+                            })),
+                        }}
+                    />
                     <PlanActions
                         planId={plan.id}
                         planStatus={plan.status}
