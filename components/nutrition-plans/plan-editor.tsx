@@ -20,6 +20,7 @@ import {
     ShoppingCart,
     Loader2,
     Dumbbell,
+    Pill,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -204,6 +205,37 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
         });
     };
 
+    const updateSupplement = (index: number, field: string, value: string) => {
+        const supplements = [...(plan.supplements || [])];
+        supplements[index] = { ...supplements[index], [field]: value };
+        setPlan((prev) => {
+            const updated = { ...prev, supplements };
+            updateDraftPlan(updated);
+            return updated;
+        });
+    };
+
+    const addSupplement = () => {
+        const supplements = [
+            ...(plan.supplements || []),
+            { name: "", dosage: "", timing: "", frequency: "", notes: "" },
+        ];
+        setPlan((prev) => {
+            const updated = { ...prev, supplements };
+            updateDraftPlan(updated);
+            return updated;
+        });
+    };
+
+    const removeSupplement = (index: number) => {
+        const supplements = (plan.supplements || []).filter((_, i) => i !== index);
+        setPlan((prev) => {
+            const updated = { ...prev, supplements };
+            updateDraftPlan(updated);
+            return updated;
+        });
+    };
+
     const handleGenerateRecipes = async () => {
         setGeneratingRecipes(true);
         try {
@@ -261,6 +293,15 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
                 fatTarget: (plan.dailyFat ?? 0) || undefined,
                 notes: plan.notes || undefined,
                 tips: plan.tips || undefined,
+                supplements: (plan.supplements || [])
+                    .filter((s) => s.name.trim())
+                    .map((s) => ({
+                        name: s.name.trim(),
+                        dosage: (s.dosage ?? "").trim() || undefined,
+                        timing: (s.timing ?? "").trim() || undefined,
+                        frequency: (s.frequency ?? "").trim() || undefined,
+                        notes: (s.notes ?? "").trim() || undefined,
+                    })),
                 days: plan.days.map((d, i) => ({
                     dayOrder: i + 1,
                     label: d.label,
@@ -683,6 +724,88 @@ export function PlanEditor({ plan: initialPlan, patientId, onBack }: PlanEditorP
                     );
                 })}
             </div>
+
+            {/* Suplementos */}
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <Pill className="size-4 text-purple-500" />
+                        Suplementos
+                    </CardTitle>
+                    <Button variant="outline" size="sm" onClick={addSupplement}>
+                        <Plus className="mr-1.5 size-3.5" />
+                        Agregar suplemento
+                    </Button>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                    {!plan.supplements || plan.supplements.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-2">
+                            No hay suplementos en este plan. Agregá los recomendados para el paciente.
+                        </p>
+                    ) : (
+                        plan.supplements.map((supp, suppIndex) => (
+                            <div
+                                key={suppIndex}
+                                className="rounded-lg border p-3 space-y-2"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        value={supp.name}
+                                        onChange={(e) =>
+                                            updateSupplement(suppIndex, "name", e.target.value)
+                                        }
+                                        placeholder="Nombre del suplemento"
+                                        className="flex-1 h-8 text-sm font-medium"
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-7 text-muted-foreground hover:text-destructive shrink-0"
+                                        onClick={() => removeSupplement(suppIndex)}
+                                    >
+                                        <Trash2 className="size-3.5" />
+                                    </Button>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <Input
+                                        value={supp.dosage ?? ""}
+                                        onChange={(e) =>
+                                            updateSupplement(suppIndex, "dosage", e.target.value)
+                                        }
+                                        placeholder="Dosis (ej: 30g, 1 scoop)"
+                                        className="h-8 text-sm"
+                                    />
+                                    <Input
+                                        value={supp.timing ?? ""}
+                                        onChange={(e) =>
+                                            updateSupplement(suppIndex, "timing", e.target.value)
+                                        }
+                                        placeholder="Momento (ej: Post-entreno)"
+                                        className="h-8 text-sm"
+                                    />
+                                    <Input
+                                        value={supp.frequency ?? ""}
+                                        onChange={(e) =>
+                                            updateSupplement(suppIndex, "frequency", e.target.value)
+                                        }
+                                        placeholder="Frecuencia (ej: Diario)"
+                                        className="h-8 text-sm"
+                                    />
+                                </div>
+                                <Textarea
+                                    value={supp.notes ?? ""}
+                                    onChange={(e) =>
+                                        updateSupplement(suppIndex, "notes", e.target.value)
+                                    }
+                                    placeholder="Instrucción o aclaración para el paciente"
+                                    rows={1}
+                                    className="h-8 min-h-0 text-xs resize-none text-muted-foreground"
+                                />
+                            </div>
+                        ))
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Acciones */}
             <Card className="border-dashed">

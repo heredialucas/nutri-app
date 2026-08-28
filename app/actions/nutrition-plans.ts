@@ -54,6 +54,13 @@ export async function createNutritionPlan(data: {
     fatTarget?: number;
     notes?: string;
     tips?: string;
+    supplements?: {
+        name: string;
+        dosage?: string;
+        timing?: string;
+        frequency?: string;
+        notes?: string;
+    }[];
     days?: {
         dayOrder: number;
         label: string;
@@ -105,6 +112,13 @@ export async function updateNutritionPlan(id: string, data: {
     notes?: string;
     tips?: string;
     pdfUrl?: string;
+    supplements?: {
+        name: string;
+        dosage?: string;
+        timing?: string;
+        frequency?: string;
+        notes?: string;
+    }[];
     days?: {
         dayOrder: number;
         label: string;
@@ -140,6 +154,7 @@ export async function updateNutritionPlan(id: string, data: {
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.tips !== undefined) updateData.tips = data.tips;
     if (data.pdfUrl !== undefined) updateData.pdfUrl = data.pdfUrl;
+    if (data.supplements !== undefined) updateData.supplements = data.supplements;
     if (data.days !== undefined) updateData.days = data.days;
 
     const plan = await nutritionPlanService.update(id, updateData);

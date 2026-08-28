@@ -50,6 +50,14 @@ export interface GeneratedDay {
     meals: GeneratedMeal[];
 }
 
+export interface GeneratedSupplement {
+    name: string;
+    dosage?: string; // dosis, ej. "30g", "1 scoop"
+    timing?: string; // momento, ej. "Post-entreno", "Por la mañana"
+    frequency?: string; // frecuencia, ej. "Diario", "3x/semana"
+    notes?: string; // instrucción/aclaración
+}
+
 export interface GeneratedMealPlan {
     title: string;
     description: string;
@@ -60,6 +68,7 @@ export interface GeneratedMealPlan {
     dailyProtein?: number; // g
     dailyCarbs?: number; // g
     dailyFat?: number; // g
+    supplements?: GeneratedSupplement[];
     days: GeneratedDay[];
 }
 
@@ -258,6 +267,8 @@ ${customSection}
 
 La suma de las calorías y macronutrientes de los 7 días debe ser CONSISTENTE con las calorías objetivo y los objetivos de macronutrientes indicados. Calculá en cada alimento sus calorías (kcal) y gramos de proteína, carbohidratos y grasas; sumá por comida y por día.
 
+Añadí un listado de SUPLEMENTOS recomendados (suplementos y ayudas ergogénicas adecuadas al paciente y sus objetivos) en el campo "supplements". Si no corresponde recomendar suplementos para este paciente, devolvé un arreglo vacío [].
+
 FORMATO DE RESPUESTA - JSON con la siguiente estructura exacta:
 
 {
@@ -269,6 +280,15 @@ FORMATO DE RESPUESTA - JSON con la siguiente estructura exacta:
   "dailyCarbs": <número entero, gramos de carbohidratos diarios>,
   "dailyFat": <número entero, gramos de grasas diarias>,
   "notes": "Notas privadas para el profesional sobre decisiones tomadas en el plan",
+  "supplements": [
+    {
+      "name": "Nombre del suplemento (ej. Proteína en polvo, Creatina, Omega-3)",
+      "dosage": "Dosis (ej. 30g, 1 scoop, 2 cápsulas)",
+      "timing": "Momento del día (ej. Post-entreno, Con el desayuno)",
+      "frequency": "Frecuencia (ej. Diario, Solo días de entreno)",
+      "notes": "Instrucción o aclaración para el paciente (puede ser vacío)"
+    }
+  ],
   "days": [
     {
       "dayOrder": 1,

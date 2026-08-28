@@ -68,25 +68,58 @@ export const patientService = {
     },
 
     async archive(id: string) {
-        return prisma.patient.update({
+        const patient = await prisma.patient.findUnique({ where: { id } });
+        const updated = await prisma.patient.update({
             where: { id },
             data: { status: "ARCHIVED", deletedAt: new Date() },
         });
+
+        // Desactivar la cuenta de usuario vinculada para que no pueda iniciar sesión
+        if (patient?.userId) {
+            await prisma.user.update({
+                where: { id: patient.userId },
+                data: { isActive: false },
+            });
+        }
+
+        return updated;
     },
 
     async reactivate(id: string) {
-        return prisma.patient.update({
+        const patient = await prisma.patient.findUnique({ where: { id } });
+        const updated = await prisma.patient.update({
             where: { id },
             data: { status: "ACTIVE", deletedAt: null },
         });
+
+        // Reactivar la cuenta de usuario vinculada
+        if (patient?.userId) {
+            await prisma.user.update({
+                where: { id: patient.userId },
+                data: { isActive: true },
+            });
+        }
+
+        return updated;
     },
 
     // Soft delete: only marks deletedAt so clinical data and statistics remain usable
     async softDelete(id: string) {
-        return prisma.patient.update({
+        const patient = await prisma.patient.findUnique({ where: { id } });
+        const updated = await prisma.patient.update({
             where: { id },
             data: { deletedAt: new Date(), status: "ARCHIVED" },
         });
+
+        // Desactivar la cuenta de usuario vinculada para que no pueda iniciar sesión
+        if (patient?.userId) {
+            await prisma.user.update({
+                where: { id: patient.userId },
+                data: { isActive: false },
+            });
+        }
+
+        return updated;
     },
 
     async getActiveCount() {

@@ -53,6 +53,11 @@ export const authService = {
             throw new Error("Credenciales inválidas");
         }
 
+        // No permitir iniciar sesión a cuentas desactivadas (p. ej. pacientes eliminados)
+        if (user.isActive === false) {
+            throw new Error("Tu cuenta ha sido desactivada. Contactá a tu nutricionista.");
+        }
+
         const token = await new SignJWT({ userId: user.id, email: user.email, username: user.username })
             .setProtectedHeader({ alg: ALG })
             .setIssuedAt()

@@ -43,6 +43,9 @@ export const reminderService = {
 
         if (!user) return results;
 
+        // No enviar recordatorios a pacientes eliminados (soft delete)
+        if (user.patient && user.patient.deletedAt) return results;
+
         const isPatient = user.userRoles.some(
             (ur) => ur.role.name === "PATIENT",
         );

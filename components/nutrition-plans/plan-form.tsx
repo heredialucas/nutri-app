@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlanDayEditor, DayData } from "./plan-day-editor";
-import { Plus, ArrowLeft, Save } from "lucide-react";
+import { SupplementEditor, SupplementData } from "./supplement-editor";
+import { Pill, Plus, ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -38,6 +39,14 @@ interface PlanFormProps {
         notes: string | null;
         tips: string | null;
         patientId: string;
+        supplements?: {
+            id?: string;
+            name: string;
+            dosage?: string | null;
+            timing?: string | null;
+            frequency?: string | null;
+            notes?: string | null;
+        }[];
         days: {
             id?: string;
             dayOrder: number;
@@ -109,7 +118,33 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
             })),
         })) || []
     );
+    const [supplements, setSupplements] = useState<SupplementData[]>(
+        initialPlan?.supplements?.map((s) => ({
+            ...s,
+            dosage: s.dosage || "",
+            timing: s.timing || "",
+            frequency: s.frequency || "",
+            notes: s.notes || "",
+        })) || []
+    );
     const [saving, setSaving] = useState(false);
+
+    const updateSupplement = (index: number, supplement: SupplementData) => {
+        const updated = [...supplements];
+        updated[index] = supplement;
+        setSupplements(updated);
+    };
+
+    const addSupplement = () => {
+        setSupplements([
+            ...supplements,
+            { name: "", dosage: "", timing: "", frequency: "", notes: "" },
+        ]);
+    };
+
+    const removeSupplement = (index: number) => {
+        setSupplements(supplements.filter((_, i) => i !== index));
+    };
 
     const updateDay = (index: number, day: DayData) => {
         const updated = [...days];
@@ -156,6 +191,15 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                 fatTarget: fatTarget ? parseInt(fatTarget) : undefined,
                 notes: notes.trim() || undefined,
                 tips: tips.trim() || undefined,
+                supplements: supplements
+                    .filter((s) => s.name.trim())
+                    .map((s) => ({
+                        name: s.name.trim(),
+                        dosage: s.dosage.trim() || undefined,
+                        timing: s.timing.trim() || undefined,
+                        frequency: s.frequency.trim() || undefined,
+                        notes: s.notes.trim() || undefined,
+                    })),
                 days: days.map((d, i) => ({
                     dayOrder: i + 1,
                     label: d.label || `Día ${i + 1}`,
@@ -377,6 +421,40 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                                 index={index}
                                 onChange={updateDay}
                                 onRemove={removeDay}
+                            />
+                        ))
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                        <Pill className="h-4 w-4 text-purple-500" />
+                        Suplementos
+                    </CardTitle>
+                    <Button type="button" variant="outline" size="sm" onClick={addSupplement}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Agregar suplemento
+                    </Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {supplements.length === 0 ? (
+                        <div className="text-center py-6 text-muted-foreground">
+                            <p>No hay suplementos cargados</p>
+                            <Button type="button" variant="outline" size="sm" onClick={addSupplement} className="mt-2">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Agregar primer suplemento
+                            </Button>
+                        </div>
+                    ) : (
+                        supplements.map((sup, index) => (
+                            <SupplementEditor
+                                key={index}
+                                supplement={sup}
+                                index={index}
+                                onChange={updateSupplement}
+                                onRemove={removeSupplement}
                             />
                         ))
                     )}

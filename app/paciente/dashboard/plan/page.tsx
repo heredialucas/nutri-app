@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { patientService } from "@/services/patient-service";
 import { nutritionPlanService } from "@/services/nutrition-plan-service";
 import { shoppingListService } from "@/services/shopping-list-service";
-import { UtensilsCrossed, ShoppingCart, BookOpen, Lightbulb, ChevronDown, ChevronRight } from "lucide-react";
+import { UtensilsCrossed, ShoppingCart, BookOpen, Lightbulb, ChevronDown, ChevronRight, Pill } from "lucide-react";
 import Link from "next/link";
 
 export default async function PlanPage() {
@@ -124,6 +124,32 @@ export default async function PlanPage() {
                                         </div>
                                     </details>
                                 ))}
+                            </div>
+                        )}
+
+                        {activePlan.supplements && activePlan.supplements.length > 0 && (
+                            <div className="mt-4 p-3 rounded-lg border border-[rgba(168,85,247,0.2)] bg-[#faf5ff]">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <Pill size={14} className="text-[#9333ea]" />
+                                    <p className="text-xs font-semibold text-[#6b21a8] m-0 uppercase tracking-wide">
+                                        Suplementos
+                                    </p>
+                                </div>
+                                <div className="space-y-2">
+                                    {activePlan.supplements.map((supp: any, idx: number) => (
+                                        <div key={supp.id || idx} className="text-sm">
+                                            <div className="flex flex-wrap items-baseline gap-x-2">
+                                                <span className="font-medium text-[#1a1a1a]">{supp.name}</span>
+                                                {supp.dosage && <span className="text-xs text-[#999]">{supp.dosage}</span>}
+                                                {supp.timing && <span className="text-xs text-[#999]">· {supp.timing}</span>}
+                                                {supp.frequency && <span className="text-xs text-[#999]">· {supp.frequency}</span>}
+                                            </div>
+                                            {supp.notes && (
+                                                <p className="text-xs text-[#666] italic mt-0.5 m-0">{supp.notes}</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
 

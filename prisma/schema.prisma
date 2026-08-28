@@ -319,6 +319,7 @@ model NutritionPlan {
   professional User   @relation("CreatedPlans", fields: [professionalId], references: [id])
   days         NutritionPlanDay[]
   recipes      Recipe[]
+  supplements  PlanSupplement[]
 
   @@map("nutrition_plans")
 }
@@ -363,6 +364,20 @@ model MealFood {
   meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
 
   @@map("meal_foods")
+}
+
+model PlanSupplement {
+  id               String  @id @default(uuid()) @db.Uuid
+  nutritionPlanId  String  @db.Uuid
+  name             String
+  dosage           String?
+  timing           String?
+  frequency        String?
+  notes            String?
+
+  nutritionPlan NutritionPlan @relation(fields: [nutritionPlanId], references: [id], onDelete: Cascade)
+
+  @@map("plan_supplements")
 }
 
 // ──────────────────────────────────────────────

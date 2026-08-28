@@ -310,26 +310,39 @@ export function AIPlanGenerator({
                                 </span>
                             </div>
                             <div className="grid grid-cols-2 gap-1.5">
-                                {MACRO_PRESETS.map((p) => (
-                                    <button
-                                        key={p.id}
-                                        type="button"
-                                        onClick={() => setMacroPreset(p.id)}
-                                        className={`text-left rounded-md border px-2 py-1.5 text-xs transition-colors ${
-                                            macroPreset === p.id
-                                                ? "border-purple-400 bg-purple-50 dark:bg-purple-950"
-                                                : "hover:bg-muted"
-                                        }`}
-                                    >
-                                        <span className={`font-medium block ${
-                                            macroPreset === p.id ? "text-purple-700 dark:text-purple-300" : ""
-                                        }`}>
-                                            {macroPreset === p.id && <span className="mr-0.5">✓</span>}
-                                            {p.label}
-                                        </span>
-                                        <span className="text-[11px] text-muted-foreground">{p.description}</span>
-                                    </button>
-                                ))}
+                                {MACRO_PRESETS.map((p) => {
+                                    const isCustom = p.id === "custom";
+                                    return (
+                                        <button
+                                            key={p.id}
+                                            type="button"
+                                            onClick={() => setMacroPreset(p.id)}
+                                            className={`text-left rounded-md border px-2 py-1.5 text-xs transition-colors ${
+                                                macroPreset === p.id
+                                                    ? isCustom
+                                                        ? "border-violet-500 bg-violet-50 dark:bg-violet-950"
+                                                        : "border-purple-400 bg-purple-50 dark:bg-purple-950"
+                                                    : isCustom
+                                                    ? "border-violet-300 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950"
+                                                    : "hover:bg-muted"
+                                            }`}
+                                        >
+                                            <span className={`font-medium block ${
+                                                macroPreset === p.id
+                                                    ? isCustom
+                                                        ? "text-violet-700 dark:text-violet-300"
+                                                        : "text-purple-700 dark:text-purple-300"
+                                                    : isCustom
+                                                    ? "text-violet-600 dark:text-violet-400"
+                                                    : ""
+                                            }`}>
+                                                {macroPreset === p.id && <span className="mr-0.5">✓</span>}
+                                                {p.label}
+                                            </span>
+                                            <span className="text-[11px] text-muted-foreground">{p.description}</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
 
                             {macroPreset === "custom" && (

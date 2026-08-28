@@ -15,6 +15,14 @@ interface PlanData {
     fatTarget: number | null;
     notes: string | null;
     tips: string | null;
+    supplements?: Array<{
+        id?: string;
+        name: string;
+        dosage: string | null;
+        timing: string | null;
+        frequency: string | null;
+        notes: string | null;
+    }>;
     startDate: string | null;
     endDate: string | null;
     createdAt: string;
@@ -158,6 +166,35 @@ export function PlanPreview({ plan }: { plan: PlanData }) {
                             )}
                         </div>
                     ))
+                )}
+
+                {plan.supplements && plan.supplements.length > 0 && (
+                    <div className="mt-4 rounded-lg border border-purple-100 bg-purple-50/50 p-3 space-y-2">
+                        <p className="text-xs font-medium text-purple-700 mb-1 flex items-center gap-1.5">
+                            Suplementos recomendados
+                        </p>
+                        <div className="space-y-2">
+                            {plan.supplements.map((supp, i) => (
+                                <div key={supp.id || i} className="text-sm">
+                                    <div className="flex flex-wrap items-baseline gap-x-2">
+                                        <span className="font-semibold text-purple-900">{supp.name}</span>
+                                        {supp.dosage && (
+                                            <span className="text-xs text-muted-foreground">{supp.dosage}</span>
+                                        )}
+                                        {supp.timing && (
+                                            <span className="text-xs text-muted-foreground">· {supp.timing}</span>
+                                        )}
+                                        {supp.frequency && (
+                                            <span className="text-xs text-muted-foreground">· {supp.frequency}</span>
+                                        )}
+                                    </div>
+                                    {supp.notes && (
+                                        <p className="text-xs text-muted-foreground italic mt-0.5">{supp.notes}</p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 )}
 
                 {plan.notes && (

@@ -15,6 +15,7 @@ export const nutritionPlanService = {
                 patient: { select: { id: true, firstName: true, lastName: true } },
                 professional: { select: { id: true, fullName: true } },
                 recipes: true,
+                supplements: true,
                 days: {
                     include: {
                         meals: {
@@ -36,6 +37,7 @@ export const nutritionPlanService = {
                 patient: { select: { id: true, firstName: true, lastName: true } },
                 professional: { select: { id: true, fullName: true } },
                 recipes: true,
+                supplements: true,
                 days: {
                     include: {
                         meals: {
@@ -62,6 +64,13 @@ export const nutritionPlanService = {
         fatTarget?: number;
         notes?: string;
         tips?: string;
+        supplements?: {
+            name: string;
+            dosage?: string;
+            timing?: string;
+            frequency?: string;
+            notes?: string;
+        }[];
         days?: {
             dayOrder: number;
             label: string;
@@ -82,11 +91,22 @@ export const nutritionPlanService = {
             }[];
         }[];
     }) {
-        const { days, ...planData } = data;
+        const { days, supplements, ...planData } = data;
 
         return prisma.nutritionPlan.create({
             data: {
                 ...planData,
+                supplements: supplements
+                    ? {
+                        create: supplements.map((s) => ({
+                            name: s.name,
+                            dosage: s.dosage,
+                            timing: s.timing,
+                            frequency: s.frequency,
+                            notes: s.notes,
+                        })),
+                    }
+                    : undefined,
                 days: days
                     ? {
                         create: days.map((day) => ({
@@ -138,6 +158,13 @@ export const nutritionPlanService = {
         notes?: string;
         tips?: string;
         pdfUrl?: string;
+        supplements?: {
+            name: string;
+            dosage?: string;
+            timing?: string;
+            frequency?: string;
+            notes?: string;
+        }[];
         days?: {
             dayOrder: number;
             label: string;
@@ -158,12 +185,26 @@ export const nutritionPlanService = {
             }[];
         }[];
     }) {
-        const { days, ...planData } = data;
+        const { days, supplements, ...planData } = data;
 
         return prisma.nutritionPlan.update({
             where: { id },
             data: {
                 ...planData,
+                ...(supplements
+                    ? {
+                        supplements: {
+                            deleteMany: {},
+                            create: supplements.map((s) => ({
+                                name: s.name,
+                                dosage: s.dosage,
+                                timing: s.timing,
+                                frequency: s.frequency,
+                                notes: s.notes,
+                            })),
+                        },
+                    }
+                    : undefined),
                 ...(days
                     ? {
                         // Reemplaza la estructura de días/comidas/alimentos (cascade borra los hijos)
@@ -225,6 +266,7 @@ export const nutritionPlanService = {
             where: { patientId, status: "ACTIVE" },
             include: {
                 recipes: true,
+                supplements: true,
                 days: {
                     include: {
                         meals: {
@@ -253,6 +295,13 @@ export const nutritionPlanService = {
             fatTarget: original.fatTarget ?? undefined,
             notes: original.notes ?? undefined,
             tips: original.tips ?? undefined,
+            supplements: (original.supplements || []).map((s) => ({
+                name: s.name,
+                dosage: s.dosage ?? undefined,
+                timing: s.timing ?? undefined,
+                frequency: s.frequency ?? undefined,
+                notes: s.notes ?? undefined,
+            })),
             days: original.days.map((day) => ({
                 dayOrder: day.dayOrder,
                 label: day.label,
