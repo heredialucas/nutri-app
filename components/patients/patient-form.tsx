@@ -21,6 +21,8 @@ interface PatientFormData {
     lastName: string;
     phone: string;
     billingType: string;
+    gender: string;
+    birthDate: string;
 }
 
 const defaultData: PatientFormData = {
@@ -28,6 +30,8 @@ const defaultData: PatientFormData = {
     lastName: "",
     phone: "",
     billingType: "PARTICULAR",
+    gender: "",
+    birthDate: "",
 };
 
 export function PatientForm({
@@ -42,6 +46,10 @@ export function PatientForm({
     const [formData, setFormData] = useState<PatientFormData>({
         ...defaultData,
         ...initialData,
+        birthDate: initialData?.birthDate
+            ? new Date(initialData.birthDate).toISOString().split("T")[0]
+            : "",
+        gender: initialData?.gender || "",
     });
 
     const handleChange = (field: keyof PatientFormData, value: string) => {
@@ -59,6 +67,8 @@ export function PatientForm({
                     lastName: formData.lastName,
                     phone: formData.phone || undefined,
                     billingType: formData.billingType,
+                    gender: formData.gender || undefined,
+                    birthDate: formData.birthDate || undefined,
                 });
                 toast.success("Paciente creado exitosamente");
                 router.push("/dashboard/pacientes");
@@ -68,6 +78,8 @@ export function PatientForm({
                     lastName: formData.lastName,
                     phone: formData.phone || undefined,
                     billingType: formData.billingType,
+                    gender: formData.gender || undefined,
+                    birthDate: formData.birthDate || undefined,
                 });
                 toast.success("Paciente actualizado exitosamente");
                 router.push(`/dashboard/pacientes/${initialData!.id}`);
@@ -112,6 +124,31 @@ export function PatientForm({
                                 value={formData.phone}
                                 onChange={(e) => handleChange("phone", e.target.value)}
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="birthDate">Fecha de nacimiento</Label>
+                            <Input
+                                id="birthDate"
+                                type="date"
+                                value={formData.birthDate}
+                                onChange={(e) => handleChange("birthDate", e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="gender">Género</Label>
+                            <Select
+                                value={formData.gender || " "}
+                                onValueChange={(value) => handleChange("gender", value === " " ? "" : value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleccionar (necesario para ISAK)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value=" ">Sin especificar</SelectItem>
+                                    <SelectItem value="MALE">Masculino</SelectItem>
+                                    <SelectItem value="FEMALE">Femenino</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="billingType">Tipo de facturación *</Label>

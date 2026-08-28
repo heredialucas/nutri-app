@@ -158,6 +158,12 @@ export default async function PatientDetailPage({
                             </Button>
                         </form>
                     )}
+                    <Button asChild variant="outline" size="sm" className="text-emerald-600 border-emerald-600/40 hover:bg-emerald-500/10">
+                        <Link href={`/dashboard/pacientes/${id}/antropometria`}>
+                            <Activity className="mr-1.5 h-3.5 w-3.5" />
+                            Informe corporal ISAK
+                        </Link>
+                    </Button>
                     <Button asChild variant="outline" size="sm">
                         <Link href={`/dashboard/pacientes/${id}/edit`}>
                             <Pencil className="mr-1.5 h-3.5 w-3.5" />
@@ -204,6 +210,13 @@ export default async function PatientDetailPage({
                             <span className="text-muted-foreground">Nacimiento:</span>
                             <span>{formatDate(patient.birthDate)}</span>
                         </div>
+                        {patient.gender && (
+                            <div className="flex items-center gap-2">
+                                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-muted-foreground">Género:</span>
+                                <span>{patient.gender === "MALE" ? "Masculino" : patient.gender === "FEMALE" ? "Femenino" : patient.gender}</span>
+                            </div>
+                        )}
                         {patient.documentNumber && (
                             <div className="flex items-center gap-2">
                                 <FileText className="h-3.5 w-3.5 text-muted-foreground" />
@@ -339,6 +352,21 @@ export default async function PatientDetailPage({
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="space-y-4 pt-1">
+                        <Link
+                            href={`/dashboard/pacientes/${id}/antropometria`}
+                            className="flex items-center justify-between rounded-lg border border-emerald-600/30 bg-emerald-500/5 p-3 hover:bg-emerald-500/10 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <Activity className="h-5 w-5 text-emerald-600" />
+                                <div>
+                                    <p className="text-sm font-semibold">Informe corporal ISAK</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Composición corporal completa (5 componentes), índices y PDF
+                                    </p>
+                                </div>
+                            </div>
+                            <span className="text-sm text-emerald-600">Ver →</span>
+                        </Link>
                         {latestMeasurement && (
                             <EvolutionSummary latest={latestMeasurement as any} previous={previousMeasurement as any} />
                         )}

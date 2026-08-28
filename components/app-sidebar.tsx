@@ -23,6 +23,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     MessageSquare,
+    Ruler,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -117,6 +118,12 @@ const sidebarGroups: SidebarGroup[] = [
                 href: "/dashboard/listas-compras",
                 icon: ShoppingCart,
                 permission: "plans:read",
+            },
+            {
+                title: "Antropometría",
+                href: "/dashboard/antropometria",
+                icon: Ruler,
+                permission: "measurements:read",
             },
         ],
     },

@@ -48,6 +48,7 @@ export async function createPatient(data: {
     email?: string;
     phone?: string;
     birthDate?: string;
+    gender?: string;
     documentNumber?: string;
     address?: string;
     city?: string;
@@ -70,6 +71,7 @@ export async function createPatient(data: {
         email: data.email?.trim() || undefined,
         phone: data.phone?.trim() || undefined,
         birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
+        gender: data.gender || undefined,
         documentNumber: data.documentNumber?.trim() || undefined,
         address: data.address?.trim() || undefined,
         city: data.city?.trim() || undefined,
@@ -91,6 +93,7 @@ export async function updatePatient(id: string, data: {
     email?: string;
     phone?: string;
     birthDate?: string;
+    gender?: string;
     documentNumber?: string;
     address?: string;
     city?: string;
@@ -110,6 +113,7 @@ export async function updatePatient(id: string, data: {
     if (data.email !== undefined) updateData.email = data.email?.trim() || null;
     if (data.phone !== undefined) updateData.phone = data.phone?.trim() || null;
     if (data.birthDate !== undefined) updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null;
+    if (data.gender !== undefined) updateData.gender = data.gender || null;
     if (data.documentNumber !== undefined) updateData.documentNumber = data.documentNumber?.trim() || null;
     if (data.address !== undefined) updateData.address = data.address?.trim() || null;
     if (data.city !== undefined) updateData.city = data.city?.trim() || null;
