@@ -19,10 +19,11 @@ interface Patient {
 
 interface NewPlanClientProps {
     patients: Patient[];
+    initialPatientIds?: string[];
 }
 
-export function NewPlanClient({ patients }: NewPlanClientProps) {
-    const [selectedPatientIds, setSelectedPatientIds] = useState<string[]>([]);
+export function NewPlanClient({ patients, initialPatientIds }: NewPlanClientProps) {
+    const [selectedPatientIds, setSelectedPatientIds] = useState<string[]>(initialPatientIds ?? []);
     const [generatedPlan, setGeneratedPlan] = useState<GeneratedMealPlan | null>(null);
     const [optionsOpen, setOptionsOpen] = useState(false);
     const [showDraftBanner, setShowDraftBanner] = useState(false);

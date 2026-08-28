@@ -6,6 +6,7 @@ import { getProgressPhotos } from "@/app/actions/progress-photos";
 import { getConsents } from "@/app/actions/consents";
 import { getMeasurements, getEvolutionData, getLatestMeasurement } from "@/app/actions/measurements";
 import { getFollowUps } from "@/app/actions/followups";
+import { getNutritionPlans } from "@/app/actions/nutrition-plans";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ import { MeasurementHistory } from "@/components/progress/measurement-history";
 import { FollowUpSummary } from "@/components/followups/followup-summary";
 import { FollowUpForm } from "@/components/followups/followup-form";
 import { FollowUpList } from "@/components/followups/followup-list";
+import { PatientPlanHistory } from "@/components/nutrition-plans/patient-plan-history";
 import {
     ArrowLeft,
     Pencil,
@@ -47,6 +49,7 @@ import {
     AlertCircle,
     Pill,
     RotateCcw,
+    Plus,
 } from "lucide-react";
 
 export const metadata = {
@@ -87,7 +90,7 @@ export default async function PatientDetailPage({
         notFound();
     }
 
-    const [files, photos, consents, measurements, evolutionData, latestMeasurement, followUps] =
+    const [files, photos, consents, measurements, evolutionData, latestMeasurement, followUps, patientPlans] =
         await Promise.all([
             getPatientFiles(id).catch(() => []),
             getProgressPhotos(id).catch(() => []),
@@ -96,6 +99,7 @@ export default async function PatientDetailPage({
             getEvolutionData(id).catch(() => []),
             getLatestMeasurement(id).catch(() => null),
             getFollowUps(id).catch(() => []),
+            getNutritionPlans({ patientId: id }).catch(() => []),
         ]);
 
     const sortedMeasurements = [...measurements].sort(
@@ -366,6 +370,35 @@ export default async function PatientDetailPage({
                         )}
                         <FollowUpForm patientId={id} />
                         <FollowUpList followUps={followUps} patientId={id} />
+                    </AccordionContent>
+                </AccordionItem>
+
+                {/* Planes alimentarios */}
+                <AccordionItem value="planes" className="border rounded-lg px-4">
+                    <AccordionTrigger className="py-3 hover:no-underline">
+                        <div className="flex items-center gap-2.5">
+                            <UtensilsCrossed className="h-4 w-4 text-emerald-500" />
+                            <span className="text-sm font-semibold">Planes alimentarios</span>
+                            {patientPlans.length > 0 && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                    {patientPlans.length}
+                                </Badge>
+                            )}
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-4 pt-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <p className="text-sm text-muted-foreground m-0">
+                                Historial de planes y seguimiento nutricional del paciente
+                            </p>
+                            <Button asChild size="sm">
+                                <Link href={`/dashboard/planes/new?patientId=${id}`}>
+                                    <Plus className="mr-1.5 h-4 w-4" />
+                                    Nuevo plan
+                                </Link>
+                            </Button>
+                        </div>
+                        <PatientPlanHistory patientId={id} plans={patientPlans as any} />
                     </AccordionContent>
                 </AccordionItem>
 

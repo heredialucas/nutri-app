@@ -20,6 +20,12 @@ export default async function PlanPage() {
         shoppingListService.list({ patientId: patient.id }),
     ]);
 
+    const numberedPlans = [...allPlans].sort(
+        (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+    const activePlanIndex = numberedPlans.findIndex((p: any) => p.id === activePlan?.id);
+    const activePlanNumber = activePlanIndex >= 0 ? activePlanIndex + 1 : numberedPlans.length;
+
     const planRecipes = activePlan?.recipes ?? [];
     const planTips = (activePlan?.tips ?? "")
         .split("\n")
@@ -47,6 +53,9 @@ export default async function PlanPage() {
                             <p className="text-sm text-[#666] m-0 mb-3">{activePlan.description}</p>
                         )}
                         <div className="flex flex-wrap gap-2 mb-4">
+                            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[rgba(16,185,129,0.1)] text-[#047857] border border-[rgba(16,185,129,0.25)]">
+                                Plan {activePlanNumber} · Actual
+                            </span>
                                             {activePlan.calorieTarget && (
                                                 <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[rgba(0,0,0,0.03)] text-[#666]">
                                                     {activePlan.calorieTarget} kcal/día
@@ -302,26 +311,7 @@ export default async function PlanPage() {
                 </section>
             )}
 
-            {/* Past Plans */}
-            {allPlans.length > 1 && (
-                <section className="mb-8">
-                    <h2 className="text-sm font-semibold text-[#1a1a1a] mb-3 m-0 uppercase tracking-wide">
-                        Planes anteriores
-                    </h2>
-                    <div className="space-y-2">
-                        {allPlans.filter((p: any) => p.id !== activePlan?.id).map((plan: any) => (
-                            <div key={plan.id} className="p-3 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white opacity-70">
-                                <span className="text-sm text-[#1a1a1a] block">{plan.title}</span>
-                                <span className="text-xs text-[#999]">
-                                    {plan.status === "ARCHIVED" ? "Archivado" : plan.status}
-                                    {plan.startDate && ` · ${new Date(plan.startDate).toLocaleDateString("es-AR", { month: "short", year: "numeric" })}`}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            )}
-        </div>
+            </div>
     );
 }
 

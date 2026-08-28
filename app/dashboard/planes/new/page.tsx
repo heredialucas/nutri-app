@@ -8,7 +8,12 @@ export const metadata = {
     description: "Crear un nuevo plan de alimentación",
 };
 
-export default async function NewPlanPage() {
+export default async function NewPlanPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ patientId?: string }>;
+}) {
+    const { patientId } = await searchParams;
     const user = await getCurrentUser();
     if (!user) redirect("/auth/login");
     if (isPatientUser(user)) redirect("/paciente/dashboard");
@@ -17,6 +22,7 @@ export default async function NewPlanPage() {
 
     return (
         <NewPlanClient
+            initialPatientIds={patientId ? [patientId] : undefined}
             patients={(patients as any[]).map((p) => ({
                 id: p.id,
                 firstName: p.firstName,
