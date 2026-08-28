@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,6 +63,59 @@ const RESTRICTIONS = [
     "Sin huevos",
     "Alto en proteína",
 ];
+
+const DAY_COLORS = [
+    "border-blue-200 dark:border-blue-800",
+    "border-emerald-200 dark:border-emerald-800",
+    "border-amber-200 dark:border-amber-800",
+    "border-rose-200 dark:border-rose-800",
+    "border-violet-200 dark:border-violet-800",
+    "border-cyan-200 dark:border-cyan-800",
+    "border-orange-200 dark:border-orange-800",
+];
+
+const DAY_MEAL_LABELS: Record<number, string[]> = {
+    3: ["Almuerzo", "Merienda", "Cena"],
+    4: ["Desayuno", "Almuerzo", "Merienda", "Cena"],
+    5: ["Desayuno", "Media mañana", "Almuerzo", "Merienda", "Cena"],
+    6: ["Desayuno", "Media mañana", "Almuerzo", "Merienda", "Cena", "Colación"],
+};
+
+interface DaySkeletonProps {
+    index: number;
+    meals: number;
+}
+
+function DaySkeleton({ index, meals }: DaySkeletonProps) {
+    const dayLabels = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+    const mealLabels = DAY_MEAL_LABELS[meals] || DAY_MEAL_LABELS[5];
+    return (
+        <div className={`rounded-xl border bg-card p-4 space-y-3 animate-pulse ${DAY_COLORS[index % 7]}`}>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="size-4 rounded-full bg-muted" />
+                    <Skeleton className="h-4 w-40" />
+                </div>
+                <Skeleton className="h-4 w-20" />
+            </div>
+            <div className="space-y-2">
+                {mealLabels.map((label, i) => (
+                    <div key={i} className="rounded-lg border bg-muted/30 p-2.5 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <Skeleton className="h-3 w-24" />
+                            <Skeleton className="h-3 w-16" />
+                        </div>
+                        <div className="space-y-1.5 pl-1">
+                            <Skeleton className="h-3 w-11/12" />
+                            <Skeleton className="h-3 w-3/4" />
+                            <Skeleton className="h-3 w-4/5" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
 
 interface AIPlanGeneratorProps {
     patientId: string;
@@ -235,6 +289,21 @@ export function AIPlanGenerator({
                     </Badge>
                 ))}
             </div>
+
+            {loading && (
+                <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="size-4 animate-spin text-purple-500" />
+                        <span className="font-medium text-purple-700 dark:text-purple-300">
+                            Generando el plan de 7 días...
+                        </span>
+                        <span className="text-xs">esto puede tardar unos segundos</span>
+                    </div>
+                    {Array.from({ length: 7 }).map((_, i) => (
+                        <DaySkeleton key={i} index={i} meals={mealsPerDay} />
+                    ))}
+                </div>
+            )}
 
             <Sheet open={optionsOpen} onOpenChange={onOptionsOpenChange}>
                 <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">

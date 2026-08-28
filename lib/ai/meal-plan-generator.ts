@@ -341,7 +341,7 @@ export async function generateMealPlan(
     const userPrompt = buildUserPrompt(patientContext, measurementContext, followUpContext, options, customPrompt);
 
     const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-5.6-luna",
         messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user", content: userPrompt },

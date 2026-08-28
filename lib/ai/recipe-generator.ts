@@ -38,7 +38,7 @@ Respondé con JSON con esta estructura exacta:
 }`;
 
     const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-5.6-luna",
         messages: [
             { role: "system", content: RECIPE_SYSTEM_PROMPT },
             { role: "user", content: userPrompt },
@@ -92,7 +92,7 @@ Respondé con JSON con esta estructura exacta:
 }`;
 
     const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-5.6-luna",
         messages: [
             { role: "system", content: RECIPE_SYSTEM_PROMPT },
             { role: "user", content: userPrompt },
