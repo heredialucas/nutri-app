@@ -91,3 +91,23 @@ export async function triggerReminders() {
     const user = await requireAuth();
     return reminderService.checkAndSendForUser(user.id);
 }
+
+/**
+ * Envía al WhatsApp del paciente (si lo tiene configurado) un resumen con
+ * sus comidas del día, tips y recordatorios de la app. Solo profesionales.
+ */
+export async function sendDailySummaryToPatient(patientId: string) {
+    const user = await requireAuth();
+
+    if (!hasPermission(user, "patients:read")) {
+        throw new Error("No tenés permisos para realizar esta acción");
+    }
+
+    const result = await reminderService.sendManualDailySummary(patientId);
+
+    if (!result.sent) {
+        throw new Error(result.reason);
+    }
+
+    return { ok: true, reason: result.reason };
+}

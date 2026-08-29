@@ -21,6 +21,7 @@ import { redirect } from "next/navigation";
 import { PatientFileManager } from "@/components/patient/patient-file-manager";
 import { PatientPhotosManager } from "@/components/patient/patient-photos-manager";
 import { PatientConsentManager } from "@/components/patient/patient-consent-manager";
+import { SendWhatsAppSummaryButton } from "@/components/patient/send-whatsapp-button";
 import { EvolutionSummary } from "@/components/progress/evolution-summary";
 import { ProgressChart } from "@/components/progress/progress-chart";
 import { MeasurementFormDialog } from "@/components/progress/measurement-form-dialog";
@@ -170,6 +171,7 @@ export default async function PatientDetailPage({
                             Editar
                         </Link>
                     </Button>
+                    <SendWhatsAppSummaryButton patientId={id} />
                 </div>
             </div>
 

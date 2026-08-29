@@ -609,7 +609,7 @@ model Message {
 
 model WhatsAppSetting {
   id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @unique @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
   encryptedPhone  String   @map("encrypted_phone") @db.Text
   encryptedApiKey String   @map("encrypted_api_key") @db.Text
   enabled         Boolean  @default(true)
@@ -637,7 +637,7 @@ model WhatsAppSetting {
 
 model NotificationLog {
   id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
   type      String
   recipient String   @db.Text
   message   String   @db.Text

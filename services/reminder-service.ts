@@ -1,5 +1,9 @@
 import prisma from "@/lib/prisma";
-import { sendNotification } from "@/lib/whatsapp-sender";
+import {
+    sendNotification,
+    sendWhatsAppMessage,
+} from "@/lib/whatsapp-sender";
+import { whatsappSettingsService } from "@/lib/whatsapp-settings";
 import { formatInTimeZone } from "date-fns-tz";
 
 const AR_TZ = "America/Argentina/Buenos_Aires";
@@ -221,6 +225,226 @@ export const reminderService = {
         message += "¡Buen provecho! 💪";
 
         return sendNotification(userId, "PLAN_DEL_DIA", message);
+    },
+
+    async buildDailySummaryMessage(patientId: string): Promise<string> {
+        const dayNames = [
+            "Lunes",
+            "Martes",
+            "Miércoles",
+            "Jueves",
+            "Viernes",
+            "Sábado",
+            "Domingo",
+        ];
+
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const dayName = dayNames[dayIndex];
+
+        // 1) Comidas de hoy del plan activo
+        const activePlan = await prisma.nutritionPlan.findFirst({
+            where: {
+                patients: { some: { patientId } },
+                status: "ACTIVE",
+            },
+            include: {
+                days: {
+                    include: {
+                        meals: {
+                            include: { foods: true },
+                            orderBy: { mealOrder: "asc" },
+                        },
+                    },
+                    orderBy: { dayOrder: "asc" },
+                },
+            },
+            orderBy: { createdAt: "desc" },
+        });
+
+        let message = `🍽️ *Resumen del día — ${dayName}*\n`;
+
+        const todayPlan = activePlan?.days.find(
+            (d) => d.dayOrder === dayIndex,
+        );
+
+        if (activePlan && todayPlan) {
+            message += `📋 ${activePlan.title}\n\n`;
+            for (const meal of todayPlan.meals) {
+                message += `*${meal.label}*\n`;
+                for (const food of meal.foods) {
+                    const quantity = food.quantity
+                        ? `${food.quantity}${food.unit ? " " + food.unit : ""}`
+                        : "";
+                    const notes = food.notes ? ` (${food.notes})` : "";
+                    message += `  • ${food.name}${quantity ? " — " + quantity : ""}${notes}\n`;
+                }
+                message += "\n";
+            }
+        }
+
+        // 2) Tip del día
+        const dayOfYear = Math.floor(
+            (now.getTime() -
+                new Date(now.getFullYear(), 0, 0).getTime()) /
+                86400000,
+        );
+        const tip = NUTRITION_TIPS[dayOfYear % NUTRITION_TIPS.length];
+        message += `💡 *Tip del día*\n${tip}\n\n`;
+
+        // 3) Tips personalizados del plan
+        if (activePlan?.tips) {
+            const planTips = activePlan.tips
+                .split("\n")
+                .map((s: string) => s.trim())
+                .filter(Boolean);
+            if (planTips.length > 0) {
+                message += `✨ *Tips de tu plan*\n`;
+                for (const t of planTips.slice(0, 5)) {
+                    message += `• ${t}\n`;
+                }
+                message += "\n";
+            }
+        }
+
+        // 4) Recordatorios de la app
+        const reminders: string[] = [];
+
+        const nextAppointment = await prisma.appointment.findFirst({
+            where: {
+                patientId,
+                status: { in: ["PENDING", "CONFIRMED"] },
+                startAt: { gte: now },
+            },
+            include: {
+                professional: {
+                    select: { fullName: true },
+                },
+            },
+            orderBy: { startAt: "asc" },
+        });
+
+        if (nextAppointment) {
+            const dateStr = nextAppointment.startAt.toLocaleDateString(
+                "es-AR",
+                { weekday: "long", day: "numeric", month: "long" },
+            );
+            const timeStr = formatInTimeZone(
+                nextAppointment.startAt,
+                AR_TZ,
+                "HH:mm",
+            );
+            const typeStr =
+                nextAppointment.type === "ONLINE"
+                    ? "Online 💻"
+                    : "Presencial 🏥";
+            reminders.push(
+                `⏰ Próximo turno: ${dateStr} — HS ${timeStr} (${typeStr})`,
+            );
+            if (nextAppointment.meetingUrl) {
+                reminders.push(`🔗 Link: ${nextAppointment.meetingUrl}`);
+            }
+        }
+
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const existingFollowup = await prisma.followUp.findFirst({
+            where: { patientId, weekStart: startOfWeek },
+        });
+
+        if (!existingFollowup) {
+            reminders.push(
+                `📝 Te falta completar el check-in semanal. Ingresá a tu portal.`,
+            );
+        }
+
+        if (reminders.length > 0) {
+            message += `🔔 *Recordatorios*\n`;
+            for (const reminder of reminders.slice(0, 6)) {
+                message += `${reminder}\n`;
+            }
+            message += "\n";
+        }
+
+        message += `— Mauro Acosta · Gestión nutricional`;
+
+        return message;
+    },
+
+    async sendManualDailySummary(
+        patientId: string,
+    ): Promise<{ sent: boolean; reason: string }> {
+        const patient = await prisma.patient.findUnique({
+            where: { id: patientId },
+            select: { id: true, userId: true },
+        });
+
+        if (!patient) {
+            return { sent: false, reason: "Paciente no encontrado" };
+        }
+
+        if (!patient.userId) {
+            return {
+                sent: false,
+                reason: "El paciente no tiene usuario de portal vinculado",
+            };
+        }
+
+        const settings = await whatsappSettingsService.getRaw(patient.userId);
+
+        if (!settings) {
+            return {
+                sent: false,
+                reason:
+                    "El paciente no tiene WhatsApp configurado. Solicitale que lo active en su portal.",
+            };
+        }
+
+        if (!settings.enabled) {
+            return {
+                sent: false,
+                reason: "El paciente tiene el WhatsApp deshabilitado",
+            };
+        }
+
+        const message = await this.buildDailySummaryMessage(patientId);
+
+        try {
+            await sendWhatsAppMessage(
+                settings.phone,
+                settings.apiKey,
+                message,
+            );
+
+            await whatsappSettingsService.logNotification({
+                userId: patient.userId,
+                type: "RESUMEN_MANUAL",
+                recipient: settings.phone,
+                message,
+                status: "SENT",
+            });
+
+            return { sent: true, reason: "Enviado" };
+        } catch (error) {
+            const errorMsg =
+                error instanceof Error
+                    ? error.message
+                    : "Error desconocido";
+
+            await whatsappSettingsService.logNotification({
+                userId: patient.userId,
+                type: "RESUMEN_MANUAL",
+                recipient: settings.phone,
+                message,
+                status: "FAILED",
+                error: errorMsg,
+            });
+
+            return { sent: false, reason: errorMsg };
+        }
     },
 
     async sendAppointmentReminder(
