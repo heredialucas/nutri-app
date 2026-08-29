@@ -3,17 +3,29 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useBooking } from "@/components/booking/booking-context";
+import { updateMyProfile } from "@/app/actions/patient-portal";
 import { useState, useEffect } from "react";
+
+const isComplete = (v: string, placeholder?: string) =>
+  !!v && v.trim() !== "" && v.trim() !== placeholder;
 
 export default function DatosPage() {
   const { data, setStep2, loggedPatient } = useBooking();
   const router = useRouter();
 
+  const requiredComplete = !!(
+    loggedPatient &&
+    isComplete(data.firstName, "Sin nombre") &&
+    isComplete(data.lastName, "Sin apellido") &&
+    isComplete(data.email) &&
+    isComplete(data.phone)
+  );
+
   useEffect(() => {
-    if (loggedPatient) {
+    if (requiredComplete) {
       router.replace("/reservar/horario");
     }
-  }, [loggedPatient, router]);
+  }, [requiredComplete, router]);
 
   const [form, setForm] = useState({
     firstName: data.firstName,
@@ -32,10 +44,20 @@ export default function DatosPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setStep2(form);
+    if (loggedPatient) {
+      updateMyProfile({
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        birthDate: form.birthDate,
+        billingType: form.billingType,
+      }).catch(() => {});
+    }
     router.push("/reservar/horario");
   };
 
-  if (loggedPatient) {
+  if (requiredComplete) {
     return (
       <div className="text-center py-12 text-sm text-[#999]">
         Redirigiendo a selección de horario...
@@ -49,7 +71,9 @@ export default function DatosPage() {
         Tus datos
       </h1>
       <p className="text-sm text-[#666] mb-8 m-0">
-        Completá tus datos para continuar con la reserva.
+        {loggedPatient
+          ? "Faltan algunos datos para continuar. Completalos y quedará guardado."
+          : "Completá tus datos para continuar con la reserva."}
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">

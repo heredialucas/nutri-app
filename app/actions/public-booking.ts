@@ -78,7 +78,17 @@ export async function createPublicBooking(data: {
         },
     });
 
-    if (!patient) {
+    if (patient) {
+        // Backfill: si el paciente existente no tiene teléfono, guardar el aportado en la reserva
+        if (!patient.phone && data.phone?.trim()) {
+            const phone = data.phone.trim();
+            await prisma.patient.update({
+                where: { id: patient.id },
+                data: { phone },
+            });
+            patient.phone = phone;
+        }
+    } else {
         patient = await prisma.patient.create({
             data: {
                 firstName: data.firstName.trim(),

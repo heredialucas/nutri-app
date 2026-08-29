@@ -154,16 +154,54 @@ export async function getMyMeasurements() {
 }
 
 export async function updateMyProfile(data: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
     phone?: string;
-    address?: string;
+    birthDate?: string;
+    billingType?: string;
+    gender?: string;
+    documentNumber?: string;
     city?: string;
+    address?: string;
     occupation?: string;
-    emergencyContact?: string;
-    emergencyPhone?: string;
     healthInsurance?: string;
 }) {
     const { patient } = await requirePatient();
-    await patientService.update(patient.id, data);
-    revalidatePath("/paciente/dashboard");
+
+    const updateData: Record<string, any> = {};
+    if (data.firstName !== undefined) {
+        const value = data.firstName.trim();
+        if (!value) throw new Error("El nombre es obligatorio");
+        updateData.firstName = value;
+    }
+    if (data.lastName !== undefined) {
+        const value = data.lastName.trim();
+        if (!value) throw new Error("El apellido es obligatorio");
+        updateData.lastName = value;
+    }
+    if (data.email !== undefined) {
+        const email = data.email.trim();
+        if (!email) throw new Error("El email es obligatorio");
+        const conflict = await prisma.patient.findFirst({
+            where: { email, id: { not: patient.id }, deletedAt: null },
+            select: { id: true },
+        });
+        if (conflict) throw new Error("Ese email ya está en uso por otro paciente");
+        updateData.email = email;
+    }
+    if (data.phone !== undefined) updateData.phone = data.phone.trim() || null;
+    if (data.birthDate !== undefined) updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null;
+    if (data.billingType !== undefined) updateData.billingType = data.billingType;
+    if (data.gender !== undefined) updateData.gender = data.gender.trim() || null;
+    if (data.documentNumber !== undefined) updateData.documentNumber = data.documentNumber.trim() || null;
+    if (data.city !== undefined) updateData.city = data.city.trim() || null;
+    if (data.address !== undefined) updateData.address = data.address.trim() || null;
+    if (data.occupation !== undefined) updateData.occupation = data.occupation.trim() || null;
+    if (data.healthInsurance !== undefined) updateData.healthInsurance = data.healthInsurance.trim() || null;
+
+    await patientService.update(patient.id, updateData);
+    revalidatePath("/paciente/dashboard", "layout");
+    revalidatePath("/reservar");
     return { success: true };
 }

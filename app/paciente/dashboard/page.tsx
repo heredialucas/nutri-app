@@ -16,6 +16,7 @@ import {
     ArrowRight,
     Scale,
     TrendingUp,
+    AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -74,6 +75,25 @@ export default async function PacienteDashboardPage() {
             <p className="text-sm text-[#666] mb-8 m-0">
                 Tu portal — Mauro Acosta
             </p>
+
+            {!patient.phone && (
+                <Link
+                    href="/paciente/dashboard/perfil"
+                    className="flex items-start gap-3 mb-8 p-4 rounded-xl border border-amber-200 bg-amber-50 no-underline transition-colors hover:border-amber-300"
+                >
+                    <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-medium text-amber-800 m-0">
+                            Completá tu teléfono
+                        </p>
+                        <p className="text-xs text-amber-700 m-0">
+                            Lo necesitamos para poder reservar tus turnos. Tocá para
+                            cargarlo.
+                        </p>
+                    </div>
+                    <ArrowRight size={18} className="text-amber-600 shrink-0 mt-0.5 ml-auto" />
+                </Link>
+            )}
 
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
