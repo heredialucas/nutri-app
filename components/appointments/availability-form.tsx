@@ -89,11 +89,11 @@ export function AvailabilityForm({ slots }: { slots: AvailabilitySlot[] }) {
                     <CardTitle className="text-base">Agregar horario</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleAdd} className="flex flex-wrap items-end gap-3">
-                        <div className="space-y-1">
+                    <form onSubmit={handleAdd} className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-end gap-3">
+                        <div className="space-y-1 col-span-2 sm:col-span-1 sm:w-[140px]">
                             <Label>Día</Label>
                             <Select value={form.weekday} onValueChange={(v) => setForm({ ...form, weekday: v })}>
-                                <SelectTrigger className="w-[140px]">
+                                <SelectTrigger className="w-full">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -111,7 +111,7 @@ export function AvailabilityForm({ slots }: { slots: AvailabilitySlot[] }) {
                                 type="time"
                                 value={form.startTime}
                                 onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                                className="w-[120px]"
+                                className="w-full sm:w-[120px]"
                             />
                         </div>
                         <div className="space-y-1">
@@ -120,7 +120,7 @@ export function AvailabilityForm({ slots }: { slots: AvailabilitySlot[] }) {
                                 type="time"
                                 value={form.endTime}
                                 onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                                className="w-[120px]"
+                                className="w-full sm:w-[120px]"
                             />
                         </div>
                         <div className="space-y-1">
@@ -129,7 +129,7 @@ export function AvailabilityForm({ slots }: { slots: AvailabilitySlot[] }) {
                                 value={form.slotDuration}
                                 onValueChange={(v) => setForm({ ...form, slotDuration: v })}
                             >
-                                <SelectTrigger className="w-[100px]">
+                                <SelectTrigger className="w-full sm:w-[100px]">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -141,7 +141,7 @@ export function AvailabilityForm({ slots }: { slots: AvailabilitySlot[] }) {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Button type="submit" disabled={loading}>
+                        <Button type="submit" disabled={loading} className="col-span-2 sm:col-span-1">
                             <Plus className="mr-2 h-4 w-4" />
                             Agregar
                         </Button>
@@ -163,18 +163,18 @@ export function AvailabilityForm({ slots }: { slots: AvailabilitySlot[] }) {
                                     {group.slots.map((slot) => (
                                         <div
                                             key={slot.id}
-                                            className="flex items-center justify-between p-2 rounded border"
+                                            className="flex items-center justify-between gap-2 p-2 rounded border"
                                         >
-                                            <span className="text-sm font-mono">
+                                            <span className="text-sm font-mono min-w-0 break-words">
                                                 {slot.startTime} — {slot.endTime}
-                                                <span className="text-muted-foreground ml-2">
+                                                <span className="text-muted-foreground ml-2 font-sans">
                                                     ({slot.slotDuration} min)
                                                 </span>
                                             </span>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                                                 onClick={() => handleDelete(slot.id)}
                                             >
                                                 <Trash2 className="h-3.5 w-3.5" />

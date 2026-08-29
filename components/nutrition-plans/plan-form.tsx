@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlanDayEditor, DayData } from "./plan-day-editor";
+import { PlanDayCards, FoodField, DayCardDay } from "./plan-day-cards";
 import { SupplementEditor, SupplementData } from "./supplement-editor";
+import { PlanAIActions } from "./plan-ai-actions";
 import { Pill, Plus, ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -101,7 +102,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
     );
     const [notes, setNotes] = useState(initialPlan?.notes || "");
     const [tips, setTips] = useState(initialPlan?.tips || "");
-    const [days, setDays] = useState<DayData[]>(
+    const [days, setDays] = useState<DayCardDay[]>(
         initialPlan?.days?.map((d) => ({
             ...d,
             meals: d.meals.map((m) => ({
@@ -148,10 +149,153 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
         setSupplements(supplements.filter((_, i) => i !== index));
     };
 
-    const updateDay = (index: number, day: DayData) => {
-        const updated = [...days];
-        updated[index] = day;
-        setDays(updated);
+    const updateDayLabel = (index: number, label: string) => {
+        setDays((prev) => prev.map((d, i) => (i === index ? { ...d, label } : d)));
+    };
+
+    const updateMealLabel = (index: number, mealIndex: number, label: string) => {
+        setDays((prev) =>
+            prev.map((d, i) =>
+                i !== index
+                    ? d
+                    : {
+                          ...d,
+                          meals: d.meals.map((m, mi) =>
+                              mi === mealIndex ? { ...m, label } : m
+                          ),
+                      }
+            )
+        );
+    };
+
+    const updateMealNotes = (index: number, mealIndex: number, notes: string) => {
+        setDays((prev) =>
+            prev.map((d, i) =>
+                i !== index
+                    ? d
+                    : {
+                          ...d,
+                          meals: d.meals.map((m, mi) =>
+                              mi === mealIndex ? { ...m, notes } : m
+                          ),
+                      }
+            )
+        );
+    };
+
+    const updateFood = (
+        index: number,
+        mealIndex: number,
+        foodIndex: number,
+        field: FoodField,
+        value: string
+    ) => {
+        setDays((prev) =>
+            prev.map((d, i) =>
+                i !== index
+                    ? d
+                    : {
+                          ...d,
+                          meals: d.meals.map((m, mi) =>
+                              mi !== mealIndex
+                                  ? m
+                                  : {
+                                        ...m,
+                                        foods: m.foods.map((f, fi) => {
+                                            if (fi !== foodIndex) return f;
+                                            const numeric = ["calories", "protein", "carbs", "fat"].includes(field);
+                                            return {
+                                                ...f,
+                                                [field]: numeric
+                                                    ? value === ""
+                                                        ? undefined
+                                                        : parseFloat(value) || 0
+                                                    : value,
+                                            };
+                                        }),
+                                    }
+                          ),
+                      }
+            )
+        );
+    };
+
+    const addMeal = (index: number) => {
+        setDays((prev) =>
+            prev.map((d, i) =>
+                i !== index
+                    ? d
+                    : {
+                          ...d,
+                          meals: [
+                              ...d.meals,
+                              { label: "", mealOrder: d.meals.length + 1, foods: [] },
+                          ],
+                      }
+            )
+        );
+    };
+
+    const removeMeal = (index: number, mealIndex: number) => {
+        setDays((prev) =>
+            prev.map((d, i) =>
+                i !== index
+                    ? d
+                    : { ...d, meals: d.meals.filter((_, mi) => mi !== mealIndex) }
+            )
+        );
+    };
+
+    const addFood = (index: number, mealIndex: number) => {
+        setDays((prev) =>
+            prev.map((d, i) =>
+                i !== index
+                    ? d
+                    : {
+                          ...d,
+                          meals: d.meals.map((m, mi) =>
+                              mi !== mealIndex
+                                  ? m
+                                  : {
+                                        ...m,
+                                        foods: [
+                                            ...m.foods,
+                                            {
+                                                name: "",
+                                                quantity: "",
+                                                unit: "",
+                                                notes: "",
+                                                calories: undefined,
+                                                protein: undefined,
+                                                carbs: undefined,
+                                                fat: undefined,
+                                            },
+                                        ],
+                                    }
+                          ),
+                      }
+            )
+        );
+    };
+
+    const removeFood = (index: number, mealIndex: number, foodIndex: number) => {
+        setDays((prev) =>
+            prev.map((d, i) =>
+                i !== index
+                    ? d
+                    : {
+                          ...d,
+                          meals: d.meals.map((m, mi) =>
+                              mi !== mealIndex
+                                  ? m
+                                  : {
+                                        ...m,
+                                        foods: m.foods.filter((_, fi) => fi !== foodIndex),
+                                    }
+                          ),
+                      }
+            )
+        );
     };
 
     const addDay = () => {
@@ -423,36 +567,23 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Estructura del plan</CardTitle>
-                    <Button type="button" variant="outline" size="sm" onClick={addDay}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Agregar día
-                    </Button>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {days.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <p>No hay días agregados</p>
-                            <Button type="button" variant="outline" size="sm" onClick={addDay} className="mt-2">
-                                <Plus className="mr-2 h-4 w-4" />
-                                Agregar primer día
-                            </Button>
-                        </div>
-                    ) : (
-                        days.map((day, index) => (
-                            <PlanDayEditor
-                                key={index}
-                                day={day}
-                                index={index}
-                                onChange={updateDay}
-                                onRemove={removeDay}
-                            />
-                        ))
-                    )}
-                </CardContent>
-            </Card>
+            <PlanDayCards
+                days={days}
+                mode="edit"
+                onDayLabelChange={updateDayLabel}
+                onRemoveDay={removeDay}
+                onMealLabelChange={updateMealLabel}
+                onMealNotesChange={updateMealNotes}
+                onAddMeal={addMeal}
+                onRemoveMeal={removeMeal}
+                onFoodChange={updateFood}
+                onAddFood={addFood}
+                onRemoveFood={removeFood}
+            />
+            <Button type="button" variant="outline" className="w-full border-dashed" onClick={addDay}>
+                <Plus className="mr-2 h-4 w-4" />
+                Agregar día
+            </Button>
 
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -488,7 +619,28 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                 </CardContent>
             </Card>
 
-            <div className="flex items-center justify-end gap-3">
+            {isEditing && (
+                <PlanAIActions
+                    plan={{
+                        title,
+                        days: days.map((d) => ({
+                            label: d.label || "Día",
+                            meals: d.meals.map((m) => ({
+                                label: m.label || "Comida",
+                                foods: m.foods.map((f) => ({
+                                    name: f.name ?? "",
+                                    quantity: f.quantity ?? "",
+                                    unit: f.unit ?? "",
+                                })),
+                            })),
+                        })),
+                    }}
+                    patientId={patientIds[0]}
+                    planId={isEditing ? initialPlan.id : undefined}
+                />
+            )}
+
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3">
                 <Button variant="outline" onClick={() => handleSubmit("DRAFT")} disabled={saving}>
                     <Save className="mr-2 h-4 w-4" />
                     Guardar borrador

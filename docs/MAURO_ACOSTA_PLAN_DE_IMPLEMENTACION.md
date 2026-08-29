@@ -1228,9 +1228,9 @@ Crear en `app/actions/dashboard.ts`:
 
 - `components/nutrition-plans/plan-list.tsx`.
 - `components/nutrition-plans/plan-form.tsx`.
-- `components/nutrition-plans/plan-day-editor.tsx`.
-- `components/nutrition-plans/meal-editor.tsx`.
-- `components/nutrition-plans/food-row.tsx`.
+- `components/nutrition-plans/plan-editor.tsx`.
+- `components/nutrition-plans/plan-day-cards.tsx`.
+- `components/nutrition-plans/plan-ai-actions.tsx`.
 - `components/nutrition-plans/plan-preview.tsx`.
 - `components/nutrition-plans/plan-actions.tsx`.
 

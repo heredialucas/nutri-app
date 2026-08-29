@@ -1,6 +1,7 @@
 import { getNutritionPlanById } from "@/app/actions/nutrition-plans";
 import { getPatients } from "@/app/actions/patients";
 import { PlanPreview } from "@/components/nutrition-plans/plan-preview";
+import { PlanAIActions } from "@/components/nutrition-plans/plan-ai-actions";
 import { PlanActions } from "@/components/nutrition-plans/plan-actions";
 import { AssignPlanPatients } from "@/components/nutrition-plans/assign-plan-patients";
 import { PlanRecipes } from "@/components/nutrition-plans/plan-recipes";
@@ -49,21 +50,21 @@ export default async function PlanDetailPage({ params }: Props) {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-4 min-w-0">
                     <Button variant="ghost" size="icon" asChild>
                         <Link href="/dashboard/planes">
                             <ArrowLeft className="h-4 w-4" />
                         </Link>
                     </Button>
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">{plan.title}</h1>
-                        <p className="text-muted-foreground text-sm">
+                    <div className="min-w-0">
+                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight break-words leading-snug">{plan.title}</h1>
+                        <p className="text-muted-foreground text-sm break-words">
                             {names || <span className="italic">Sin pacientes asignados</span>}
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <AssignPlanPatients
                         planId={plan.id}
                         patients={(patients as any[]).map((p) => ({
@@ -130,17 +131,25 @@ export default async function PlanDetailPage({ params }: Props) {
             </div>
             <PlanPreview plan={plan as any} />
 
+            <PlanAIActions
+                plan={plan as any}
+                patientId={patientIds[0]}
+                planId={plan.id}
+            />
+
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                     <CardTitle className="flex items-center gap-2">
                         <ChefHat className="h-5 w-5 text-muted-foreground" />
                         Recetas del plan
                     </CardTitle>
-                    <Button variant="outline" size="sm" asChild>
-                        <Link href="/dashboard/recetas">
-                            Ver todas las recetas
-                        </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href="/dashboard/recetas">
+                                Ver todas las recetas
+                            </Link>
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <PlanRecipes recipes={(plan as any).recipes ?? []} />

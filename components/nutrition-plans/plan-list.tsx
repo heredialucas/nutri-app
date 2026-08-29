@@ -65,7 +65,7 @@ export function PlanList({ initialPlans }: { initialPlans: Plan[] }) {
                         className="pl-9"
                     />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     {(["all", "ACTIVE", "DRAFT", "ARCHIVED"] as const).map((s) => (
                         <Button
                             key={s}
@@ -91,38 +91,37 @@ export function PlanList({ initialPlans }: { initialPlans: Plan[] }) {
                         <Link
                             key={plan.id}
                             href={`/dashboard/planes/${plan.id}`}
-                            className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors group w-full"
                         >
-                            <div className="flex items-center gap-4 min-w-0">
+                            <div className="flex items-start gap-4 min-w-0 w-full sm:w-auto">
                                 <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
                                     <FileText className="h-5 w-5 text-muted-foreground" />
                                 </div>
-                                <div className="min-w-0">
-                                    <p className="font-medium truncate">{plan.title}</p>
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-medium break-words leading-snug">{plan.title}</p>
+                                    <p className="break-words text-xs text-muted-foreground">
                                         {plan.patients && plan.patients.length > 0 ? (
-                                            <span>
-                                                {plan.patients
-                                                    .map((x) => `${x.patient.firstName} ${x.patient.lastName}`)
-                                                    .join(", ")}
-                                            </span>
+                                            plan.patients
+                                                .map((x) => `${x.patient.firstName} ${x.patient.lastName}`)
+                                                .join(", ")
                                         ) : (
                                             <span className="italic">Sin asignar</span>
                                         )}
-                                        <span>·</span>
-                                        <span>{plan.days.length} día{plan.days.length !== 1 ? "s" : ""}</span>
-                                        <span>·</span>
-                                        <span>{totalFoods(plan)} alimento{totalFoods(plan) !== 1 ? "s" : ""}</span>
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground mt-0.5">
+                                        <span className="shrink-0">{plan.days.length} día{plan.days.length !== 1 ? "s" : ""}</span>
+                                        <span className="shrink-0">·</span>
+                                        <span className="shrink-0">{totalFoods(plan)} alimento{totalFoods(plan) !== 1 ? "s" : ""}</span>
                                         {plan.calorieTarget && (
                                             <>
-                                                <span>·</span>
-                                                <span>{plan.calorieTarget} kcal</span>
+                                                <span className="shrink-0">·</span>
+                                                <span className="shrink-0">{plan.calorieTarget} kcal</span>
                                             </>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3 shrink-0">
+                            <div className="flex items-center gap-3 shrink-0 sm:pl-4 justify-end">
                                 <span className="hidden sm:inline text-xs text-muted-foreground">
                                     {plan.professional.fullName}
                                 </span>
