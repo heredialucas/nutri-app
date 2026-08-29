@@ -21,6 +21,8 @@ import { Ruler } from "lucide-react";
 
 interface IsakFormProps {
     patientId: string;
+    embedded?: boolean;
+    onSuccess?: () => void;
 }
 
 const initialForm = {
@@ -62,7 +64,7 @@ const PERIMETERS: { key: string; label: string; placeholder: string }[] = [
     { key: "calf", label: "Pierna", placeholder: "36" },
 ];
 
-export function IsakForm({ patientId }: IsakFormProps) {
+export function IsakForm({ patientId, embedded = false, onSuccess }: IsakFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState(initialForm);
@@ -101,6 +103,7 @@ export function IsakForm({ patientId }: IsakFormProps) {
             toast.success("Evaluación ISAK registrada");
             setForm(initialForm);
             router.refresh();
+            onSuccess?.();
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "Error al guardar");
         } finally {
@@ -108,17 +111,9 @@ export function IsakForm({ patientId }: IsakFormProps) {
         }
     };
 
-    return (
-        <form onSubmit={handleSubmit}>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Ruler className="h-4 w-4" />
-                        Evaluación corporal ISAK
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Datos generales */}
+    const content = (
+        <div className="space-y-6">
+            {/* Datos generales */}
                     <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="space-y-2">
                             <Label>Fecha</Label>
@@ -229,8 +224,24 @@ export function IsakForm({ patientId }: IsakFormProps) {
                             {loading ? "Guardando..." : "Registrar evaluación"}
                         </Button>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            );
+
+    return (
+        <form onSubmit={handleSubmit}>
+            {embedded ? (
+                content
+            ) : (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Ruler className="h-4 w-4" />
+                            Evaluación corporal ISAK
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>{content}</CardContent>
+                </Card>
+            )}
         </form>
     );
 }

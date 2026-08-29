@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { IsakReport } from "@/components/progress/isak-report";
 import { IsakHistory } from "@/components/progress/isak-history";
-import { IsakForm } from "@/components/progress/isak-form";
+import { IsakFormDialog } from "@/components/progress/isak-form-dialog";
 import { IsakEvolutionChart } from "@/components/progress/isak-evolution-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -51,14 +51,10 @@ export default async function AntropometriaPage({
               Informe corporal ISAK
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Este paciente aún no tiene evaluaciones ISAK registradas. Completa el formulario para
-              generar el informe de composición corporal.
-            </p>
+          <CardContent className="flex justify-end">
+            <IsakFormDialog patientId={id} label="Nueva evaluación" />
           </CardContent>
         </Card>
-        <IsakForm patientId={id} />
       </div>
     );
   }
@@ -115,9 +111,8 @@ export default async function AntropometriaPage({
         evaluador={evaluador}
       />
 
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Nueva evaluación</h2>
-        <IsakForm patientId={id} />
+      <div className="flex justify-end">
+        <IsakFormDialog patientId={id} />
       </div>
     </div>
   );

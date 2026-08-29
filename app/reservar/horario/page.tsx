@@ -75,7 +75,7 @@ function HorarioForm() {
               setSelectedDate(e.target.value);
               setSelected(null);
             }}
-            className="h-11 pl-10 pr-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] w-full"
+            className="h-11 pl-10 pr-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] w-full max-w-[320px]"
           />
         </div>
       </div>
