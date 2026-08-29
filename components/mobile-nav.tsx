@@ -17,7 +17,7 @@ export function MobileNav({
     const [open, setOpen] = useState(false);
 
     return (
-        <div className="md:hidden flex items-center gap-2 min-w-0">
+        <div className="md:hidden flex items-center gap-2">
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="shrink-0" aria-label="Abrir menú de navegación">
@@ -38,7 +38,6 @@ export function MobileNav({
                     />
                 </SheetContent>
             </Sheet>
-            <div className="font-bold truncate text-sm">Mauro Acosta</div>
         </div>
     );
 }

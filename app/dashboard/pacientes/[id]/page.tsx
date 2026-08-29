@@ -116,8 +116,8 @@ export default async function PatientDetailPage({
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-start justify-between gap-4">
-                <div>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
                     <Link
                         href="/dashboard/pacientes"
                         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors"
@@ -125,17 +125,17 @@ export default async function PatientDetailPage({
                         <ArrowLeft className="h-3 w-3" />
                         Pacientes
                     </Link>
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
                             <span className="text-sm font-bold text-primary">
                                 {patient.firstName?.[0]}{patient.lastName?.[0]}
                             </span>
                         </div>
-                        <div>
-                            <h1 className="text-xl font-bold tracking-tight">
+                        <div className="min-w-0">
+                            <h1 className="text-xl font-bold tracking-tight truncate">
                                 {patient.firstName} {patient.lastName}
                             </h1>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex flex-wrap items-center gap-2 mt-0.5">
                                 <Badge
                                     variant={patient.deletedAt ? "destructive" : patient.status === "ACTIVE" ? "default" : "secondary"}
                                     className="text-xs"
@@ -149,7 +149,7 @@ export default async function PatientDetailPage({
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     {patient.deletedAt && (
                         <form action={reactivatePatient.bind(null, id)}>
                             <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-600/40 hover:bg-emerald-500/10">
@@ -158,14 +158,14 @@ export default async function PatientDetailPage({
                             </Button>
                         </form>
                     )}
-                    <Button asChild variant="outline" size="sm" className="text-emerald-600 border-emerald-600/40 hover:bg-emerald-500/10">
-                        <Link href={`/dashboard/pacientes/${id}/antropometria`}>
+                    <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none text-emerald-600 border-emerald-600/40 hover:bg-emerald-500/10">
+                        <Link href={`/dashboard/pacientes/${id}/antropometria`} className="justify-center">
                             <Activity className="mr-1.5 h-3.5 w-3.5" />
                             Informe corporal ISAK
                         </Link>
                     </Button>
-                    <Button asChild variant="outline" size="sm">
-                        <Link href={`/dashboard/pacientes/${id}/edit`}>
+                    <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none">
+                        <Link href={`/dashboard/pacientes/${id}/edit`} className="justify-center">
                             <Pencil className="mr-1.5 h-3.5 w-3.5" />
                             Editar
                         </Link>
@@ -174,7 +174,7 @@ export default async function PatientDetailPage({
             </div>
 
             {/* Stats */}
-            <div className="grid gap-3 grid-cols-3 sm:grid-cols-6">
+            <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
                 {[
                     { icon: Activity, label: "Mediciones", value: patient._count.measurements, color: "text-blue-500" },
                     { icon: Calendar, label: "Turnos", value: patient._count.appointments, color: "text-amber-500" },
@@ -184,11 +184,11 @@ export default async function PatientDetailPage({
                     { icon: ClipboardCheck, label: "Consent.", value: patient._count.consents, color: "text-rose-500" },
                 ].map((stat) => (
                     <Card key={stat.label} className="py-0">
-                        <CardContent className="p-3 flex items-center gap-2.5">
-                            <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                            <div>
+                        <CardContent className="p-2.5 sm:p-3 flex items-center gap-2.5">
+                            <stat.icon className={`h-4 w-4 shrink-0 ${stat.color}`} />
+                            <div className="min-w-0">
                                 <p className="text-lg font-bold leading-none">{stat.value}</p>
-                                <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{stat.label}</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -205,56 +205,56 @@ export default async function PatientDetailPage({
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2.5 text-sm">
-                        <div className="flex items-center gap-2">
-                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-muted-foreground">Nacimiento:</span>
-                            <span>{formatDate(patient.birthDate)}</span>
+                        <div className="flex items-start gap-2">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                            <span className="text-muted-foreground shrink-0">Nacimiento:</span>
+                            <span className="break-words">{formatDate(patient.birthDate)}</span>
                         </div>
                         {patient.gender && (
                             <div className="flex items-center gap-2">
-                                <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-muted-foreground">Género:</span>
+                                <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-muted-foreground shrink-0">Género:</span>
                                 <span>{patient.gender === "MALE" ? "Masculino" : patient.gender === "FEMALE" ? "Femenino" : patient.gender}</span>
                             </div>
                         )}
                         {patient.documentNumber && (
                             <div className="flex items-center gap-2">
-                                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-muted-foreground">DNI:</span>
+                                <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-muted-foreground shrink-0">DNI:</span>
                                 <span>{patient.documentNumber}</span>
                             </div>
                         )}
                         {patient.email && (
-                            <div className="flex items-center gap-2">
-                                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span>{patient.email}</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="break-all min-w-0">{patient.email}</span>
                             </div>
                         )}
                         {patient.phone && (
                             <div className="flex items-center gap-2">
-                                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                                <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                 <span>{patient.phone}</span>
                             </div>
                         )}
                         {patient.address && (
-                            <div className="flex items-center gap-2">
-                                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span>
+                            <div className="flex items-start gap-2">
+                                <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                                <span className="break-words">
                                     {patient.address}
                                     {patient.city ? `, ${patient.city}` : ""}
                                 </span>
                             </div>
                         )}
                         {patient.occupation && (
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground ml-[22px]">Ocupación: </span>
-                                <span>{patient.occupation}</span>
+                            <div className="grid sm:grid-cols-[auto_1fr] items-start gap-x-2">
+                                <span className="text-muted-foreground sm:ml-[22px]">Ocupación: </span>
+                                <span className="break-words">{patient.occupation}</span>
                             </div>
                         )}
                         {patient.healthInsurance && (
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground ml-[22px]">Obra social: </span>
-                                <span>{patient.healthInsurance}</span>
+                            <div className="grid sm:grid-cols-[auto_1fr] items-start gap-x-2">
+                                <span className="text-muted-foreground sm:ml-[22px]">Obra social: </span>
+                                <span className="break-words">{patient.healthInsurance}</span>
                             </div>
                         )}
                     </CardContent>
@@ -269,14 +269,14 @@ export default async function PatientDetailPage({
                     </CardHeader>
                     <CardContent className="space-y-2.5 text-sm">
                         {patient.emergencyContact && (
-                            <div>
+                            <div className="break-words">
                                 <span className="text-muted-foreground">Contacto de emergencia: </span>
                                 <span>{patient.emergencyContact}</span>
                                 {patient.emergencyPhone && ` (${patient.emergencyPhone})`}
                             </div>
                         )}
                         {patient.notes && (
-                            <div>
+                            <div className="break-words">
                                 <span className="text-muted-foreground">Notas: </span>
                                 <span>{patient.notes}</span>
                             </div>

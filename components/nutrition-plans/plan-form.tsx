@@ -214,10 +214,10 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                         foods: m.foods
                             .filter((f) => f.name.trim())
                             .map((f) => ({
-                                name: f.name.trim(),
-                                quantity: f.quantity.trim() || undefined,
-                                unit: f.unit.trim() || undefined,
-                                notes: f.notes.trim() || undefined,
+                                name: String(f.name ?? "").trim(),
+                                quantity: String(f.quantity ?? "").trim() || undefined,
+                                unit: String(f.unit ?? "").trim() || undefined,
+                                notes: String(f.notes ?? "").trim() || undefined,
                                 calories: (f.calories ?? 0) > 0 ? f.calories : undefined,
                                 protein: (f.protein ?? 0) > 0 ? f.protein : undefined,
                                 carbs: (f.carbs ?? 0) > 0 ? f.carbs : undefined,

@@ -402,10 +402,10 @@ export async function generateMealPlan(
                 meal.foods = (meal.foods || []).map((f) => {
                     const num = (v: unknown) => (typeof v === "number" && !Number.isNaN(v) ? v : undefined);
                     return {
-                        name: f.name || "",
-                        quantity: f.quantity ?? "",
-                        unit: f.unit ?? "",
-                        notes: f.notes ?? "",
+                        name: String(f.name ?? ""),
+                        quantity: String(f.quantity ?? ""),
+                        unit: String(f.unit ?? ""),
+                        notes: String(f.notes ?? ""),
                         calories: num(f.calories),
                         protein: num(f.protein),
                         carbs: num(f.carbs),

@@ -277,21 +277,23 @@ export function AppSidebar({
                             </div>
                         </>
                     )}
-                    <button
-                        type="button"
-                        onClick={toggleCollapsed}
-                        className={cn(
-                            "p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors shrink-0",
-                            isCollapsed ? "" : "ml-auto",
-                        )}
-                        aria-label={isCollapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
-                    >
-                        {isCollapsed ? (
-                            <PanelLeftOpen className="h-4 w-4" />
-                        ) : (
-                            <PanelLeftClose className="h-4 w-4" />
-                        )}
-                    </button>
+                    {!forceExpanded && (
+                        <button
+                            type="button"
+                            onClick={toggleCollapsed}
+                            className={cn(
+                                "p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors shrink-0",
+                                isCollapsed ? "" : "ml-auto",
+                            )}
+                            aria-label={isCollapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
+                        >
+                            {isCollapsed ? (
+                                <PanelLeftOpen className="h-4 w-4" />
+                            ) : (
+                                <PanelLeftClose className="h-4 w-4" />
+                            )}
+                        </button>
+                    )}
                 </div>
 
             <nav aria-label="Navegación principal" className={cn("flex-1 py-3 space-y-1", isCollapsed ? "px-2" : "px-3")}>
