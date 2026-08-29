@@ -22,24 +22,28 @@ export function MonthNav({ year, month }: { year: number; month: number }) {
     const isCurrent =
         month === new Date().getMonth() && year === new Date().getFullYear();
 
+    const monthLabel = new Intl.DateTimeFormat("es-AR", {
+        month: "long",
+        year: "numeric",
+    }).format(new Date(year, month, 1));
+
     return (
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" onClick={() => goTo(prev[0], prev[1])}>
-                    <ChevronLeft className="h-4 w-4" />
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => goTo(prev[0], prev[1])}>
+                <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h2 className="text-xl font-bold capitalize min-w-[180px] text-center">{monthLabel}</h2>
+            <Button variant="outline" size="icon" onClick={() => goTo(next[0], next[1])}>
+                <ChevronRight className="h-4 w-4" />
+            </Button>
+            {!isCurrent && (
+                <Button variant="ghost" size="sm" onClick={() => {
+                    const now = new Date();
+                    goTo(now.getFullYear(), now.getMonth());
+                }}>
+                    Hoy
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => goTo(next[0], next[1])}>
-                    <ChevronRight className="h-4 w-4" />
-                </Button>
-                {!isCurrent && (
-                    <Button variant="ghost" size="sm" onClick={() => {
-                        const now = new Date();
-                        goTo(now.getFullYear(), now.getMonth());
-                    }}>
-                        Hoy
-                    </Button>
-                )}
-            </div>
+            )}
         </div>
     );
 }
