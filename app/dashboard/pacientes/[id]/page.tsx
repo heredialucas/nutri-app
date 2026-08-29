@@ -374,8 +374,25 @@ export default async function PatientDetailPage({
                         <div className="flex flex-wrap items-center gap-2">
                             <MeasurementFormDialog patientId={id} />
                         </div>
-                        <PatientPhotosManager patientId={id} photos={photos as any} />
                         <MeasurementHistory measurements={measurements as any} />
+                    </AccordionContent>
+                </AccordionItem>
+
+                {/* Fotos de progreso */}
+                <AccordionItem value="fotos" className="border rounded-lg px-4">
+                    <AccordionTrigger className="py-3 hover:no-underline">
+                        <div className="flex items-center gap-2.5">
+                            <Camera className="h-4 w-4 text-sky-500" />
+                            <span className="text-sm font-semibold">Fotos de progreso</span>
+                            {photos.length > 0 && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                    {photos.length}
+                                </Badge>
+                            )}
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-1">
+                        <PatientPhotosManager patientId={id} photos={photos as any} />
                     </AccordionContent>
                 </AccordionItem>
 
