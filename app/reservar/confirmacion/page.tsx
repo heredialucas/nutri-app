@@ -190,25 +190,25 @@ function ConfirmacionContent() {
           : "Tu turno fue registrado correctamente. Creá tu cuenta para gestionar tus turnos y ver tu historial."}
       </p>
 
-      <div className="inline-flex flex-col gap-3 p-6 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white text-left mb-8">
-        <div className="flex justify-between gap-8">
-          <span className="text-xs text-[#999] uppercase tracking-[0.05em]">Tipo</span>
-          <span className="text-sm font-medium text-[#1a1a1a]">{typeLabels[confirmedBooking!.type] || confirmedBooking!.type}</span>
+      <div className="w-full max-w-md mx-auto flex flex-col gap-3 p-6 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white text-left mb-8">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-xs text-[#999] uppercase tracking-[0.05em] shrink-0">Tipo</span>
+          <span className="text-sm font-medium text-[#1a1a1a] text-right break-words">{typeLabels[confirmedBooking!.type] || confirmedBooking!.type}</span>
         </div>
         <div className="w-full h-px bg-[rgba(0,0,0,0.06)]" />
-        <div className="flex justify-between gap-8">
-          <span className="text-xs text-[#999] uppercase tracking-[0.05em]">Fecha</span>
-          <span className="text-sm font-medium text-[#1a1a1a] capitalize">{formattedDate}</span>
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-xs text-[#999] uppercase tracking-[0.05em] shrink-0">Fecha</span>
+          <span className="text-sm font-medium text-[#1a1a1a] capitalize text-right break-words">{formattedDate}</span>
         </div>
         <div className="w-full h-px bg-[rgba(0,0,0,0.06)]" />
-        <div className="flex justify-between gap-8">
-          <span className="text-xs text-[#999] uppercase tracking-[0.05em]">Horario</span>
-          <span className="text-sm font-medium text-[#1a1a1a]">{confirmedBooking!.time} hs</span>
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-xs text-[#999] uppercase tracking-[0.05em] shrink-0">Horario</span>
+          <span className="text-sm font-medium text-[#1a1a1a] text-right">{confirmedBooking!.time} hs</span>
         </div>
         <div className="w-full h-px bg-[rgba(0,0,0,0.06)]" />
-        <div className="flex justify-between gap-8">
-          <span className="text-xs text-[#999] uppercase tracking-[0.05em]">Estado</span>
-          <span className="text-sm font-medium text-[#eab308]">Pendiente de confirmación</span>
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-xs text-[#999] uppercase tracking-[0.05em] shrink-0">Estado</span>
+          <span className="text-sm font-medium text-[#eab308] text-right">Pendiente de confirmación</span>
         </div>
       </div>
 

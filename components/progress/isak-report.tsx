@@ -21,9 +21,11 @@ interface IsakReportProps {
 
 function Row({ label, value, strong }: { label: string; value: React.ReactNode; strong?: boolean }) {
   return (
-    <div className="flex items-center justify-between border-b border-border/60 py-1.5 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className={strong ? "text-sm font-semibold" : "text-sm font-medium"}>{value}</span>
+    <div className="flex items-center justify-between gap-3 border-b border-border/60 py-1.5 last:border-0">
+      <span className="text-sm text-muted-foreground min-w-0 break-words">{label}</span>
+      <span className={`${strong ? "text-sm font-semibold" : "text-sm font-medium"} shrink-0 text-right`}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -50,12 +52,12 @@ export function IsakReport({ result, paciente, fecha, evaluador }: IsakReportPro
           <CardTitle className="text-base">Medidas básicas</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             <Stat label="Masa corporal" value={`${result.datos.peso} kg`} />
             <Stat label="Talla" value={`${result.datos.talla} cm`} />
             <Stat label="Edad" value={`${result.datos.edad} años`} />
             <Stat label="IMC" value={`${result.datos.imc} kg/m²`} />
-            <Stat label="Clasificación" value={result.datos.imcClasificacion} />
+            <Stat label="Clasificación" value={result.datos.imcClasificacion} className="col-span-2 sm:col-span-1" />
           </div>
         </CardContent>
       </Card>
@@ -169,7 +171,7 @@ export function IsakReport({ result, paciente, fecha, evaluador }: IsakReportPro
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[560px]">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-2 pr-4 font-medium">Indicador</th>
@@ -213,11 +215,11 @@ export function IsakReport({ result, paciente, fecha, evaluador }: IsakReportPro
   );
 }
 
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+function Stat({ label, value, className }: { label: string; value: React.ReactNode; className?: string }) {
   return (
-    <div className="rounded-lg border bg-muted/30 p-3">
+    <div className={`rounded-lg border bg-muted/30 p-3 ${className ?? ""}`}>
       <p className="text-xs text-muted-foreground mb-1">{label}</p>
-      <p className="text-sm font-semibold">{value}</p>
+      <p className="text-sm font-semibold break-words">{value}</p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LayoutDashboard } from "lucide-react";
@@ -45,33 +46,40 @@ export default function BookingLayoutInner({
     <BookingProvider loggedPatient={loggedPatient}>
       <div className="min-h-screen bg-[#fafaf8]">
         <header className="border-b border-[rgba(0,0,0,0.06)] bg-white">
-          <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
             <Link
               href="/"
-              className="flex items-baseline gap-1 text-base font-semibold no-underline text-[#1a1a1a]"
+              aria-label="Ir al inicio"
+              className="flex items-center no-underline shrink-0"
             >
-              <span>Mauro</span>
-              <span className="text-[rgba(0,0,0,0.3)]">Acosta</span>
+              <Image
+                src="/images/iconMauroAcosta.png"
+                alt="Mauro Acosta"
+                width={688}
+                height={363}
+                priority
+                className="h-8 w-auto"
+              />
             </Link>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 shrink-0">
               {loggedPatient && (
                 <Link
                   href="/paciente/dashboard"
                   className="inline-flex items-center gap-1.5 text-xs font-medium text-[#666] no-underline transition-colors hover:text-[#1a1a1a]"
                 >
                   <LayoutDashboard size={14} />
-                  Mi panel
+                  Ir a mi panel
                 </Link>
               )}
-              <span className="text-xs text-[#999] uppercase tracking-[0.15em]">
-                Reservar turno
-              </span>
             </div>
           </div>
         </header>
 
         <div className="border-b border-[rgba(0,0,0,0.04)] bg-white">
           <div className="max-w-3xl mx-auto px-4 py-4">
+            <p className="text-base font-semibold text-[#1a1a1a] my-0 mb-3">
+              Reservá tu turno
+            </p>
             <div className="flex items-center gap-2">
               {steps.map((step, i) => (
                 <div key={step.href} className="flex items-center gap-2 flex-1">

@@ -119,7 +119,7 @@ export function IsakForm({ patientId }: IsakFormProps) {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {/* Datos generales */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="space-y-2">
                             <Label>Fecha</Label>
                             <Input
@@ -179,7 +179,7 @@ export function IsakForm({ patientId }: IsakFormProps) {
                     {/* Pliegues */}
                     <div>
                         <Label className="font-semibold">Pliegues cutáneos (mm)</Label>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
+                        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
                             {SKINFOLDS.map((s) => (
                                 <div key={s.key} className="space-y-2">
                                     <Label>{s.label}</Label>
@@ -198,7 +198,7 @@ export function IsakForm({ patientId }: IsakFormProps) {
                     {/* Perímetros */}
                     <div>
                         <Label className="font-semibold">Perímetros (cm)</Label>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
+                        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
                             {PERIMETERS.map((p) => (
                                 <div key={p.key} className="space-y-2">
                                     <Label>{p.label}</Label>

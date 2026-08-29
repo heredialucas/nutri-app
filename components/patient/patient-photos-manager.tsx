@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { createProgressPhoto, deleteProgressPhoto } from "@/app/actions/progress-photos";
 import { toast } from "sonner";
-import { Camera, Upload, Trash2, X, Images } from "lucide-react";
+import { Camera, Upload, Trash2, X } from "lucide-react";
 
 interface Photo {
     id: string;
@@ -153,11 +153,7 @@ export function PatientPhotosManager({ patientId, photos }: PatientPhotosManager
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                    <Images className="h-4 w-4 text-muted-foreground" />
-                    Fotos de progreso
-                </h4>
+            <div className="flex items-center justify-end">
                 <Dialog open={open} onOpenChange={handleOpenChange}>
                     <DialogTrigger asChild>
                         <Button variant="outline" size="sm">

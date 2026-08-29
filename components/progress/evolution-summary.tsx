@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, Scale, Activity, Ruler } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -73,88 +73,80 @@ export function EvolutionSummary({ latest, previous }: EvolutionSummaryProps) {
     const bmiCat = bmiValue ? bmiCategory(bmiValue) : null;
 
     return (
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+        <div className="space-y-2">
             <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                        <Scale className="h-3 w-3" />
-                        Peso
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">
-                        {latest.weight ? `${latest.weight}` : "—"}
-                        <span className="text-sm font-normal text-muted-foreground ml-1">kg</span>
+                <CardContent className="flex items-center justify-between gap-3 py-3">
+                    <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                        <Scale className="h-4 w-4 shrink-0" />
+                        <span className="text-sm font-medium">Peso</span>
                     </div>
                     <DeltaBadge value={weightDelta} unit=" kg" />
+                    <div className="text-xl font-bold shrink-0 text-right">
+                        {latest.weight ? `${latest.weight}` : "—"}
+                        <span className="text-xs font-normal text-muted-foreground ml-1">kg</span>
+                    </div>
                 </CardContent>
             </Card>
 
             <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                        <Activity className="h-3 w-3" />
-                        IMC
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">
-                        {latest.bmi || "—"}
+                <CardContent className="flex items-center justify-between gap-3 py-3">
+                    <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                        <Activity className="h-4 w-4 shrink-0" />
+                        <span className="text-sm font-medium">IMC</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <span className="shrink-0 flex items-center gap-2">
                         {bmiCat && (
                             <span className={cn("text-xs font-medium", bmiCat.className)}>
                                 {bmiCat.label}
                             </span>
                         )}
                         <DeltaBadge value={bmiDelta} />
+                    </span>
+                    <div className="text-xl font-bold shrink-0 text-right">
+                        {latest.bmi || "—"}
                     </div>
                 </CardContent>
             </Card>
 
             <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                        <Ruler className="h-3 w-3" />
-                        Cintura
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">
-                        {latest.waist || "—"}
-                        <span className="text-sm font-normal text-muted-foreground ml-1">cm</span>
+                <CardContent className="flex items-center justify-between gap-3 py-3">
+                    <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                        <Ruler className="h-4 w-4 shrink-0" />
+                        <span className="text-sm font-medium">Cintura</span>
                     </div>
                     <DeltaBadge value={waistDelta} unit=" cm" invert />
+                    <div className="text-xl font-bold shrink-0 text-right">
+                        {latest.waist || "—"}
+                        <span className="text-xs font-normal text-muted-foreground ml-1">cm</span>
+                    </div>
                 </CardContent>
             </Card>
 
             <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium text-muted-foreground">
-                        Grasa corporal
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">
-                        {latest.bodyFatPercentage || "—"}
-                        <span className="text-sm font-normal text-muted-foreground ml-1">%</span>
+                <CardContent className="flex items-center justify-between gap-3 py-3">
+                    <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                        <Activity className="h-4 w-4 shrink-0" />
+                        <span className="text-sm font-medium">Grasa corporal</span>
                     </div>
                     <DeltaBadge value={fatDelta} unit="%" invert />
+                    <div className="text-xl font-bold shrink-0 text-right">
+                        {latest.bodyFatPercentage || "—"}
+                        <span className="text-xs font-normal text-muted-foreground ml-1">%</span>
+                    </div>
                 </CardContent>
             </Card>
 
             <Card>
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium text-muted-foreground">
-                        Masa muscular
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">
-                        {latest.muscleMass || "—"}
-                        <span className="text-sm font-normal text-muted-foreground ml-1">kg</span>
+                <CardContent className="flex items-center justify-between gap-3 py-3">
+                    <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                        <Activity className="h-4 w-4 shrink-0" />
+                        <span className="text-sm font-medium">Masa muscular</span>
                     </div>
                     <DeltaBadge value={muscleDelta} unit=" kg" />
+                    <div className="text-xl font-bold shrink-0 text-right">
+                        {latest.muscleMass || "—"}
+                        <span className="text-xs font-normal text-muted-foreground ml-1">kg</span>
+                    </div>
                 </CardContent>
             </Card>
         </div>
