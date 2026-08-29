@@ -186,11 +186,10 @@ export const reminderService = {
         }
 
         const now = new Date();
-        const dayOfWeek = now.getDay();
-        const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const dayOrder = now.getDay() === 0 ? 7 : now.getDay();
 
         const todayPlan = activePlan.days.find(
-            (d) => d.dayOrder === dayIndex,
+            (d) => d.dayOrder === dayOrder,
         );
 
         if (!todayPlan) {
@@ -207,7 +206,7 @@ export const reminderService = {
             "Domingo",
         ];
 
-        let message = `🍽️ *Tu plan de hoy — ${dayNames[dayIndex]}*\n`;
+        let message = `🍽️ *Tu plan de hoy — ${dayNames[dayOrder - 1]}*\n`;
         message += `📋 ${activePlan.title}\n\n`;
 
         for (const meal of todayPlan.meals) {
@@ -239,9 +238,8 @@ export const reminderService = {
         ];
 
         const now = new Date();
-        const dayOfWeek = now.getDay();
-        const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        const dayName = dayNames[dayIndex];
+        const dayOrder = now.getDay() === 0 ? 7 : now.getDay();
+        const dayName = dayNames[dayOrder - 1];
 
         // 1) Comidas de hoy del plan activo
         const activePlan = await prisma.nutritionPlan.findFirst({
@@ -266,7 +264,7 @@ export const reminderService = {
         let message = `🍽️ *Resumen del día — ${dayName}*\n`;
 
         const todayPlan = activePlan?.days.find(
-            (d) => d.dayOrder === dayIndex,
+            (d) => d.dayOrder === dayOrder,
         );
 
         if (activePlan && todayPlan) {
