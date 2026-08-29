@@ -16,9 +16,10 @@ interface FollowUpFormProps {
     patientId: string;
     followUp?: any;
     onSuccess?: () => void;
+    embedded?: boolean;
 }
 
-export function FollowUpForm({ patientId, followUp, onSuccess }: FollowUpFormProps) {
+export function FollowUpForm({ patientId, followUp, onSuccess, embedded = false }: FollowUpFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
@@ -89,6 +90,102 @@ export function FollowUpForm({ patientId, followUp, onSuccess }: FollowUpFormPro
         }
     };
 
+    const fields = (
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>Semana del (lunes)</Label>
+                    <Input
+                        type="date"
+                        value={form.weekStart}
+                        onChange={(e) => handleChange("weekStart", e.target.value)}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>Peso (kg)</Label>
+                    <Input
+                        type="number"
+                        step="0.1"
+                        value={form.weight}
+                        onChange={(e) => handleChange("weight", e.target.value)}
+                        placeholder="70.5"
+                    />
+                </div>
+            </div>
+
+            <AdherenceField
+                value={form.adherence}
+                onChange={(val) => handleChange("adherence", val)}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>Hambre (1-10)</Label>
+                    <Input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={form.hunger}
+                        onChange={(e) => handleChange("hunger", e.target.value)}
+                        placeholder="5"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>Energía (1-10)</Label>
+                    <Input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={form.energy}
+                        onChange={(e) => handleChange("energy", e.target.value)}
+                        placeholder="7"
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label>Dificultades</Label>
+                <Textarea
+                    value={form.difficulties}
+                    onChange={(e) => handleChange("difficulties", e.target.value)}
+                    rows={2}
+                    placeholder="¿Qué dificultades encontraste esta semana?"
+                />
+            </div>
+
+            <div className="space-y-2">
+                <Label>Notas del paciente</Label>
+                <Textarea
+                    value={form.patientNotes}
+                    onChange={(e) => handleChange("patientNotes", e.target.value)}
+                    rows={2}
+                    placeholder="Comentarios adicionales del paciente..."
+                />
+            </div>
+
+            <div className="space-y-2">
+                <Label>Notas del profesional</Label>
+                <Textarea
+                    value={form.proNotes}
+                    onChange={(e) => handleChange("proNotes", e.target.value)}
+                    rows={2}
+                    placeholder="Observaciones profesionales..."
+                />
+            </div>
+
+            <div className="flex justify-end">
+                <Button type="submit" disabled={loading}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {loading ? "Guardando..." : followUp ? "Actualizar" : "Registrar seguimiento"}
+                </Button>
+            </div>
+        </div>
+    );
+
+    if (embedded) {
+        return <form onSubmit={handleSubmit}>{fields}</form>;
+    }
+
     return (
         <form onSubmit={handleSubmit}>
             <Card>
@@ -98,95 +195,7 @@ export function FollowUpForm({ patientId, followUp, onSuccess }: FollowUpFormPro
                         {followUp ? "Editar seguimiento" : "Nuevo seguimiento semanal"}
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Semana del (lunes)</Label>
-                            <Input
-                                type="date"
-                                value={form.weekStart}
-                                onChange={(e) => handleChange("weekStart", e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Peso (kg)</Label>
-                            <Input
-                                type="number"
-                                step="0.1"
-                                value={form.weight}
-                                onChange={(e) => handleChange("weight", e.target.value)}
-                                placeholder="70.5"
-                            />
-                        </div>
-                    </div>
-
-                    <AdherenceField
-                        value={form.adherence}
-                        onChange={(val) => handleChange("adherence", val)}
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Hambre (1-10)</Label>
-                            <Input
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={form.hunger}
-                                onChange={(e) => handleChange("hunger", e.target.value)}
-                                placeholder="5"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Energía (1-10)</Label>
-                            <Input
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={form.energy}
-                                onChange={(e) => handleChange("energy", e.target.value)}
-                                placeholder="7"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Dificultades</Label>
-                        <Textarea
-                            value={form.difficulties}
-                            onChange={(e) => handleChange("difficulties", e.target.value)}
-                            rows={2}
-                            placeholder="¿Qué dificultades encontraste esta semana?"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Notas del paciente</Label>
-                        <Textarea
-                            value={form.patientNotes}
-                            onChange={(e) => handleChange("patientNotes", e.target.value)}
-                            rows={2}
-                            placeholder="Comentarios adicionales del paciente..."
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Notas del profesional</Label>
-                        <Textarea
-                            value={form.proNotes}
-                            onChange={(e) => handleChange("proNotes", e.target.value)}
-                            rows={2}
-                            placeholder="Observaciones profesionales..."
-                        />
-                    </div>
-
-                    <div className="flex justify-end">
-                        <Button type="submit" disabled={loading}>
-                            <Save className="mr-2 h-4 w-4" />
-                            {loading ? "Guardando..." : followUp ? "Actualizar" : "Registrar seguimiento"}
-                        </Button>
-                    </div>
-                </CardContent>
+                <CardContent>{fields}</CardContent>
             </Card>
         </form>
     );

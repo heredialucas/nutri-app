@@ -49,49 +49,52 @@ export default async function PlanPage() {
                     </div>
 
                     <div className="p-5 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white mb-4">
-                    <div className="flex items-start justify-between gap-3 mb-1">
-                        <h3 className="text-base font-semibold text-[#1a1a1a] m-0">{activePlan.title}</h3>
-                        <PlanExportButton
-                            data={{
-                                title: activePlan.title,
-                                description: activePlan.description,
-                                patientName: `${patient.firstName} ${patient.lastName}`,
-                                professionalName: "Mauro Acosta",
-                                calorieTarget: activePlan.calorieTarget,
-                                proteinTarget: activePlan.proteinTarget,
-                                carbTarget: activePlan.carbTarget,
-                                fatTarget: activePlan.fatTarget,
-                                notes: activePlan.notes,
-                                tips: activePlan.tips,
-                                startDate: activePlan.startDate ? activePlan.startDate.toISOString() : null,
-                                days: (activePlan.days || []).map((d: any) => ({
-                                    label: d.label,
-                                    meals: (d.meals || []).map((m: any) => ({
-                                        label: m.label,
-                                        notes: m.notes,
-                                        foods: (m.foods || []).map((f: any) => ({
-                                            name: f.name,
-                                            quantity: f.quantity,
-                                            unit: f.unit,
-                                            notes: f.notes,
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:mb-1">
+                        <h3 className="text-base font-semibold text-[#1a1a1a] m-0 break-words leading-snug min-w-0">{activePlan.title}</h3>
+                        <div className="sm:shrink-0 sm:ml-3">
+                            <PlanExportButton
+                                data={{
+                                    title: activePlan.title,
+                                    description: activePlan.description,
+                                    patientName: `${patient.firstName} ${patient.lastName}`,
+                                    professionalName: "Mauro Acosta",
+                                    calorieTarget: activePlan.calorieTarget,
+                                    proteinTarget: activePlan.proteinTarget,
+                                    carbTarget: activePlan.carbTarget,
+                                    fatTarget: activePlan.fatTarget,
+                                    notes: activePlan.notes,
+                                    tips: activePlan.tips,
+                                    startDate: activePlan.startDate ? activePlan.startDate.toISOString() : null,
+                                    days: (activePlan.days || []).map((d: any) => ({
+                                        label: d.label,
+                                        meals: (d.meals || []).map((m: any) => ({
+                                            label: m.label,
+                                            notes: m.notes,
+                                            foods: (m.foods || []).map((f: any) => ({
+                                                name: f.name,
+                                                quantity: f.quantity,
+                                                unit: f.unit,
+                                                notes: f.notes,
+                                            })),
                                         })),
                                     })),
-                                })),
-                                supplements: (activePlan.supplements || []).map((s: any) => ({
-                                    name: s.name,
-                                    dosage: s.dosage,
-                                    timing: s.timing,
-                                    frequency: s.frequency,
-                                    notes: s.notes,
-                                })),
-                                recipes: (activePlan.recipes || []).map((r: any) => ({
-                                    title: r.title,
-                                    ingredients: r.ingredients,
-                                    instructions: r.instructions,
-                                })),
-                            }}
-                            label="Descargar mi plan (PDF)"
-                        />
+                                    supplements: (activePlan.supplements || []).map((s: any) => ({
+                                        name: s.name,
+                                        dosage: s.dosage,
+                                        timing: s.timing,
+                                        frequency: s.frequency,
+                                        notes: s.notes,
+                                    })),
+                                    recipes: (activePlan.recipes || []).map((r: any) => ({
+                                        title: r.title,
+                                        ingredients: r.ingredients,
+                                        instructions: r.instructions,
+                                    })),
+                                }}
+                                label="Descargar mi plan (PDF)"
+                                className="w-full sm:w-auto"
+                            />
+                        </div>
                     </div>
                     {activePlan.description && (
                         <p className="text-sm text-[#666] m-0 mb-3">{activePlan.description}</p>
@@ -135,8 +138,8 @@ export default async function PlanPage() {
                             <div className="space-y-3">
                                 {activePlan.days.map((day: any) => (
                                     <details key={day.id} className="group">
-                                        <summary className="flex items-center justify-between cursor-pointer py-2 px-3 rounded-lg hover:bg-[rgba(0,0,0,0.02)] transition-colors list-none">
-                                            <span className="text-sm font-medium text-[#1a1a1a]">
+                                        <summary className="flex items-center justify-between gap-2 cursor-pointer py-2 px-3 rounded-lg hover:bg-[rgba(0,0,0,0.02)] transition-colors list-none">
+                                            <span className="text-sm font-medium text-[#1a1a1a] break-words min-w-0">
                                                 {day.label}
                                             </span>
                                             <span className="text-xs text-[#999] group-open:hidden">
@@ -159,15 +162,15 @@ export default async function PlanPage() {
                                                     )}
                                                     <div className="space-y-1">
                                                         {meal.foods?.map((food: any) => (
-                                                            <div key={food.id} className="flex items-baseline gap-2 text-sm">
-                                                                <span className="text-[#1a1a1a]">{food.name}</span>
+                                                            <div key={food.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
+                                                                <span className="text-[#1a1a1a] break-words">{food.name}</span>
                                                                 {(food.quantity || food.unit) && (
                                                                     <span className="text-xs text-[#999]">
                                                                         {food.quantity}{food.unit ? ` ${food.unit}` : ""}
                                                                     </span>
                                                                 )}
                                                                 {food.notes && (
-                                                                    <span className="text-xs text-[#999] italic">— {food.notes}</span>
+                                                                    <span className="text-xs text-[#999] italic break-words">— {food.notes}</span>
                                                                 )}
                                                             </div>
                                                         ))}
@@ -250,9 +253,9 @@ export default async function PlanPage() {
                     <div className="space-y-2">
                         {shoppingLists.map((list: any) => (
                             <details key={list.id} className="group">
-                                <summary className="flex items-center justify-between cursor-pointer p-3 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white hover:border-[rgba(0,0,0,0.12)] transition-colors list-none">
-                                    <div>
-                                        <span className="text-sm font-medium text-[#1a1a1a] block">{list.title}</span>
+                                <summary className="flex items-center justify-between gap-2 cursor-pointer p-3 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white hover:border-[rgba(0,0,0,0.12)] transition-colors list-none">
+                                    <div className="min-w-0">
+                                        <span className="text-sm font-medium text-[#1a1a1a] block break-words">{list.title}</span>
                                         <span className="text-xs text-[#999]">{list.items?.length || 0} productos</span>
                                     </div>
                                     <span className="text-xs text-[#999] group-open:hidden">

@@ -15,6 +15,13 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -68,7 +75,7 @@ function formatDate(date: string) {
 
 export function PatientConsentManager({ patientId, consents }: PatientConsentManagerProps) {
     const router = useRouter();
-    const [showForm, setShowForm] = useState(false);
+    const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [type, setType] = useState("treatment");
     const [version, setVersion] = useState("");
@@ -107,7 +114,7 @@ export function PatientConsentManager({ patientId, consents }: PatientConsentMan
             setVersion("");
             setSignature("");
             setDocumentFile(null);
-            setShowForm(false);
+            setOpen(false);
             router.refresh();
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "Error al registrar");
@@ -133,72 +140,75 @@ export function PatientConsentManager({ patientId, consents }: PatientConsentMan
 
     return (
         <div className="space-y-4">
-            {showForm ? (
-                <form onSubmit={handleSubmit} className="space-y-3 p-4 rounded-lg border bg-muted/20">
-                    <div className="flex items-center justify-between mb-1">
-                        <h4 className="text-sm font-medium">Nuevo consentimiento</h4>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => setShowForm(false)}>
-                            Cancelar
-                        </Button>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-1">
-                            <Label className="text-xs">Tipo *</Label>
-                            <Select value={type} onValueChange={setType}>
-                                <SelectTrigger className="h-9">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {CONSENT_TYPES.map((ct) => (
-                                        <SelectItem key={ct.value} value={ct.value}>
-                                            {ct.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                        <Plus className="mr-1.5 h-3.5 w-3.5" />
+                        Nuevo consentimiento
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-h-[85vh] sm:overflow-y-auto max-sm:max-h-[90vh] max-sm:overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <FileCheck className="h-4 w-4" />
+                            Nuevo consentimiento
+                        </DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-1">
+                                <Label className="text-xs">Tipo *</Label>
+                                <Select value={type} onValueChange={setType}>
+                                    <SelectTrigger className="h-9">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {CONSENT_TYPES.map((ct) => (
+                                            <SelectItem key={ct.value} value={ct.value}>
+                                                {ct.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs">Versión</Label>
+                                <Input
+                                    value={version}
+                                    onChange={(e) => setVersion(e.target.value)}
+                                    placeholder="v1.0"
+                                    className="h-9"
+                                />
+                            </div>
                         </div>
                         <div className="space-y-1">
-                            <Label className="text-xs">Versión</Label>
-                            <Input
-                                value={version}
-                                onChange={(e) => setVersion(e.target.value)}
-                                placeholder="v1.0"
-                                className="h-9"
+                            <Label className="text-xs">Firma del paciente</Label>
+                            <Textarea
+                                value={signature}
+                                onChange={(e) => setSignature(e.target.value)}
+                                placeholder="Nombre completo o firma"
+                                rows={2}
                             />
                         </div>
-                    </div>
-                    <div className="space-y-1">
-                        <Label className="text-xs">Firma del paciente</Label>
-                        <Textarea
-                            value={signature}
-                            onChange={(e) => setSignature(e.target.value)}
-                            placeholder="Nombre completo o firma"
-                            rows={2}
-                        />
-                    </div>
-                    <div className="space-y-1">
-                        <Label className="text-xs">Documento adjunto (opcional)</Label>
-                        <Input
-                            type="file"
-                            accept="image/*,.pdf"
-                            onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
-                            disabled={isUploading || loading}
-                            className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground"
-                        />
-                    </div>
-                    <div className="flex justify-end">
-                        <Button type="submit" size="sm" disabled={loading || isUploading}>
-                            {(loading || isUploading) && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                            Registrar
-                        </Button>
-                    </div>
-                </form>
-            ) : (
-                <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
-                    <Plus className="mr-1.5 h-3.5 w-3.5" />
-                    Nuevo consentimiento
-                </Button>
-            )}
+                        <div className="space-y-1">
+                            <Label className="text-xs">Documento adjunto (opcional)</Label>
+                            <Input
+                                type="file"
+                                accept="image/*,.pdf"
+                                onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
+                                disabled={isUploading || loading}
+                                className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground"
+                            />
+                        </div>
+                        <div className="flex justify-end">
+                            <Button type="submit" size="sm" disabled={loading || isUploading}>
+                                {(loading || isUploading) && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                                Registrar
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {consents.length > 0 ? (
                 <div className="space-y-1.5">

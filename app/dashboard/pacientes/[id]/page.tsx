@@ -23,10 +23,10 @@ import { PatientPhotosManager } from "@/components/patient/patient-photos-manage
 import { PatientConsentManager } from "@/components/patient/patient-consent-manager";
 import { EvolutionSummary } from "@/components/progress/evolution-summary";
 import { ProgressChart } from "@/components/progress/progress-chart";
-import { MeasurementForm } from "@/components/progress/measurement-form";
+import { MeasurementFormDialog } from "@/components/progress/measurement-form-dialog";
 import { MeasurementHistory } from "@/components/progress/measurement-history";
 import { FollowUpSummary } from "@/components/followups/followup-summary";
-import { FollowUpForm } from "@/components/followups/followup-form";
+import { FollowUpDialog } from "@/components/followups/followup-dialog";
 import { FollowUpList } from "@/components/followups/followup-list";
 import { PatientPlanHistory } from "@/components/nutrition-plans/patient-plan-history";
 import {
@@ -371,10 +371,10 @@ export default async function PatientDetailPage({
                             <EvolutionSummary latest={latestMeasurement as any} previous={previousMeasurement as any} />
                         )}
                         <ProgressChart data={evolutionData} />
-                        <div className="grid gap-4 lg:grid-cols-2">
-                            <MeasurementForm patientId={id} />
-                            <PatientPhotosManager patientId={id} photos={photos as any} />
+                        <div className="flex flex-wrap items-center gap-2">
+                            <MeasurementFormDialog patientId={id} />
                         </div>
+                        <PatientPhotosManager patientId={id} photos={photos as any} />
                         <MeasurementHistory measurements={measurements as any} />
                     </AccordionContent>
                 </AccordionItem>
@@ -396,7 +396,9 @@ export default async function PatientDetailPage({
                         {latestFollowUp && (
                             <FollowUpSummary current={latestFollowUp} previous={previousFollowUp} />
                         )}
-                        <FollowUpForm patientId={id} />
+                        <div className="flex flex-wrap items-center gap-2">
+                            <FollowUpDialog patientId={id} />
+                        </div>
                         <FollowUpList followUps={followUps} patientId={id} />
                     </AccordionContent>
                 </AccordionItem>

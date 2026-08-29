@@ -13,9 +13,11 @@ import { Ruler } from "lucide-react";
 
 interface MeasurementFormProps {
     patientId: string;
+    embedded?: boolean;
+    onSuccess?: () => void;
 }
 
-export function MeasurementForm({ patientId }: MeasurementFormProps) {
+export function MeasurementForm({ patientId, embedded = false, onSuccess }: MeasurementFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState({
@@ -63,12 +65,116 @@ export function MeasurementForm({ patientId }: MeasurementFormProps) {
                 measuredAt: new Date().toISOString().split("T")[0],
             });
             router.refresh();
+            onSuccess?.();
         } catch (error) {
             toast.error(error instanceof Error ? error.message : "Error al guardar");
         } finally {
             setLoading(false);
         }
     };
+
+    const fields = (
+        <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                    <Label>Peso (kg)</Label>
+                    <Input
+                        type="number"
+                        step="0.1"
+                        value={form.weight}
+                        onChange={(e) => handleChange("weight", e.target.value)}
+                        placeholder="70.5"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>Altura (cm)</Label>
+                    <Input
+                        type="number"
+                        step="0.1"
+                        value={form.height}
+                        onChange={(e) => handleChange("height", e.target.value)}
+                        placeholder="175"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>Cintura (cm)</Label>
+                    <Input
+                        type="number"
+                        step="0.1"
+                        value={form.waist}
+                        onChange={(e) => handleChange("waist", e.target.value)}
+                        placeholder="80"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>Cadera (cm)</Label>
+                    <Input
+                        type="number"
+                        step="0.1"
+                        value={form.hip}
+                        onChange={(e) => handleChange("hip", e.target.value)}
+                        placeholder="95"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>Brazo (cm)</Label>
+                    <Input
+                        type="number"
+                        step="0.1"
+                        value={form.arm}
+                        onChange={(e) => handleChange("arm", e.target.value)}
+                        placeholder="30"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>Grasa corporal (%)</Label>
+                    <Input
+                        type="number"
+                        step="0.1"
+                        value={form.bodyFatPercentage}
+                        onChange={(e) => handleChange("bodyFatPercentage", e.target.value)}
+                        placeholder="22"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>Masa muscular (kg)</Label>
+                    <Input
+                        type="number"
+                        step="0.1"
+                        value={form.muscleMass}
+                        onChange={(e) => handleChange("muscleMass", e.target.value)}
+                        placeholder="30"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>Fecha</Label>
+                    <Input
+                        type="date"
+                        value={form.measuredAt}
+                        onChange={(e) => handleChange("measuredAt", e.target.value)}
+                    />
+                </div>
+            </div>
+            <div className="space-y-2">
+                <Label>Notas</Label>
+                <Textarea
+                    value={form.notes}
+                    onChange={(e) => handleChange("notes", e.target.value)}
+                    rows={2}
+                    placeholder="Observaciones..."
+                />
+            </div>
+            <div className="flex justify-end">
+                <Button type="submit" disabled={loading}>
+                    {loading ? "Guardando..." : "Registrar medición"}
+                </Button>
+            </div>
+        </div>
+    );
+
+    if (embedded) {
+        return <form onSubmit={handleSubmit}>{fields}</form>;
+    }
 
     return (
         <form onSubmit={handleSubmit}>
@@ -79,102 +185,7 @@ export function MeasurementForm({ patientId }: MeasurementFormProps) {
                         Nueva medición
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="space-y-2">
-                            <Label>Peso (kg)</Label>
-                            <Input
-                                type="number"
-                                step="0.1"
-                                value={form.weight}
-                                onChange={(e) => handleChange("weight", e.target.value)}
-                                placeholder="70.5"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Altura (cm)</Label>
-                            <Input
-                                type="number"
-                                step="0.1"
-                                value={form.height}
-                                onChange={(e) => handleChange("height", e.target.value)}
-                                placeholder="175"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Cintura (cm)</Label>
-                            <Input
-                                type="number"
-                                step="0.1"
-                                value={form.waist}
-                                onChange={(e) => handleChange("waist", e.target.value)}
-                                placeholder="80"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Cadera (cm)</Label>
-                            <Input
-                                type="number"
-                                step="0.1"
-                                value={form.hip}
-                                onChange={(e) => handleChange("hip", e.target.value)}
-                                placeholder="95"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Brazo (cm)</Label>
-                            <Input
-                                type="number"
-                                step="0.1"
-                                value={form.arm}
-                                onChange={(e) => handleChange("arm", e.target.value)}
-                                placeholder="30"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Grasa corporal (%)</Label>
-                            <Input
-                                type="number"
-                                step="0.1"
-                                value={form.bodyFatPercentage}
-                                onChange={(e) => handleChange("bodyFatPercentage", e.target.value)}
-                                placeholder="22"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Masa muscular (kg)</Label>
-                            <Input
-                                type="number"
-                                step="0.1"
-                                value={form.muscleMass}
-                                onChange={(e) => handleChange("muscleMass", e.target.value)}
-                                placeholder="30"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Fecha</Label>
-                            <Input
-                                type="date"
-                                value={form.measuredAt}
-                                onChange={(e) => handleChange("measuredAt", e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Notas</Label>
-                        <Textarea
-                            value={form.notes}
-                            onChange={(e) => handleChange("notes", e.target.value)}
-                            rows={2}
-                            placeholder="Observaciones..."
-                        />
-                    </div>
-                    <div className="flex justify-end">
-                        <Button type="submit" disabled={loading}>
-                            {loading ? "Guardando..." : "Registrar medición"}
-                        </Button>
-                    </div>
-                </CardContent>
+                <CardContent>{fields}</CardContent>
             </Card>
         </form>
     );

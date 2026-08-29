@@ -14,6 +14,14 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -88,6 +96,7 @@ function getFileIcon(mimeType: string | null | undefined) {
 export function PatientFileManager({ patientId, files }: PatientFileManagerProps) {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [open, setOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [category, setCategory] = useState("otro");
@@ -130,6 +139,7 @@ export function PatientFileManager({ patientId, files }: PatientFileManagerProps
                         setSelectedFile(null);
                         setCategory("otro");
                         if (fileInputRef.current) fileInputRef.current.value = "";
+                        setOpen(false);
                         router.refresh();
                     } else {
                         toast.error(result.error || "Error al subir");
@@ -144,6 +154,15 @@ export function PatientFileManager({ patientId, files }: PatientFileManagerProps
         } catch {
             toast.error("Error al leer el archivo");
             setIsUploading(false);
+        }
+    };
+
+    const handleOpenChange = (val: boolean) => {
+        setOpen(val);
+        if (!val) {
+            setSelectedFile(null);
+            setCategory("otro");
+            if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
 
@@ -164,82 +183,102 @@ export function PatientFileManager({ patientId, files }: PatientFileManagerProps
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-                <div className="flex-1 w-full space-y-1">
-                    <Label className="text-xs">Seleccionar archivo</Label>
-                    <div className="flex gap-2">
-                        <Input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*,.pdf"
-                            onChange={handleFileSelect}
-                            disabled={isUploading}
-                            className="file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                        />
-                    </div>
-                </div>
-                <div className="w-full sm:w-auto space-y-1">
-                    <Label className="text-xs">Categoría</Label>
-                    <Select value={category} onValueChange={setCategory}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {CATEGORIES.map((c) => (
-                                <SelectItem key={c.value} value={c.value}>
-                                    {c.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
-            {selectedFile && (
-                <div className="flex items-center justify-between p-2.5 border rounded-lg bg-muted/30">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                        {(() => {
-                            const Icon = getFileIcon(selectedFile.type);
-                            return <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />;
-                        })()}
-                        <span className="text-sm truncate">{selectedFile.name}</span>
-                        <span className="text-xs text-muted-foreground shrink-0">
-                            ({(selectedFile.size / 1024).toFixed(0)} KB)
-                        </span>
-                    </div>
-                    <div className="flex gap-1.5 shrink-0">
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                                setSelectedFile(null);
-                                if (fileInputRef.current) fileInputRef.current.value = "";
-                            }}
-                        >
-                            Cancelar
+            <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                    Documentos
+                </h4>
+                <Dialog open={open} onOpenChange={handleOpenChange}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                            <Upload className="mr-1.5 h-3.5 w-3.5" />
+                            Subir archivo
                         </Button>
-                        <Button size="sm" onClick={handleUpload} disabled={isUploading}>
-                            {isUploading ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Subir archivo</DialogTitle>
+                            <DialogDescription>Imagen o PDF, máx. 10 MB.</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div className="space-y-1">
+                                <Label className="text-xs">Categoría</Label>
+                                <Select value={category} onValueChange={setCategory} disabled={isUploading}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {CATEGORIES.map((c) => (
+                                            <SelectItem key={c.value} value={c.value}>
+                                                {c.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*,.pdf"
+                                onChange={handleFileSelect}
+                                disabled={isUploading}
+                                className="hidden"
+                            />
+                            {selectedFile ? (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between p-2.5 border rounded-lg bg-muted/30">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            {(() => {
+                                                const Icon = getFileIcon(selectedFile.type);
+                                                return <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />;
+                                            })()}
+                                            <span className="text-sm truncate">{selectedFile.name}</span>
+                                            <span className="text-xs text-muted-foreground shrink-0">
+                                                ({(selectedFile.size / 1024).toFixed(0)} KB)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end gap-1.5">
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setSelectedFile(null);
+                                                if (fileInputRef.current) fileInputRef.current.value = "";
+                                            }}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button size="sm" onClick={handleUpload} disabled={isUploading}>
+                                            {isUploading ? (
+                                                <>
+                                                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                                                    Subiendo...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload className="mr-1.5 h-4 w-4" />
+                                                    Subir
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
                             ) : (
-                                <Upload className="h-4 w-4" />
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={isUploading}
+                                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-muted-foreground/25 bg-muted/20 p-4 text-sm text-muted-foreground transition-colors hover:border-muted-foreground/40 hover:bg-muted/40"
+                                >
+                                    <FolderOpen className="h-4 w-4" />
+                                    Seleccionar archivo (imagen o PDF, máx. 10 MB)
+                                </button>
                             )}
-                        </Button>
-                    </div>
-                </div>
-            )}
-
-            {!selectedFile && (
-                <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-muted-foreground/25 bg-muted/20 p-4 text-sm text-muted-foreground transition-colors hover:border-muted-foreground/40 hover:bg-muted/40"
-                >
-                    <FolderOpen className="h-4 w-4" />
-                    Seleccionar archivo (imagen o PDF, máx. 10 MB)
-                </button>
-            )}
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </div>
 
             {files.length > 0 ? (
                 <div className="space-y-1.5">
