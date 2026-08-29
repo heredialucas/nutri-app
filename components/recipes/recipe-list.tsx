@@ -94,13 +94,13 @@ export function RecipeList({ initialRecipes }: { initialRecipes: Recipe[] }) {
                                 key={recipe.id}
                                 className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                             >
-                                <div className="flex items-center gap-4 min-w-0">
+                                <div className="flex items-center gap-4 min-w-0 flex-1">
                                     <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
                                         <ChefHat className="h-5 w-5 text-muted-foreground" />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="font-medium truncate">{recipe.title}</p>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <p className="font-medium break-words">{recipe.title}</p>
+                                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                             {ingredientCount > 0 && (
                                                 <span>
                                                     {ingredientCount} ingrediente{ingredientCount !== 1 ? "s" : ""}

@@ -51,12 +51,12 @@ export function ShoppingListItemComponent({ item }: { item: ShoppingListItemData
             />
             <div className="flex-1 min-w-0">
                 <span
-                    className={`text-sm ${item.isChecked ? "line-through text-muted-foreground" : ""}`}
+                    className={`text-sm break-words ${item.isChecked ? "line-through text-muted-foreground" : ""}`}
                 >
                     {item.name}
                 </span>
                 {(item.quantity || item.unit) && (
-                    <span className="text-xs text-muted-foreground ml-2">
+                    <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
                         {item.quantity}
                         {item.unit ? ` ${item.unit}` : ""}
                     </span>

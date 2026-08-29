@@ -26,13 +26,13 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
                     <ChefHat className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{recipe.title}</p>
+                    <p className="font-medium break-words">{recipe.title}</p>
                     {recipe.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                        <p className="text-xs text-muted-foreground break-words mt-0.5">
                             {recipe.description}
                         </p>
                     )}
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
                         {ingredientCount > 0 && (
                             <Badge variant="secondary" className="text-xs">
                                 {ingredientCount} ingrediente{ingredientCount !== 1 ? "s" : ""}

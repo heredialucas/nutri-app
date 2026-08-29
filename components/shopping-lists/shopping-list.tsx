@@ -84,14 +84,14 @@ export function ShoppingListComponent({ list }: { list: ShoppingListData }) {
 
     return (
         <div className="border rounded-lg bg-card">
-            <div className="flex items-center justify-between p-4 border-b">
-                <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
+            <div className="flex items-center justify-between gap-3 p-4 border-b">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
                         <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div>
-                        <h3 className="font-medium text-sm">{list.title}</h3>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="min-w-0">
+                        <h3 className="font-medium text-sm break-words">{list.title}</h3>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                             {totalCount > 0 && (
                                 <Badge variant={checkedCount === totalCount && totalCount > 0 ? "default" : "secondary"} className="text-xs">
                                     {checkedCount}/{totalCount}
@@ -105,7 +105,7 @@ export function ShoppingListComponent({ list }: { list: ShoppingListData }) {
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                     <Button
                         variant="ghost"
                         size="icon"
@@ -142,8 +142,8 @@ export function ShoppingListComponent({ list }: { list: ShoppingListData }) {
             </div>
 
             {showAddForm && (
-                <form onSubmit={handleAddItem} className="flex items-end gap-2 p-3 border-b bg-muted/30">
-                    <div className="flex-1 space-y-1">
+                <form onSubmit={handleAddItem} className="flex flex-wrap items-end gap-2 p-3 border-b bg-muted/30">
+                    <div className="flex-1 min-w-[140px] space-y-1">
                         <Input
                             placeholder="Nombre del item"
                             value={newItemName}
