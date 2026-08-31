@@ -65,6 +65,14 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  @media print {
+    body { background: white !important; }
+    nav, aside, header, button, [data-slot="dialog-overlay"] { display: none !important; }
+    main, .print-area { width: 100% !important; max-width: none !important; padding: 0 !important; margin: 0 !important; }
+    .rounded-xl, .rounded-2xl { break-inside: avoid; }
+    .shadow, .shadow-sm, .shadow-md { box-shadow: none !important; }
+  }
 }
 
 /* Lenis smooth scroll */

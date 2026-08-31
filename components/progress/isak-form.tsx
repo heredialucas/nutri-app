@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createIsak } from "@/app/actions/isak";
+import { updateIsak } from "@/app/actions/isak";
 import { ACTIVITY_LEVELS } from "@/lib/isak/calculations";
 import { toast } from "sonner";
 import { Ruler } from "lucide-react";
@@ -23,6 +24,7 @@ interface IsakFormProps {
     patientId: string;
     embedded?: boolean;
     onSuccess?: () => void;
+    assessment?: Record<string, unknown>;
 }
 
 const initialForm = {
@@ -43,6 +45,15 @@ const initialForm = {
     hip: "",
     midThigh: "",
     calf: "",
+    humerusBreadth: "",
+    femurBreadth: "",
+    biStyloidWrist: "",
+    biMalleolarAnkle: "",
+    biacromial: "",
+    biiliocristal: "",
+    transverseChest: "",
+    apChestDepth: "",
+    apAbdominalDepth: "",
     notes: "",
 };
 
@@ -64,10 +75,30 @@ const PERIMETERS: { key: string; label: string; placeholder: string }[] = [
     { key: "calf", label: "Pierna", placeholder: "36" },
 ];
 
-export function IsakForm({ patientId, embedded = false, onSuccess }: IsakFormProps) {
+const BREADTHS: { key: string; label: string; placeholder: string; help?: string }[] = [
+    { key: "humerusBreadth", label: "Húmero biepicondilar", placeholder: "7.0", help: "Codo" },
+    { key: "femurBreadth", label: "Fémur biepicondilar", placeholder: "9.5", help: "Rodilla" },
+    { key: "biStyloidWrist", label: "Muñeca biestiloidea", placeholder: "5.5" },
+    { key: "biMalleolarAnkle", label: "Tobillo bimaleolar", placeholder: "7.0" },
+    { key: "biacromial", label: "Biacromial", placeholder: "38" },
+    { key: "biiliocristal", label: "Biiliocrestal", placeholder: "28" },
+    { key: "transverseChest", label: "Tórax transversal", placeholder: "28" },
+    { key: "apChestDepth", label: "Tórax anteroposterior", placeholder: "20" },
+    { key: "apAbdominalDepth", label: "Abdomen anteroposterior", placeholder: "23" },
+];
+
+export function IsakForm({ patientId, embedded = false, onSuccess, assessment }: IsakFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [form, setForm] = useState(initialForm);
+    const [form, setForm] = useState(() => {
+        if (!assessment) return initialForm;
+        const values = Object.fromEntries(Object.keys(initialForm).map((key) => {
+            const value = assessment[key];
+            if (key === "measuredAt" && value) return [key, new Date(String(value)).toISOString().split("T")[0]];
+            return [key, value == null ? "" : String(value)];
+        }));
+        return { ...initialForm, ...values };
+    });
 
     const handleChange = (field: string, value: string) => {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -79,7 +110,7 @@ export function IsakForm({ patientId, embedded = false, onSuccess }: IsakFormPro
         e.preventDefault();
         setLoading(true);
         try {
-            await createIsak({
+            const payload = {
                 patientId,
                 measuredAt: form.measuredAt || undefined,
                 activityLevel: form.activityLevel || undefined,
@@ -98,9 +129,20 @@ export function IsakForm({ patientId, embedded = false, onSuccess }: IsakFormPro
                 hip: numOrUndefined(form.hip),
                 midThigh: numOrUndefined(form.midThigh),
                 calf: numOrUndefined(form.calf),
+                humerusBreadth: numOrUndefined(form.humerusBreadth),
+                femurBreadth: numOrUndefined(form.femurBreadth),
+                biStyloidWrist: numOrUndefined(form.biStyloidWrist),
+                biMalleolarAnkle: numOrUndefined(form.biMalleolarAnkle),
+                biacromial: numOrUndefined(form.biacromial),
+                biiliocristal: numOrUndefined(form.biiliocristal),
+                transverseChest: numOrUndefined(form.transverseChest),
+                apChestDepth: numOrUndefined(form.apChestDepth),
+                apAbdominalDepth: numOrUndefined(form.apAbdominalDepth),
                 notes: form.notes || undefined,
-            });
-            toast.success("Evaluación ISAK registrada");
+            };
+            if (assessment?.id) await updateIsak(String(assessment.id), payload);
+            else await createIsak(payload);
+            toast.success(assessment?.id ? "Evaluación actualizada" : "Evaluación ISAK registrada");
             setForm(initialForm);
             router.refresh();
             onSuccess?.();
@@ -209,6 +251,35 @@ export function IsakForm({ patientId, embedded = false, onSuccess }: IsakFormPro
                         </div>
                     </div>
 
+                    {/* Diámetros */}
+                    <div className="rounded-2xl border border-amber-200/70 bg-amber-50/40 p-4 sm:p-5">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                                <Label className="font-semibold text-base">Diámetros óseos (mm)</Label>
+                                <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                                    Medidas estructurales para comparar proporciones corporales. No indican por sí solas un estado de salud.
+                                </p>
+                            </div>
+                            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-medium text-amber-800">ISAK</span>
+                        </div>
+                        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                            {BREADTHS.map((b) => (
+                                <div key={b.key} className="space-y-2">
+                                    <Label>{b.label}</Label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        value={form[b.key as keyof typeof form] as string}
+                                        onChange={(e) => handleChange(b.key, e.target.value)}
+                                        placeholder={b.placeholder}
+                                    />
+                                    {b.help && <p className="text-[11px] text-muted-foreground">{b.help}</p>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="space-y-2">
                         <Label>Notas</Label>
                         <Textarea
@@ -221,7 +292,7 @@ export function IsakForm({ patientId, embedded = false, onSuccess }: IsakFormPro
 
                     <div className="flex justify-end">
                         <Button type="submit" disabled={loading}>
-                            {loading ? "Guardando..." : "Registrar evaluación"}
+                            {loading ? "Guardando..." : assessment?.id ? "Guardar cambios" : "Registrar evaluación"}
                         </Button>
                     </div>
                 </div>

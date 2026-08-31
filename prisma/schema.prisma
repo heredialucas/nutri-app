@@ -11,33 +11,34 @@ datasource db {
 // ──────────────────────────────────────────────
 
 model User {
-  id        String      @id @default(uuid()) @db.Uuid
-  email     String      @unique
+  id        String     @id @default(uuid()) @db.Uuid
+  email     String     @unique
   password  String
   fullName  String?
-  isActive  Boolean     @default(true)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   firstName String?
   lastName  String?
-  username  String?     @unique
+  username  String?    @unique
   userRoles UserRole[]
 
   // WhatsApp settings
-  whatsappSetting          WhatsAppSetting?
+  whatsappSetting WhatsAppSetting?
 
   // Patient portal
-  patient                  Patient?
+  patient Patient?
 
   // Nutrition relations
-  professionalAppointments Appointment[]       @relation("ProfessionalAppointments")
+  professionalAppointments Appointment[]               @relation("ProfessionalAppointments")
   professionalAvailability Availability[]
-  uploadedPatientFiles     PatientFile[]       @relation("UploadedPatientFiles")
-  uploadedProgressPhotos   ProgressPhoto[]     @relation("UploadedProgressPhotos")
+  uploadedPatientFiles     PatientFile[]               @relation("UploadedPatientFiles")
+  uploadedProgressPhotos   ProgressPhoto[]             @relation("UploadedProgressPhotos")
   measurementsTaken        AnthropometricMeasurement[] @relation("MeasurementsTaken")
-  measuredIsakAssessments  IsakAssessment[]   @relation("MeasuredIsakAssessments")
-  createdPlans             NutritionPlan[]     @relation("CreatedPlans")
-  createdRecipes           Recipe[]            @relation("CreatedRecipes")
+  measuredIsakAssessments  IsakAssessment[]            @relation("MeasuredIsakAssessments")
+  publishedIsakAssessments IsakAssessment[]            @relation("PublishedIsakAssessments")
+  createdPlans             NutritionPlan[]             @relation("CreatedPlans")
+  createdRecipes           Recipe[]                    @relation("CreatedRecipes")
 
   @@map("users")
 }
@@ -94,8 +95,8 @@ model RolePermission {
 // ──────────────────────────────────────────────
 
 model Patient {
-  id               String                  @id @default(uuid()) @db.Uuid
-  userId           String?                 @unique @db.Uuid
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String?   @unique @db.Uuid
   firstName        String
   lastName         String
   email            String?
@@ -110,28 +111,28 @@ model Patient {
   emergencyPhone   String?
   healthInsurance  String?
   billingType      String
-  status           String                  @default("ACTIVE")
+  status           String    @default("ACTIVE")
   notes            String?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
 
-  user             User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  appointments               Appointment[]
-  medicalHistory            MedicalHistory?
-  allergies                 Allergy[]
-  medications               Medication[]
-  goals                     PatientGoal[]
-  measurements              AnthropometricMeasurement[]
-  isakAssessments           IsakAssessment[]
-  progressPhotos            ProgressPhoto[]
-  nutritionPlans            NutritionPlanPatient[]
-  followUps                 FollowUp[]
-  files                     PatientFile[]
-  consents                  Consent[]
-  payments                  Payment[]
-  waitlistEntries           WaitlistEntry[]
-  messageThreads            MessageThread[]
+  user            User?                       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appointments    Appointment[]
+  medicalHistory  MedicalHistory?
+  allergies       Allergy[]
+  medications     Medication[]
+  goals           PatientGoal[]
+  measurements    AnthropometricMeasurement[]
+  isakAssessments IsakAssessment[]
+  progressPhotos  ProgressPhoto[]
+  nutritionPlans  NutritionPlanPatient[]
+  followUps       FollowUp[]
+  files           PatientFile[]
+  consents        Consent[]
+  payments        Payment[]
+  waitlistEntries WaitlistEntry[]
+  messageThreads  MessageThread[]
 
   @@map("patients")
 }
@@ -161,8 +162,8 @@ model MedicalHistory {
 }
 
 model Allergy {
-  id        String   @id @default(uuid()) @db.Uuid
-  patientId String   @db.Uuid
+  id        String  @id @default(uuid()) @db.Uuid
+  patientId String  @db.Uuid
   name      String
   reaction  String?
   severity  String?
@@ -174,15 +175,15 @@ model Allergy {
 }
 
 model Medication {
-  id          String    @id @default(uuid()) @db.Uuid
-  patientId   String    @db.Uuid
-  name        String
-  dosage      String?
-  frequency   String?
-  indication  String?
-  startDate   DateTime?
-  endDate     DateTime?
-  notes       String?
+  id         String    @id @default(uuid()) @db.Uuid
+  patientId  String    @db.Uuid
+  name       String
+  dosage     String?
+  frequency  String?
+  indication String?
+  startDate  DateTime?
+  endDate    DateTime?
+  notes      String?
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
@@ -210,19 +211,19 @@ model PatientGoal {
 // ──────────────────────────────────────────────
 
 model Appointment {
-  id                String            @id @default(uuid()) @db.Uuid
-  patientId         String            @db.Uuid
-  professionalId    String            @db.Uuid
-  type              AppointmentType
-  status            AppointmentStatus @default(PENDING)
-  startAt           DateTime
-  endAt             DateTime
-  location          String?
-  meetingUrl        String?
-  notes             String?
+  id                 String            @id @default(uuid()) @db.Uuid
+  patientId          String            @db.Uuid
+  professionalId     String            @db.Uuid
+  type               AppointmentType
+  status             AppointmentStatus @default(PENDING)
+  startAt            DateTime
+  endAt              DateTime
+  location           String?
+  meetingUrl         String?
+  notes              String?
   cancellationReason String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
   patient      Patient @relation(fields: [patientId], references: [id])
   professional User    @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
@@ -231,13 +232,13 @@ model Appointment {
 }
 
 model Availability {
-  id            String   @id @default(uuid()) @db.Uuid
+  id             String  @id @default(uuid()) @db.Uuid
   professionalId String  @db.Uuid
-  weekday       Int
-  startTime     String
-  endTime       String
-  slotDuration  Int      @default(30)
-  isActive      Boolean  @default(true)
+  weekday        Int
+  startTime      String
+  endTime        String
+  slotDuration   Int     @default(30)
+  isActive       Boolean @default(true)
 
   professional User @relation(fields: [professionalId], references: [id])
 
@@ -249,23 +250,23 @@ model Availability {
 // ──────────────────────────────────────────────
 
 model AnthropometricMeasurement {
-  id                 String   @id @default(uuid()) @db.Uuid
-  patientId          String   @db.Uuid
-  appointmentId      String?
-  measuredById       String?  @db.Uuid
-  measuredAt         DateTime @default(now())
-  weight             Decimal? @db.Decimal(5, 2)
-  height             Decimal? @db.Decimal(5, 2)
-  bmi                Decimal? @db.Decimal(4, 2)
-  waist              Decimal? @db.Decimal(5, 2)
-  hip                Decimal? @db.Decimal(5, 2)
-  arm                Decimal? @db.Decimal(5, 2)
-  bodyFatPercentage  Decimal? @db.Decimal(4, 2)
-  muscleMass         Decimal? @db.Decimal(5, 2)
-  notes              String?
+  id                String   @id @default(uuid()) @db.Uuid
+  patientId         String   @db.Uuid
+  appointmentId     String?
+  measuredById      String?  @db.Uuid
+  measuredAt        DateTime @default(now())
+  weight            Decimal? @db.Decimal(5, 2)
+  height            Decimal? @db.Decimal(5, 2)
+  bmi               Decimal? @db.Decimal(4, 2)
+  waist             Decimal? @db.Decimal(5, 2)
+  hip               Decimal? @db.Decimal(5, 2)
+  arm               Decimal? @db.Decimal(5, 2)
+  bodyFatPercentage Decimal? @db.Decimal(4, 2)
+  muscleMass        Decimal? @db.Decimal(5, 2)
+  notes             String?
 
-  patient     Patient @relation(fields: [patientId], references: [id])
-  measuredBy  User?   @relation("MeasurementsTaken", fields: [measuredById], references: [id])
+  patient    Patient @relation(fields: [patientId], references: [id])
+  measuredBy User?   @relation("MeasurementsTaken", fields: [measuredById], references: [id])
 
   @@map("anthropometric_measurements")
 }
@@ -284,45 +285,59 @@ model IsakAssessment {
   activityLevel String?
   sport         String?
 
-  weight        Decimal? @db.Decimal(5, 2)
-  height        Decimal? @db.Decimal(5, 2)
+  weight Decimal? @db.Decimal(5, 2)
+  height Decimal? @db.Decimal(5, 2)
 
   // Pliegues cutáneos (mm)
-  tricepsSF     Decimal? @db.Decimal(5, 2)
-  subscapSF     Decimal? @db.Decimal(5, 2)
-  suprailiacSF  Decimal? @db.Decimal(5, 2)
-  abdominalSF   Decimal? @db.Decimal(5, 2)
-  thighSF       Decimal? @db.Decimal(5, 2)
-  calfSF        Decimal? @db.Decimal(5, 2)
+  tricepsSF    Decimal? @db.Decimal(5, 2)
+  subscapSF    Decimal? @db.Decimal(5, 2)
+  suprailiacSF Decimal? @db.Decimal(5, 2)
+  abdominalSF  Decimal? @db.Decimal(5, 2)
+  thighSF      Decimal? @db.Decimal(5, 2)
+  calfSF       Decimal? @db.Decimal(5, 2)
 
   // Perímetros (cm)
-  relaxedArm    Decimal? @db.Decimal(5, 2)
-  flexedArm     Decimal? @db.Decimal(5, 2)
-  waist         Decimal? @db.Decimal(5, 2)
-  hip           Decimal? @db.Decimal(5, 2)
-  midThigh      Decimal? @db.Decimal(5, 2)
-  calf          Decimal? @db.Decimal(5, 2)
+  relaxedArm Decimal? @db.Decimal(5, 2)
+  flexedArm  Decimal? @db.Decimal(5, 2)
+  waist      Decimal? @db.Decimal(5, 2)
+  hip        Decimal? @db.Decimal(5, 2)
+  midThigh   Decimal? @db.Decimal(5, 2)
+  calf       Decimal? @db.Decimal(5, 2)
 
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  // Diámetros ISAK (mm)
+  humerusBreadth   Decimal? @db.Decimal(6, 2)
+  femurBreadth     Decimal? @db.Decimal(6, 2)
+  biStyloidWrist   Decimal? @db.Decimal(6, 2)
+  biMalleolarAnkle Decimal? @db.Decimal(6, 2)
+  biacromial       Decimal? @db.Decimal(6, 2)
+  biiliocristal    Decimal? @db.Decimal(6, 2)
+  transverseChest  Decimal? @db.Decimal(6, 2)
+  apChestDepth     Decimal? @db.Decimal(6, 2)
+  apAbdominalDepth Decimal? @db.Decimal(6, 2)
 
-  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  measuredBy User?   @relation("MeasuredIsakAssessments", fields: [measuredById], references: [id])
+  notes                String?
+  publishedToPatientAt DateTime?
+  publishedById        String?   @db.Uuid
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  patient     Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  measuredBy  User?   @relation("MeasuredIsakAssessments", fields: [measuredById], references: [id])
+  publishedBy User?   @relation("PublishedIsakAssessments", fields: [publishedById], references: [id], onDelete: SetNull)
 
   @@map("isak_assessments")
 }
 
 model ProgressPhoto {
-  id              String   @id @default(uuid()) @db.Uuid
-  patientId       String   @db.Uuid
-  uploadedById    String?  @db.Uuid
-  url             String
-  publicId        String
-  type            String
-  takenAt         DateTime?
-  consentGranted  Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  id             String    @id @default(uuid()) @db.Uuid
+  patientId      String    @db.Uuid
+  uploadedById   String?   @db.Uuid
+  url            String
+  publicId       String
+  type           String
+  takenAt        DateTime?
+  consentGranted Boolean   @default(false)
+  createdAt      DateTime  @default(now())
 
   patient    Patient @relation(fields: [patientId], references: [id])
   uploadedBy User?   @relation("UploadedProgressPhotos", fields: [uploadedById], references: [id])
@@ -335,24 +350,24 @@ model ProgressPhoto {
 // ──────────────────────────────────────────────
 
 model NutritionPlan {
-  id              String   @id @default(uuid()) @db.Uuid
-  professionalId  String   @db.Uuid
-  title           String
-  description     String?
-  startDate       DateTime?
-  endDate         DateTime?
-  status          String   @default("DRAFT")
-  calorieTarget   Int?
-  proteinTarget   Int?
-  carbTarget      Int?
-  fatTarget       Int?
-  notes           String?
-  tips            String?
-  pdfUrl          String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String    @id @default(uuid()) @db.Uuid
+  professionalId String    @db.Uuid
+  title          String
+  description    String?
+  startDate      DateTime?
+  endDate        DateTime?
+  status         String    @default("DRAFT")
+  calorieTarget  Int?
+  proteinTarget  Int?
+  carbTarget     Int?
+  fatTarget      Int?
+  notes          String?
+  tips           String?
+  pdfUrl         String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  professional User                 @relation("CreatedPlans", fields: [professionalId], references: [id])
+  professional User                   @relation("CreatedPlans", fields: [professionalId], references: [id])
   patients     NutritionPlanPatient[]
   days         NutritionPlanDay[]
   recipes      Recipe[]
@@ -386,8 +401,8 @@ model NutritionPlanDay {
 }
 
 model Meal {
-  id        String @id @default(uuid()) @db.Uuid
-  dayId     String @db.Uuid
+  id        String  @id @default(uuid()) @db.Uuid
+  dayId     String  @db.Uuid
   label     String
   mealOrder Int
   notes     String?
@@ -416,13 +431,13 @@ model MealFood {
 }
 
 model PlanSupplement {
-  id               String  @id @default(uuid()) @db.Uuid
-  nutritionPlanId  String  @db.Uuid
-  name             String
-  dosage           String?
-  timing           String?
-  frequency        String?
-  notes            String?
+  id              String  @id @default(uuid()) @db.Uuid
+  nutritionPlanId String  @db.Uuid
+  name            String
+  dosage          String?
+  timing          String?
+  frequency       String?
+  notes           String?
 
   nutritionPlan NutritionPlan @relation(fields: [nutritionPlanId], references: [id], onDelete: Cascade)
 
@@ -434,18 +449,18 @@ model PlanSupplement {
 // ──────────────────────────────────────────────
 
 model Recipe {
-  id            String   @id @default(uuid()) @db.Uuid
-  professionalId String  @db.Uuid
-  nutritionPlanId String? @db.Uuid
-  title         String
-  description   String?
-  ingredients   String?
-  instructions  String?
-  imageUrl      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(uuid()) @db.Uuid
+  professionalId  String   @db.Uuid
+  nutritionPlanId String?  @db.Uuid
+  title           String
+  description     String?
+  ingredients     String?
+  instructions    String?
+  imageUrl        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  professional User          @relation("CreatedRecipes", fields: [professionalId], references: [id])
+  professional  User           @relation("CreatedRecipes", fields: [professionalId], references: [id])
   nutritionPlan NutritionPlan? @relation(fields: [nutritionPlanId], references: [id], onDelete: SetNull)
 
   @@map("recipes")
@@ -465,12 +480,12 @@ model ShoppingList {
 }
 
 model ShoppingListItem {
-  id          String  @id @default(uuid()) @db.Uuid
-  listId      String  @db.Uuid
-  name        String
-  quantity    String?
-  unit        String?
-  isChecked   Boolean @default(false)
+  id        String  @id @default(uuid()) @db.Uuid
+  listId    String  @db.Uuid
+  name      String
+  quantity  String?
+  unit      String?
+  isChecked Boolean @default(false)
 
   list ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
 
@@ -482,18 +497,18 @@ model ShoppingListItem {
 // ──────────────────────────────────────────────
 
 model FollowUp {
-  id          String   @id @default(uuid()) @db.Uuid
-  patientId   String   @db.Uuid
-  weekStart   DateTime
-  weight      Decimal? @db.Decimal(5, 2)
-  adherence   String?
-  hunger      String?
-  energy      String?
+  id           String   @id @default(uuid()) @db.Uuid
+  patientId    String   @db.Uuid
+  weekStart    DateTime
+  weight       Decimal? @db.Decimal(5, 2)
+  adherence    String?
+  hunger       String?
+  energy       String?
   difficulties String?
   patientNotes String?
-  proNotes    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  proNotes     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   patient Patient @relation(fields: [patientId], references: [id])
 
@@ -505,16 +520,16 @@ model FollowUp {
 // ──────────────────────────────────────────────
 
 model PatientFile {
-  id          String   @id @default(uuid()) @db.Uuid
-  patientId   String   @db.Uuid
-  uploadedById String? @db.Uuid
-  name        String
-  url         String
-  publicId    String?
-  mimeType    String?
-  size        Int?
-  category    String?
-  createdAt   DateTime @default(now())
+  id           String   @id @default(uuid()) @db.Uuid
+  patientId    String   @db.Uuid
+  uploadedById String?  @db.Uuid
+  name         String
+  url          String
+  publicId     String?
+  mimeType     String?
+  size         Int?
+  category     String?
+  createdAt    DateTime @default(now())
 
   patient    Patient @relation(fields: [patientId], references: [id])
   uploadedBy User?   @relation("UploadedPatientFiles", fields: [uploadedById], references: [id])
@@ -585,7 +600,7 @@ model MessageThread {
   patientId String   @db.Uuid
   createdAt DateTime @default(now())
 
-  patient  Patient     @relation(fields: [patientId], references: [id])
+  patient  Patient   @relation(fields: [patientId], references: [id])
   messages Message[]
 
   @@map("message_threads")
@@ -608,11 +623,11 @@ model Message {
 // ──────────────────────────────────────────────
 
 model WhatsAppSetting {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @unique @map("user_id") @db.Uuid
-  encryptedPhone  String   @map("encrypted_phone") @db.Text
-  encryptedApiKey String   @map("encrypted_api_key") @db.Text
-  enabled         Boolean  @default(true)
+  id              String  @id @default(uuid()) @db.Uuid
+  userId          String  @unique @map("user_id") @db.Uuid
+  encryptedPhone  String  @map("encrypted_phone") @db.Text
+  encryptedApiKey String  @map("encrypted_api_key") @db.Text
+  enabled         Boolean @default(true)
 
   // Recordatorios para el profesional
   notifTurnosHoy              Boolean @default(true) @map("notif_turnos_hoy")
@@ -621,14 +636,14 @@ model WhatsAppSetting {
   notifPacientesInactivos     Boolean @default(false) @map("notif_pacientes_inactivos")
 
   // Recordatorios para el paciente
-  notifPlanDelDia             Boolean @default(true) @map("notif_plan_del_dia")
-  notifTurno24h               Boolean @default(true) @map("notif_turno_24h")
-  notifTurno2h                Boolean @default(true) @map("notif_turno_2h")
-  notifTipsRecetas            Boolean @default(false) @map("notif_tips_recetas")
-  notifSeguimientoSemanal     Boolean @default(true) @map("notif_seguimiento_semanal")
+  notifPlanDelDia         Boolean @default(true) @map("notif_plan_del_dia")
+  notifTurno24h           Boolean @default(true) @map("notif_turno_24h")
+  notifTurno2h            Boolean @default(true) @map("notif_turno_2h")
+  notifTipsRecetas        Boolean @default(false) @map("notif_tips_recetas")
+  notifSeguimientoSemanal Boolean @default(true) @map("notif_seguimiento_semanal")
 
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -666,4 +681,3 @@ enum AppointmentStatus {
   NO_SHOW
   RESCHEDULED
 }
-

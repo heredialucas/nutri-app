@@ -40,7 +40,7 @@ export const MEASUREMENT_SITES = {
 export interface IsakInputs {
   weight: number; // kg
   height: number; // cm
-  age: number; // años
+  age?: number; // años
   gender: Gender;
   activityLevel?: ActivityLevel | null;
   // pliegues (cm; en el form se capturan mm y se convierten a cm internamente)
@@ -57,6 +57,16 @@ export interface IsakInputs {
   hip?: number | null;
   midThigh?: number | null;
   calf?: number | null;
+  // Diámetros ISAK (mm)
+  humerusBreadth?: number | null;
+  femurBreadth?: number | null;
+  biStyloidWrist?: number | null;
+  biMalleolarAnkle?: number | null;
+  biacromial?: number | null;
+  biiliocristal?: number | null;
+  transverseChest?: number | null;
+  apChestDepth?: number | null;
+  apAbdominalDepth?: number | null;
 }
 
 export interface ReferenceRange {
@@ -116,6 +126,17 @@ export interface IsakResult {
     areaSuperficie: number | null;
     indicePerdidaCalor: number | null;
   };
+  diametros: {
+    humerusBreadth: number | null;
+    femurBreadth: number | null;
+    biStyloidWrist: number | null;
+    biMalleolarAnkle: number | null;
+    biacromial: number | null;
+    biiliocristal: number | null;
+    transverseChest: number | null;
+    apChestDepth: number | null;
+    apAbdominalDepth: number | null;
+  };
 }
 
 // ── Utilidades ────────────────────────────────────────────────
@@ -145,6 +166,7 @@ export function calcularEdad(birthDate: Date | string | null | undefined, ref = 
 
 // ── Perímetros corregidos (restando el pliegue cutáneo: C - π*pliegue) ──
 export function corregirPerimetro(perimetroCm: number, pliegueCm: number): number {
+  if (!Number.isFinite(perimetroCm) || !Number.isFinite(pliegueCm)) return NaN;
   return perimetroCm - PI * pliegueCm;
 }
 
@@ -198,6 +220,7 @@ export function masamuscular(i: IsakInputs): number | null {
 // ── IMC e interpretación (OMS) ──
 export function imc(weight: number, heightCm: number): number {
   const h = heightCm / 100;
+  if (!Number.isFinite(weight) || !Number.isFinite(h) || weight <= 0 || h <= 0) return NaN;
   return weight / (h * h);
 }
 export function clasificarImc(v: number): string {
@@ -242,14 +265,9 @@ export function clasificarIam(v: number): { clasificacion: string; interpretacio
 }
 
 // ── Interpretaciones de salud ──
-function saludRiesgoCintura(waistCm: number): HealthIndex {
-  const hombre = waistCm <= 94;
-  const mujer = waistCm <= 80;
-  const enRango = waistCm >= 70 && waistCm <= 90;
-  let interpretacion: string;
-  if (hombre) interpretacion = "Riesgo cardiometabólico bajo";
-  else if (mujer) interpretacion = "Riesgo cardiometabólico bajo";
-  else interpretacion = "Riesgo cardiometabólico elevado";
+function saludRiesgoCintura(waistCm: number, gender: Gender): HealthIndex {
+  const threshold = gender === "FEMALE" ? 80 : 94;
+  const interpretacion = waistCm < threshold ? "Riesgo cardiometabólico bajo" : "Riesgo cardiometabólico elevado";
   return {
     nombre: "Perímetro cintura",
     valor: round(waistCm) ?? 0,
@@ -258,13 +276,13 @@ function saludRiesgoCintura(waistCm: number): HealthIndex {
     interpretacion,
   };
 }
-function saludCinturaCadera(whr: number): HealthIndex {
+function saludCinturaCadera(whr: number, gender: Gender): HealthIndex {
   return {
     nombre: "Índice cintura cadera",
     valor: round(whr) ?? 0,
     unidad: "",
     rangoSaludable: "H: <0.90 · M: <0.85",
-    interpretacion: whr < 0.9 ? "Riesgo cardiometabólico bajo" : "Riesgo cardiometabólico elevado",
+    interpretacion: whr < (gender === "FEMALE" ? 0.85 : 0.9) ? "Riesgo cardiometabólico bajo" : "Riesgo cardiometabólico elevado",
   };
 }
 function saludConicidad(c: number): HealthIndex {
@@ -311,7 +329,7 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
 
   // Índice de masa corporal
   const bmi = imc(peso, talla);
-  const bmiClass = clasificarImc(bmi);
+  const bmiClass = Number.isFinite(bmi) ? clasificarImc(bmi) : "No disponible";
 
   // Sumatorio de pliegues
   const s6 = sumatorio6Pliegues(inputs);
@@ -373,25 +391,21 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
 
   // Índices de salud
   const salud: HealthIndex[] = [];
-  if (inputs.waist != null) salud.push(saludRiesgoCintura(inputs.waist));
-  if (inputs.waist != null && inputs.hip != null) {
-    salud.push(saludCinturaCadera(inputs.waist / inputs.hip));
+  if (inputs.waist != null && Number.isFinite(inputs.waist)) salud.push(saludRiesgoCintura(inputs.waist, inputs.gender));
+  if (inputs.waist != null && inputs.hip != null && inputs.hip > 0) {
+    salud.push(saludCinturaCadera(inputs.waist / inputs.hip, inputs.gender));
   }
-  if (inputs.waist != null) salud.push(saludConicidad(indiceConicidad(inputs.waist, peso, talla)));
+  if (inputs.waist != null && peso > 0 && talla > 0) salud.push(saludConicidad(indiceConicidad(inputs.waist, peso, talla)));
   if (inputs.abdominalSF != null) salud.push(saludPliegueAbdominal(inputs.abdominalSF));
-  salud.push({
-    nombre: "IMC",
-    valor: round(bmi) ?? 0,
-    unidad: "kg/m²",
-    rangoSaludable: "18,5 - 24,9",
-    interpretacion: bmiClass,
+  if (Number.isFinite(bmi)) salud.push({
+    nombre: "IMC", valor: round(bmi) ?? 0, unidad: "kg/m²", rangoSaludable: "18,5 - 24,9", interpretacion: bmiClass,
   });
   if (inputs.tricepsSF != null) salud.push(saludPliegueTriceps(inputs.tricepsSF));
 
   // Índices de rendimiento
   const diferenciaBrazo =
     inputs.flexedArm != null && inputs.relaxedArm != null ? inputs.flexedArm - inputs.relaxedArm : null;
-  const as = areaSuperficie(peso, talla);
+  const as = peso > 0 && talla > 0 ? areaSuperficie(peso, talla) : NaN;
   // IPC (índice de pérdida de calor): superficie corporal (cm²) por kg de masa.
   // Expresa la relación superficie/masa: a mayor valor, mayor capacidad de disipar calor.
   const ipc = as ? (as * 10000) / peso : null;
@@ -400,7 +414,7 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
     datos: {
       peso: round(peso) ?? 0,
       talla: round(talla) ?? 0,
-      edad: inputs.age,
+      edad: inputs.age ?? 0,
       genero: generoLabel,
       imc: round(bmi) ?? 0,
       imcClasificacion: bmiClass,
@@ -443,6 +457,13 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
       areaSuperficie: as != null ? round(as) : null,
       indicePerdidaCalor: ipc != null ? round(ipc) : null,
     },
+    diametros: {
+      humerusBreadth: round(inputs.humerusBreadth ?? NaN), femurBreadth: round(inputs.femurBreadth ?? NaN),
+      biStyloidWrist: round(inputs.biStyloidWrist ?? NaN), biMalleolarAnkle: round(inputs.biMalleolarAnkle ?? NaN),
+      biacromial: round(inputs.biacromial ?? NaN), biiliocristal: round(inputs.biiliocristal ?? NaN),
+      transverseChest: round(inputs.transverseChest ?? NaN), apChestDepth: round(inputs.apChestDepth ?? NaN),
+      apAbdominalDepth: round(inputs.apAbdominalDepth ?? NaN),
+    },
   };
 }
 
@@ -451,7 +472,7 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
 export function inputsFromMeasurement(m: {
   weight?: unknown;
   height?: unknown;
-  age: number;
+  age?: number;
   gender?: string | null;
   activityLevel?: string | null;
   tricepsSF?: unknown;
@@ -465,7 +486,18 @@ export function inputsFromMeasurement(m: {
   waist?: unknown;
   hip?: unknown;
   midThigh?: unknown;
-  calf?: unknown;
+   calf?: unknown;
+   humerusBreadth?: unknown;
+   femurBreadth?: unknown;
+   biStyloidWrist?: unknown;
+   biMalleolarAnkle?: unknown;
+   biacromial?: unknown;
+   biiliocristal?: unknown;
+   transverseChest?: unknown;
+   apChestDepth?: unknown;
+   apAbdominalDepth?: unknown;
+   birthDate?: Date | string | null;
+   measuredAt?: Date | string | null;
 }): IsakInputs {
   const num = (v: unknown): number | undefined => {
     if (v == null) return undefined;
@@ -479,7 +511,7 @@ export function inputsFromMeasurement(m: {
   return {
     weight: num(m.weight) ?? 0,
     height: num(m.height) ?? 0,
-    age: m.age,
+   age: m.age ?? calcularEdad(m.birthDate, m.measuredAt ? new Date(m.measuredAt) : new Date()) ?? 0,
     gender: (m.gender as Gender) || null,
     activityLevel: (m.activityLevel as ActivityLevel) || null,
     tricepsSF: sfInCm(m.tricepsSF),
@@ -494,5 +526,9 @@ export function inputsFromMeasurement(m: {
     hip: num(m.hip),
     midThigh: num(m.midThigh),
     calf: num(m.calf),
+    humerusBreadth: num(m.humerusBreadth), femurBreadth: num(m.femurBreadth),
+    biStyloidWrist: num(m.biStyloidWrist), biMalleolarAnkle: num(m.biMalleolarAnkle),
+    biacromial: num(m.biacromial), biiliocristal: num(m.biiliocristal),
+    transverseChest: num(m.transverseChest), apChestDepth: num(m.apChestDepth), apAbdominalDepth: num(m.apAbdominalDepth),
   };
 }

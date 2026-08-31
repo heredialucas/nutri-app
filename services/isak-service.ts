@@ -7,6 +7,7 @@ export const isakService = {
             where: { patientId },
             include: {
                 measuredBy: { select: { id: true, fullName: true } },
+                publishedBy: { select: { id: true, fullName: true } },
             },
             orderBy: { measuredAt: "desc" },
         });
@@ -17,6 +18,7 @@ export const isakService = {
             where: { id },
             include: {
                 measuredBy: { select: { id: true, fullName: true } },
+                publishedBy: { select: { id: true, fullName: true } },
             },
         });
     },
@@ -42,6 +44,20 @@ export const isakService = {
 
     async delete(id: string) {
         return prisma.isakAssessment.delete({ where: { id } });
+    },
+
+    async publish(id: string, publishedById: string) {
+        return prisma.isakAssessment.update({
+            where: { id },
+            data: { publishedToPatientAt: new Date(), publishedById },
+        });
+    },
+
+    async revoke(id: string) {
+        return prisma.isakAssessment.update({
+            where: { id },
+            data: { publishedToPatientAt: null, publishedById: null },
+        });
     },
 
     async getLatest(patientId: string) {

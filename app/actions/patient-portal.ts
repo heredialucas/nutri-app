@@ -153,6 +153,15 @@ export async function getMyMeasurements() {
     return serializePrisma(measurements);
 }
 
+export async function getMyIsakAssessments() {
+    const { patient } = await requirePatient();
+    const assessments = await prisma.isakAssessment.findMany({
+        where: { patientId: patient.id, publishedToPatientAt: { not: null } },
+        orderBy: { measuredAt: "desc" },
+    });
+    return serializePrisma(assessments);
+}
+
 export async function updateMyProfile(data: {
     firstName?: string;
     lastName?: string;

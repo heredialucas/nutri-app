@@ -10,6 +10,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { IsakPdfButton } from "./isak-pdf";
+import { publishIsakToPatient, revokeIsakFromPatient } from "@/app/actions/isak";
+import { IsakVisuals } from "./isak-visuals";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Share2, EyeOff } from "lucide-react";
 import type { IsakResult } from "@/lib/isak/calculations";
 
 interface IsakReportProps {
@@ -17,6 +22,9 @@ interface IsakReportProps {
   paciente: string;
   fecha?: string | null;
   evaluador: string;
+  assessmentId?: string;
+  publishedToPatientAt?: string | null;
+  evolutionData?: { date: string; result: IsakResult }[];
 }
 
 function Row({ label, value, strong }: { label: string; value: React.ReactNode; strong?: boolean }) {
@@ -30,8 +38,12 @@ function Row({ label, value, strong }: { label: string; value: React.ReactNode; 
   );
 }
 
-export function IsakReport({ result, paciente, fecha, evaluador }: IsakReportProps) {
+export function IsakReport({ result, paciente, fecha, evaluador, assessmentId, publishedToPatientAt, evolutionData = [] }: IsakReportProps) {
   const fechaTexto = fecha ? format(new Date(fecha), "dd/MM/yyyy", { locale: es }) : "";
+  const publish = async () => {
+    if (!assessmentId) return;
+    try { publishedToPatientAt ? await revokeIsakFromPatient(assessmentId) : await publishIsakToPatient(assessmentId); toast.success(publishedToPatientAt ? "Informe retirado del portal" : "Informe visible para el paciente"); } catch (error) { toast.error(error instanceof Error ? error.message : "No se pudo actualizar la publicación"); }
+  };
 
   return (
     <div className="space-y-6">
@@ -43,8 +55,23 @@ export function IsakReport({ result, paciente, fecha, evaluador }: IsakReportPro
             Evaluado por: <span className="font-medium text-foreground">{evaluador}</span>
           </p>
         </div>
-        <IsakPdfButton result={result} paciente={paciente} fecha={fechaTexto} evaluador={evaluador} />
+        <div className="flex flex-wrap gap-2">
+          <IsakPdfButton result={result} paciente={paciente} fecha={fechaTexto} evaluador={evaluador} evolutionData={evolutionData} />
+          {assessmentId && <Button onClick={publish} variant={publishedToPatientAt ? "outline" : "default"} size="sm"><span className="mr-2">{publishedToPatientAt ? <EyeOff className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}</span>{publishedToPatientAt ? "Retirar del portal" : "Mostrar al paciente"}</Button>}
+        </div>
       </div>
+
+      {publishedToPatientAt && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Este informe está visible en el portal del paciente.</div>}
+
+      {evolutionData.length > 0 && <IsakVisuals data={evolutionData} />}
+
+      <Card className="border-emerald-100 bg-gradient-to-br from-emerald-50/80 to-white">
+        <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
+          <div><p className="text-xs text-muted-foreground">Peso actual</p><p className="text-2xl font-semibold tracking-tight">{result.datos.peso} <span className="text-sm font-normal">kg</span></p><p className="text-xs text-muted-foreground">{result.datos.imcClasificacion}</p></div>
+          <div><p className="text-xs text-muted-foreground">Masa adiposa estimada</p><p className="text-2xl font-semibold tracking-tight">{result.fraccionamiento.masaAdiposaPct ?? "—"} <span className="text-sm font-normal">%</span></p><p className="text-xs text-muted-foreground">{result.fraccionamiento.masaAdiposaKg ?? "—"} kg</p></div>
+          <div><p className="text-xs text-muted-foreground">Masa muscular estimada</p><p className="text-2xl font-semibold tracking-tight">{result.fraccionamiento.masaMuscularPct ?? "—"} <span className="text-sm font-normal">%</span></p><p className="text-xs text-muted-foreground">{result.fraccionamiento.masaMuscularKg ?? "—"} kg</p></div>
+        </CardContent>
+      </Card>
 
       {/* Medidas básicas */}
       <Card>
@@ -101,6 +128,13 @@ export function IsakReport({ result, paciente, fecha, evaluador }: IsakReportPro
           />
           <Row label="Otros tejidos" value={`${result.fraccionamiento.otrosTejidosKg ?? "—"} kg (${result.fraccionamiento.otrosPct ?? "—"} %)`} />
         </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Diámetros óseos</CardTitle><p className="text-xs text-muted-foreground">Medidas estructurales tomadas según el perfil registrado</p></CardHeader>
+        <CardContent><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{[
+          ["Húmero biepicondilar", result.diametros.humerusBreadth], ["Fémur biepicondilar", result.diametros.femurBreadth], ["Muñeca biestiloidea", result.diametros.biStyloidWrist], ["Tobillo bimaleolar", result.diametros.biMalleolarAnkle], ["Biacromial", result.diametros.biacromial], ["Biiliocrestal", result.diametros.biiliocristal], ["Tórax transversal", result.diametros.transverseChest], ["Tórax AP", result.diametros.apChestDepth], ["Abdomen AP", result.diametros.apAbdominalDepth]
+        ].map(([label, value]) => <Stat key={String(label)} label={String(label)} value={value == null ? "—" : `${value} mm`} />)}</div></CardContent>
       </Card>
 
       {/* Distribución adiposo-muscular */}
@@ -164,35 +198,22 @@ export function IsakReport({ result, paciente, fecha, evaluador }: IsakReportPro
         </CardContent>
       </Card>
 
-      {/* Índices de salud */}
+      {/* Lectura sencilla de salud */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Índices de salud</CardTitle>
+          <CardTitle className="text-base">Lectura de salud</CardTitle>
+          <p className="text-xs text-muted-foreground">Indicadores orientativos para acompañar la evolución, no diagnósticos aislados.</p>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[560px]">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4 font-medium">Indicador</th>
-                  <th className="py-2 pr-4 font-medium">Valor</th>
-                  <th className="py-2 pr-4 font-medium">Rango saludable</th>
-                  <th className="py-2 font-medium">Interpretación</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.salud.map((s) => (
-                  <tr key={s.nombre} className="border-b border-border/60 last:border-0">
-                    <td className="py-2 pr-4 font-medium">{s.nombre}</td>
-                    <td className="py-2 pr-4">
-                      {s.valor} {s.unidad}
-                    </td>
-                    <td className="py-2 pr-4 text-muted-foreground">{s.rangoSaludable}</td>
-                    <td className="py-2">{s.interpretacion}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {result.salud.map((s) => {
+              const positive = /bajo|óptimo|normopeso|saludable/i.test(s.interpretacion);
+              return <div key={s.nombre} className="rounded-xl border bg-muted/20 p-4">
+                <div className="flex items-start justify-between gap-2"><p className="text-sm font-semibold">{friendlyHealthName(s.nombre)}</p><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${positive ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{positive ? "En seguimiento" : "Para observar"}</span></div>
+                <p className="mt-3 text-2xl font-semibold">{s.valor} <span className="text-xs font-normal text-muted-foreground">{s.unidad}</span></p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{friendlyHealthText(s)}</p>
+              </div>;
+            })}
           </div>
         </CardContent>
       </Card>
@@ -222,4 +243,21 @@ function Stat({ label, value, className }: { label: string; value: React.ReactNo
       <p className="text-sm font-semibold break-words">{value}</p>
     </div>
   );
+}
+
+function friendlyHealthName(name: string) {
+  const names: Record<string, string> = { "Perímetro cintura": "Cintura", "Índice cintura cadera": "Distribución cintura-cadera", "Índice de conicidad": "Distribución abdominal", "Pliegue abdominal": "Grasa abdominal estimada", "Pliegue tríceps": "Grasa subcutánea del brazo", IMC: "Relación peso-altura" };
+  return names[name] ?? name;
+}
+
+function friendlyHealthText(item: { nombre: string; interpretacion: string; rangoSaludable: string }) {
+  const texts: Record<string, string> = {
+    "Perímetro cintura": "Ayuda a observar cambios en la zona abdominal y su relación con la salud metabólica.",
+    "Índice cintura cadera": "Muestra cómo se distribuyen las medidas entre cintura y cadera.",
+    "Índice de conicidad": "Describe de forma orientativa la distribución de volumen en el tronco.",
+    "Pliegue abdominal": "Permite seguir cambios en el tejido adiposo bajo la piel del abdomen.",
+    "Pliegue tríceps": "Permite seguir cambios en el tejido adiposo bajo la piel del brazo.",
+    IMC: "Relaciona el peso con la altura. Se interpreta junto con cintura, músculo y contexto personal.",
+  };
+  return `${texts[item.nombre] ?? item.interpretacion} (${item.interpretacion}).`;
 }

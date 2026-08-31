@@ -11,6 +11,7 @@ import {
     FolderOpen,
     User,
     MessageSquare,
+    Activity,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -19,6 +20,7 @@ export const patientNavItems = [
     { href: "/paciente/dashboard/turnos", label: "Turnos", icon: CalendarDays },
     { href: "/paciente/dashboard/plan", label: "Mi Plan", icon: UtensilsCrossed },
     { href: "/paciente/dashboard/seguimiento", label: "Seguimiento", icon: ClipboardCheck },
+    { href: "/paciente/dashboard/antropometria", label: "Mi evolución", icon: Activity },
     { href: "/paciente/dashboard/archivos", label: "Archivos", icon: FolderOpen },
     { href: "/paciente/dashboard/perfil", label: "Mis datos", icon: User },
     { href: "/paciente/dashboard/configuracion", label: "Notificaciones", icon: MessageSquare },

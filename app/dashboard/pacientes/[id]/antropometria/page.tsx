@@ -8,7 +8,6 @@ import { redirect } from "next/navigation";
 import { IsakReport } from "@/components/progress/isak-report";
 import { IsakHistory } from "@/components/progress/isak-history";
 import { IsakFormDialog } from "@/components/progress/isak-form-dialog";
-import { IsakEvolutionChart } from "@/components/progress/isak-evolution-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   computeIsak,
@@ -64,10 +63,12 @@ export default async function AntropometriaPage({
   const selected =
     assessments.find((a) => a.id === selectedId) ?? assessments[0];
 
-  const age = calcularEdad(patient.birthDate);
-  const buildResult = (a: any) =>
-    computeIsak(inputsFromMeasurement({ ...a, age: age ?? 0, gender: patient.gender }));
+  const buildResult = (a: any) => {
+    const age = calcularEdad(patient.birthDate, new Date(a.measuredAt));
+    return computeIsak(inputsFromMeasurement({ ...a, age: age ?? 0, gender: patient.gender }));
+  };
 
+  const age = calcularEdad(patient.birthDate, new Date(selected.measuredAt));
   const inputs = inputsFromMeasurement({
     ...selected,
     age: age ?? 0,
@@ -102,16 +103,18 @@ export default async function AntropometriaPage({
         currentId={selected.id}
       />
 
-      <IsakEvolutionChart data={evolutionData} />
-
       <IsakReport
         result={result}
         paciente={`${patient.firstName} ${patient.lastName}`}
         fecha={selected.measuredAt}
         evaluador={evaluador}
+        assessmentId={selected.id}
+        publishedToPatientAt={selected.publishedToPatientAt}
+        evolutionData={evolutionData}
       />
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <IsakFormDialog patientId={id} assessment={selected} label="Editar evaluación" />
         <IsakFormDialog patientId={id} />
       </div>
     </div>

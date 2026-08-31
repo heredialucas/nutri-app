@@ -33,8 +33,37 @@ export type IsakFormInput = {
     hip?: number;
     midThigh?: number;
     calf?: number;
+    // Diámetros ISAK en mm
+    humerusBreadth?: number;
+    femurBreadth?: number;
+    biStyloidWrist?: number;
+    biMalleolarAnkle?: number;
+    biacromial?: number;
+    biiliocristal?: number;
+    transverseChest?: number;
+    apChestDepth?: number;
+    apAbdominalDepth?: number;
     notes?: string;
 };
+
+function validateIsakInput(data: Partial<IsakFormInput>) {
+    for (const key of ["weight", "height"] as const) {
+        const value = data[key];
+        if (value !== undefined && value !== null && (!Number.isFinite(value) || value <= 0)) {
+            throw new Error(`${key} debe ser un número mayor que cero`);
+        }
+    }
+    const fields = ["tricepsSF", "subscapSF", "suprailiacSF", "abdominalSF", "thighSF", "calf", "relaxedArm", "flexedArm", "waist", "hip", "midThigh", "humerusBreadth", "femurBreadth", "biStyloidWrist", "biMalleolarAnkle", "biacromial", "biiliocristal", "transverseChest", "apChestDepth", "apAbdominalDepth"] as const;
+    for (const key of fields) {
+        const value = data[key];
+        if (value !== undefined && value !== null && (!Number.isFinite(value) || value < 0)) {
+            throw new Error(`${key} debe ser un número válido`);
+        }
+    }
+    if (data.measuredAt !== undefined && Number.isNaN(new Date(data.measuredAt).getTime())) {
+        throw new Error("La fecha de medición no es válida");
+    }
+}
 
 export async function getIsakAssessments(patientId: string) {
     await requireAuth("patients:read");
@@ -51,6 +80,7 @@ export async function getIsakById(id: string) {
 export async function createIsak(data: IsakFormInput) {
     await requireAuth("measurements:create");
     const user = await getCurrentUser();
+    validateIsakInput(data);
 
     const result = await isakService.create({
         patientId: data.patientId,
@@ -72,6 +102,15 @@ export async function createIsak(data: IsakFormInput) {
         hip: data.hip ?? null,
         midThigh: data.midThigh ?? null,
         calf: data.calf ?? null,
+        humerusBreadth: data.humerusBreadth ?? null,
+        femurBreadth: data.femurBreadth ?? null,
+        biStyloidWrist: data.biStyloidWrist ?? null,
+        biMalleolarAnkle: data.biMalleolarAnkle ?? null,
+        biacromial: data.biacromial ?? null,
+        biiliocristal: data.biiliocristal ?? null,
+        transverseChest: data.transverseChest ?? null,
+        apChestDepth: data.apChestDepth ?? null,
+        apAbdominalDepth: data.apAbdominalDepth ?? null,
         notes: data.notes || null,
     });
 
@@ -83,6 +122,7 @@ export async function createIsak(data: IsakFormInput) {
 
 export async function updateIsak(id: string, data: Partial<IsakFormInput>) {
     await requireAuth("measurements:update");
+    validateIsakInput(data);
 
     const result = await isakService.update(id, {
         activityLevel: data.activityLevel ?? undefined,
@@ -101,6 +141,15 @@ export async function updateIsak(id: string, data: Partial<IsakFormInput>) {
         hip: data.hip ?? undefined,
         midThigh: data.midThigh ?? undefined,
         calf: data.calf ?? undefined,
+        humerusBreadth: data.humerusBreadth ?? undefined,
+        femurBreadth: data.femurBreadth ?? undefined,
+        biStyloidWrist: data.biStyloidWrist ?? undefined,
+        biMalleolarAnkle: data.biMalleolarAnkle ?? undefined,
+        biacromial: data.biacromial ?? undefined,
+        biiliocristal: data.biiliocristal ?? undefined,
+        transverseChest: data.transverseChest ?? undefined,
+        apChestDepth: data.apChestDepth ?? undefined,
+        apAbdominalDepth: data.apAbdominalDepth ?? undefined,
         notes: data.notes ?? undefined,
     });
 
@@ -134,4 +183,24 @@ export async function getPatientsWithIsak() {
     await requireAuth("patients:read");
     const list = await isakService.getPatientsWithIsak();
     return serializePrisma(list);
+}
+
+export async function publishIsakToPatient(id: string) {
+    const user = await requireAuth("measurements:update");
+    const assessment = await isakService.getById(id);
+    if (!assessment) throw new Error("Evaluación no encontrada");
+    const result = await isakService.publish(id, user.id);
+    revalidatePath(`/dashboard/pacientes/${assessment.patientId}/antropometria`);
+    revalidatePath("/paciente/dashboard/antropometria");
+    return serializePrisma(result);
+}
+
+export async function revokeIsakFromPatient(id: string) {
+    await requireAuth("measurements:update");
+    const assessment = await isakService.getById(id);
+    if (!assessment) throw new Error("Evaluación no encontrada");
+    const result = await isakService.revoke(id);
+    revalidatePath(`/dashboard/pacientes/${assessment.patientId}/antropometria`);
+    revalidatePath("/paciente/dashboard/antropometria");
+    return serializePrisma(result);
 }
