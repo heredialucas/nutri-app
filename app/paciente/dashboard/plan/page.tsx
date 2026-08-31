@@ -62,7 +62,7 @@ export default async function PlanPage() {
                                     proteinTarget: activePlan.proteinTarget,
                                     carbTarget: activePlan.carbTarget,
                                     fatTarget: activePlan.fatTarget,
-                                    notes: activePlan.notes,
+                                     notes: null,
                                     tips: activePlan.tips,
                                     startDate: activePlan.startDate ? activePlan.startDate.toISOString() : null,
                                     days: (activePlan.days || []).map((d: any) => ({
@@ -361,4 +361,3 @@ export default async function PlanPage() {
             </div>
     );
 }
-
