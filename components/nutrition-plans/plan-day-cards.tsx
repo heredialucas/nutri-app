@@ -14,6 +14,7 @@ import {
     Trash2,
     UtensilsCrossed,
     Clock,
+    Undo2,
 } from "lucide-react";
 
 export interface DayCardFood {
@@ -75,6 +76,8 @@ interface PlanDayCardsProps {
     ) => void;
     onAddFood?: (dayIndex: number, mealIndex: number) => void;
     onRemoveFood?: (dayIndex: number, mealIndex: number, foodIndex: number) => void;
+    changedFoodKeys?: string[];
+    onUndoFood?: (dayIndex: number, mealIndex: number, foodIndex: number) => void;
 }
 
 const dayColors = [
@@ -99,6 +102,8 @@ export function PlanDayCards({
     onFoodChange,
     onAddFood,
     onRemoveFood,
+    changedFoodKeys = [],
+    onUndoFood,
 }: PlanDayCardsProps) {
     const isEdit = mode === "edit";
     const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({ 0: true });
@@ -437,6 +442,18 @@ export function PlanDayCards({
                                                                             }
                                                                         >
                                                                             <Trash2 className="size-3" />
+                                                                        </Button>
+                                                                    )}
+                                                                    {changedFoodKeys.includes(`${dayIndex}:${mealIndex}:${foodIndex}`) && onUndoFood && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="size-7 text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950 shrink-0"
+                                                                            onClick={() => onUndoFood(dayIndex, mealIndex, foodIndex)}
+                                                                            title="Deshacer cambio de la IA"
+                                                                        >
+                                                                            <Undo2 className="size-3" />
+                                                                            <span className="sr-only">Deshacer cambio</span>
                                                                         </Button>
                                                                     )}
                                                                 </div>

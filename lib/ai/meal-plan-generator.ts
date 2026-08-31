@@ -84,7 +84,7 @@ function calculateAge(birthDate: Date | string): number {
     return age;
 }
 
-function buildPatientContext(patient: any): string {
+export function buildPatientContext(patient: any): string {
     const sections: string[] = [];
 
     // Demographics
@@ -146,7 +146,7 @@ function buildPatientContext(patient: any): string {
     return sections.join("\n\n");
 }
 
-function buildMeasurementContext(measurements: any[]): string {
+export function buildMeasurementContext(measurements: any[]): string {
     if (!measurements || measurements.length === 0) {
         return "[MEDICIONES]\nNo hay mediciones antropométricas registradas";
     }
@@ -165,7 +165,7 @@ function buildMeasurementContext(measurements: any[]): string {
     return `[MEDICIONES ANTROPOMÉTRICAS]\n${fields.join("\n")}`;
 }
 
-function buildFollowUpContext(followUps: any[]): string {
+export function buildFollowUpContext(followUps: any[]): string {
     if (!followUps || followUps.length === 0) {
         return "[SEGUIMIENTOS]\nNo hay seguimientos previos registrados";
     }
@@ -201,6 +201,8 @@ Reglas estrictas:
 - Incluí variaciones entre los días para no ser monótono.
 - Considerá la actividad física del paciente para ajustar porciones.
 - Si hay síntomas digestivos, evitá alimentos que los empeoren (picantes, grasas pesadas, etc.).
+- No generes notas privadas para el profesional. El campo "notes" debe ser siempre una cadena vacía.
+- No cambies ni inventes objetivos de calorías o macronutrientes para hacerlos matemáticamente compatibles. Respetá los objetivos indicados y, si son incompatibles entre sí, mantené los valores solicitados sin compensaciones arbitrarias.
 - Respondé SOLO con JSON válido, sin texto adicional.`;
 
 function buildUserPrompt(
@@ -266,7 +268,7 @@ ${includeText ? `- ${includeText}` : ""}
 ${excludeText ? `- ${excludeText}` : ""}
 ${customSection}
 
-La suma de las calorías y macronutrientes de los 7 días debe ser CONSISTENTE con las calorías objetivo y los objetivos de macronutrientes indicados. Calculá en cada alimento sus calorías (kcal) y gramos de proteína, carbohidratos y grasas; sumá por comida y por día.
+Calculá en cada alimento sus calorías (kcal) y gramos de proteína, carbohidratos y grasas; sumá por comida y por día. No modifiques los objetivos solicitados para forzar una coincidencia matemática.
 
 Añadí un listado de SUPLEMENTOS recomendados (suplementos y ayudas ergogénicas adecuadas al paciente y sus objetivos) en el campo "supplements". Si no corresponde recomendar suplementos para este paciente, devolvé un arreglo vacío [].
 
@@ -280,7 +282,7 @@ FORMATO DE RESPUESTA - JSON con la siguiente estructura exacta:
   "dailyProtein": <número entero, gramos de proteína diarios>,
   "dailyCarbs": <número entero, gramos de carbohidratos diarios>,
   "dailyFat": <número entero, gramos de grasas diarias>,
-  "notes": "Notas privadas para el profesional sobre decisiones tomadas en el plan",
+  "notes": "",
   "supplements": [
     {
       "name": "Nombre del suplemento (ej. Proteína en polvo, Creatina, Omega-3)",
@@ -481,6 +483,8 @@ export async function generateMealPlan(
             ) / 10;
         }
 
+        // Las notas privadas siempre las escribe el profesional, nunca la IA.
+        parsed.notes = "";
         return parsed;
     } catch {
         throw new Error("Error al procesar la respuesta de la IA. Intentá nuevamente.");

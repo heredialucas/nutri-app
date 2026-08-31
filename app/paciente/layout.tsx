@@ -6,6 +6,8 @@ import { LogoutButton } from "@/components/logout-button";
 import { PatientNav } from "@/components/patient-portal/patient-nav";
 import { PatientMobileMenu } from "@/components/patient-portal/patient-mobile-menu";
 import { ReminderTrigger } from "@/components/reminder-trigger";
+import { patientService } from "@/services/patient-service";
+import { PatientChatDrawer } from "@/components/patient-portal/patient-chat-drawer";
 
 export const metadata: Metadata = {
     title: "Mi Portal — Mauro Acosta",
@@ -22,10 +24,12 @@ export default async function PacienteLayout({
 
     const isPatient = isPatientUser(user);
     if (!isPatient) redirect("/dashboard");
+    const patient = await patientService.getByUserId(user.id);
 
     return (
         <div className="min-h-screen bg-[#fafaf8] flex">
             <ReminderTrigger />
+            {patient && <PatientChatDrawer />}
             <PatientNav userName={user.firstName || user.email} />
 
             <div className="flex-1 flex flex-col min-w-0">

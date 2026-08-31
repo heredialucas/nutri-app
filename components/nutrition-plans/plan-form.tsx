@@ -14,6 +14,8 @@ import { Pill, Plus, ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { PlanChatDrawer } from "./plan-chat-drawer";
+import type { GeneratedMealPlan } from "@/lib/ai/meal-plan-generator";
 import {
     createNutritionPlan,
     updateNutritionPlan,
@@ -131,6 +133,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
         })) || []
     );
     const [saving, setSaving] = useState(false);
+    const [chatUndo, setChatUndo] = useState<{ previous: GeneratedMealPlan; keys: string[] } | null>(null);
 
     const updateSupplement = (index: number, supplement: SupplementData) => {
         const updated = [...supplements];
@@ -394,6 +397,127 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
         }
     };
 
+    const planForChat = (): GeneratedMealPlan => ({
+        title: title || "Plan sin título",
+        description,
+        calorieTarget: calorieTarget ? parseInt(calorieTarget) || 0 : 0,
+        notes,
+        tips: tips || undefined,
+        dailyCalories: calorieTarget ? parseInt(calorieTarget) || 0 : undefined,
+        dailyProtein: proteinTarget ? parseInt(proteinTarget) || 0 : undefined,
+        dailyCarbs: carbTarget ? parseInt(carbTarget) || 0 : undefined,
+        dailyFat: fatTarget ? parseInt(fatTarget) || 0 : undefined,
+        supplements: supplements.map((s) => ({
+            name: s.name,
+            dosage: s.dosage || undefined,
+            timing: s.timing || undefined,
+            frequency: s.frequency || undefined,
+            notes: s.notes || undefined,
+        })),
+        days: days.map((d) => ({
+            dayOrder: d.dayOrder || 0,
+            label: d.label,
+            meals: d.meals.map((m) => ({
+                label: m.label,
+                mealOrder: m.mealOrder || 0,
+                notes: m.notes || undefined,
+                calories: m.calories ?? undefined,
+                protein: m.protein ? Number(m.protein) : undefined,
+                carbs: m.carbs ? Number(m.carbs) : undefined,
+                fat: m.fat ? Number(m.fat) : undefined,
+                foods: m.foods.map((f) => ({
+                    name: f.name ?? "",
+                    quantity: f.quantity ?? "",
+                    unit: f.unit ?? "",
+                    notes: f.notes ?? "",
+                    calories: f.calories ?? undefined,
+                    protein: f.protein ? Number(f.protein) : undefined,
+                    carbs: f.carbs ? Number(f.carbs) : undefined,
+                    fat: f.fat ? Number(f.fat) : undefined,
+                })),
+            })),
+        })),
+    });
+
+    const handlePlanChatChange = (
+        plan: GeneratedMealPlan,
+        previous: GeneratedMealPlan,
+        changedFoodKeys: string[]
+    ) => {
+        setTitle(plan.title || "");
+        setDescription(plan.description || "");
+        setCalorieTarget(plan.calorieTarget ? String(plan.calorieTarget) : "");
+        setProteinTarget(plan.dailyProtein ? String(plan.dailyProtein) : "");
+        setCarbTarget(plan.dailyCarbs ? String(plan.dailyCarbs) : "");
+        setFatTarget(plan.dailyFat ? String(plan.dailyFat) : "");
+        setNotes(plan.notes || "");
+        setTips(plan.tips || "");
+        setSupplements((plan.supplements || []).map((s) => ({
+            name: s.name,
+            dosage: s.dosage || "",
+            timing: s.timing || "",
+            frequency: s.frequency || "",
+            notes: s.notes || "",
+        })));
+        setDays(
+            (plan.days || []).map((d) => ({
+                dayOrder: d.dayOrder,
+                label: d.label,
+                meals: (d.meals || []).map((m) => ({
+                    label: m.label,
+                    mealOrder: m.mealOrder,
+                    notes: m.notes || "",
+                    calories: m.calories,
+                    protein: m.protein,
+                    carbs: m.carbs,
+                    fat: m.fat,
+                    foods: (m.foods || []).map((f) => ({
+                        name: f.name,
+                        quantity: f.quantity ?? "",
+                        unit: f.unit ?? "",
+                        notes: f.notes ?? "",
+                        calories: f.calories,
+                        protein: f.protein,
+                        carbs: f.carbs,
+                        fat: f.fat,
+                    })),
+                })),
+            }))
+        );
+        setChatUndo({ previous, keys: changedFoodKeys });
+    };
+
+    const undoChatFood = (dayIndex: number, mealIndex: number, foodIndex: number) => {
+        if (!chatUndo) return;
+        const key = `${dayIndex}:${mealIndex}:${foodIndex}`;
+        const previousMeal = chatUndo.previous.days[dayIndex]?.meals[mealIndex];
+        if (!previousMeal) return;
+
+        setDays((currentDays) => currentDays.map((day, di) =>
+            di !== dayIndex
+                ? day
+                : {
+                    ...day,
+                    meals: day.meals.map((meal, mi) =>
+                        mi !== mealIndex
+                            ? meal
+                            : {
+                                ...meal,
+                                calories: previousMeal.calories,
+                                protein: previousMeal.protein,
+                                carbs: previousMeal.carbs,
+                                fat: previousMeal.fat,
+                                foods: previousMeal.foods.map((food) => ({ ...food })),
+                            }
+                    ),
+                }
+        ));
+        setChatUndo((current) => current
+            ? { ...current, keys: current.keys.filter((item) => item !== key) }
+            : null
+        );
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -579,6 +703,8 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                 onFoodChange={updateFood}
                 onAddFood={addFood}
                 onRemoveFood={removeFood}
+                changedFoodKeys={chatUndo?.keys}
+                onUndoFood={undoChatFood}
             />
             <Button type="button" variant="outline" className="w-full border-dashed" onClick={addDay}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -649,6 +775,13 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                     Publicar plan
                 </Button>
             </div>
+
+            <PlanChatDrawer
+                plan={planForChat()}
+                onPlanChange={handlePlanChatChange}
+                originalOptions={undefined}
+                patientId={patientIds[0]}
+            />
         </div>
     );
 }

@@ -21,6 +21,10 @@ import {
     Loader2,
     Dumbbell,
     Pill,
+    Flame,
+    StickyNote,
+    Lightbulb,
+    Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -33,29 +37,28 @@ import { generateShoppingListFromPlanAI } from "@/app/actions/ai-shopping-lists"
 import { createRecipe, linkRecipesToPlan } from "@/app/actions/recipes";
 import { createShoppingList } from "@/app/actions/shopping-lists";
 import { usePlanDraftStore } from "@/stores/plan-draft-store";
+import { PlanChatDrawer } from "@/components/nutrition-plans/plan-chat-drawer";
 import type { GeneratedMealPlan } from "@/lib/ai/meal-plan-generator";
 
-interface MacroFieldProps {
+interface MacroChipProps {
     label: string;
     color: string;
     value: number;
     onChange: (v: number) => void;
 }
 
-function MacroField({ label, color, value, onChange }: MacroFieldProps) {
+function MacroChip({ label, color, value, onChange }: MacroChipProps) {
     return (
-        <div className="space-y-1">
-            <label className={`text-[11px] font-medium ${color}`}>{label}</label>
-            <div className="flex items-center gap-1">
-                <Input
-                    type="number"
-                    value={value}
-                    onChange={(e) => onChange(parseInt(e.target.value) || 0)}
-                    className="h-8 text-sm text-center"
-                    min={0}
-                />
-                <span className="text-xs text-muted-foreground">g</span>
-            </div>
+        <div className="flex items-center gap-1 rounded-lg bg-background border px-1.5 py-1">
+            <span className={`text-[10px] font-medium uppercase ${color}`}>{label}</span>
+            <Input
+                type="number"
+                value={value}
+                onChange={(e) => onChange(parseInt(e.target.value) || 0)}
+                className="h-6 w-12 px-1 text-center text-xs font-semibold"
+                min={0}
+            />
+            <span className="text-[10px] text-muted-foreground">g</span>
         </div>
     );
 }
@@ -75,8 +78,9 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
     const [expandedDays, setExpandedDays] = useState<Record<number, boolean>>({
         0: true,
     });
+    const [chatUndo, setChatUndo] = useState<{ previous: GeneratedMealPlan; keys: string[] } | null>(null);
 
-    const { updatePlan: updateDraftPlan, clearPlan: clearDraftPlan, patientName } = usePlanDraftStore();
+    const { updatePlan: updateDraftPlan, clearPlan: clearDraftPlan, patientName, options: draftOptions, customPrompt: draftCustomPrompt } = usePlanDraftStore();
 
     const [generatedRecipeIds, setGeneratedRecipeIds] = useState<string[]>([]);
     const primaryPatientId: string | undefined = patientIds[0];
@@ -237,6 +241,33 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
         });
     };
 
+    const undoChatFood = (key: string) => {
+        if (!chatUndo) return;
+        const [dayIndex, mealIndex, foodIndex] = key.split(":").map(Number);
+        const previousFood = chatUndo.previous.days[dayIndex]?.meals[mealIndex]?.foods[foodIndex];
+        const days = plan.days.map((day, di) =>
+            di !== dayIndex
+                ? day
+                : {
+                    ...day,
+                    meals: day.meals.map((meal, mi) =>
+                        mi !== mealIndex
+                            ? meal
+                            : {
+                                ...meal,
+                                foods: meal.foods
+                                    .map((food, fi) => fi === foodIndex ? previousFood : food)
+                                    .filter((food) => food !== undefined),
+                            }
+                    ),
+                }
+        );
+        const updated = { ...plan, days };
+        setPlan(updated);
+        updateDraftPlan(updated);
+        setChatUndo((current) => current ? { ...current, keys: current.keys.filter((item) => item !== key) } : null);
+    };
+
     const handleGenerateRecipes = async () => {
         setGeneratingRecipes(true);
         try {
@@ -355,77 +386,104 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
         "bg-orange-50 border-orange-200 dark:bg-orange-950 dark:border-orange-800",
     ];
 
+    const chatOriginalOptions = (() => {
+        if (!draftOptions) return undefined;
+        const parts: string[] = [];
+        if (draftOptions.calorieTarget) parts.push(`Calorías: ${draftOptions.calorieTarget} kcal`);
+        if (draftOptions.mealsPerDay) parts.push(`Comidas por día: ${draftOptions.mealsPerDay}`);
+        if (draftOptions.dietaryType?.length) parts.push(`Tipo de dieta: ${draftOptions.dietaryType.join(", ")}`);
+        if (draftOptions.restrictions?.length) parts.push(`Restricciones: ${draftOptions.restrictions.join(", ")}`);
+        if (draftOptions.includeFoods?.trim()) parts.push(`Incluir: ${draftOptions.includeFoods}`);
+        if (draftOptions.excludeFoods?.trim()) parts.push(`Excluir: ${draftOptions.excludeFoods}`);
+        if (draftOptions.proteinTarget) parts.push(`Proteína: ${draftOptions.proteinTarget}g`);
+        if (draftOptions.carbTarget) parts.push(`Carbs: ${draftOptions.carbTarget}g`);
+        if (draftOptions.fatTarget) parts.push(`Grasas: ${draftOptions.fatTarget}g`);
+        let text = parts.join("\n");
+        if (draftCustomPrompt?.trim()) {
+            text = text
+                ? `${text}\nInstrucción profesional: ${draftCustomPrompt.trim()}`
+                : `Instrucción profesional: ${draftCustomPrompt.trim()}`;
+        }
+        return text || undefined;
+    })();
+
     return (
         <div className="space-y-6">
             {/* Header editable */}
-            <Card>
-                <CardContent className="pt-6 space-y-4">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 space-y-3">
+            <Card className="overflow-hidden">
+                <CardContent className="pt-5 space-y-4">
+                    {/* Título + generado */}
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
                             <Input
                                 value={plan.title}
                                 onChange={(e) => updatePlanField("title", e.target.value)}
-                                className="text-lg font-semibold"
+                                className="border-0 bg-transparent px-0 text-lg font-semibold focus-visible:ring-0"
                                 placeholder="Título del plan"
                             />
-                            <Textarea
-                                value={plan.description}
-                                onChange={(e) => updatePlanField("description", e.target.value)}
-                                placeholder="Descripción del plan"
-                                rows={2}
-                                className="resize-none"
-                            />
                         </div>
-                        <div className="flex flex-col items-end gap-2 shrink-0">
+                        <Badge variant="secondary" className="shrink-0">
+                            <Sparkles className="mr-1 size-3" />
+                            Generado con IA
+                        </Badge>
+                    </div>
+
+                    <Textarea
+                        value={plan.description}
+                        onChange={(e) => updatePlanField("description", e.target.value)}
+                        placeholder="Descripción del plan"
+                        rows={2}
+                        className="resize-none text-sm text-muted-foreground border-0 bg-transparent px-0 focus-visible:ring-0"
+                    />
+
+                    {/* Calorías + macros objetivo compactos */}
+                    {(plan.calorieTarget > 0 ||
+                        plan.dailyProtein !== undefined ||
+                        plan.dailyCarbs !== undefined ||
+                        plan.dailyFat !== undefined) && (
+                        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/40 p-3">
                             {plan.calorieTarget > 0 && (
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-muted-foreground">Calorías:</span>
+                                <div className="flex items-center gap-1.5">
+                                    <Flame className="size-4 text-orange-500 shrink-0" />
                                     <Input
                                         type="number"
                                         value={plan.calorieTarget}
                                         onChange={(e) =>
                                             updatePlanField("calorieTarget", parseInt(e.target.value) || 0)
                                         }
-                                        className="w-24 text-center"
+                                        className="h-8 w-20 text-center text-sm font-semibold"
+                                        min={0}
                                     />
-                                    <span className="text-sm text-muted-foreground">kcal</span>
+                                    <span className="text-xs text-muted-foreground">kcal</span>
+                                    <Badge variant="outline" className="text-xs">
+                                        Total diario:{" "}
+                                        <span className="font-semibold">
+                                            {plan.dailyCalories ?? plan.calorieTarget} kcal
+                                        </span>
+                                    </Badge>
                                 </div>
                             )}
-                            <Badge variant="secondary">
-                                <Sparkles className="mr-1 size-3" />
-                                Generado con IA
-                            </Badge>
-                        </div>
-                    </div>
 
-                    {/* Distribución diaria de macros objetivo */}
-                    {(plan.dailyProtein !== undefined ||
-                        plan.dailyCarbs !== undefined ||
-                        plan.dailyFat !== undefined) && (
-                        <div className="rounded-lg border bg-muted/40 p-3">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                            <div className="hidden sm:block h-5 w-px bg-border" />
+
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
                                     <Dumbbell className="size-3.5" />
-                                    Distribución de macronutrientes (diaria)
+                                    Macros diarios:
                                 </span>
-                                <span className="text-xs font-semibold text-muted-foreground">
-                                    {plan.dailyCalories ?? plan.calorieTarget} kcal
-                                </span>
-                            </div>
-                            <div className="grid grid-cols-3 gap-3">
-                                <MacroField
+                                <MacroChip
                                     label="Proteína"
                                     color="text-rose-600 dark:text-rose-400"
                                     value={plan.dailyProtein ?? 0}
                                     onChange={(v) => updatePlanField("dailyProtein", v)}
                                 />
-                                <MacroField
-                                    label="Carbohidratos"
+                                <MacroChip
+                                    label="Carbs"
                                     color="text-sky-600 dark:text-sky-400"
                                     value={plan.dailyCarbs ?? 0}
                                     onChange={(v) => updatePlanField("dailyCarbs", v)}
                                 />
-                                <MacroField
+                                <MacroChip
                                     label="Grasas"
                                     color="text-amber-600 dark:text-amber-400"
                                     value={plan.dailyFat ?? 0}
@@ -434,28 +492,34 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                             </div>
                         </div>
                     )}
-                    {plan.notes && (
+
+                    <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
-                            <span className="text-xs font-medium text-muted-foreground">Notas:</span>
+                            <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                                <StickyNote className="size-3" />
+                                Notas (solo profesional)
+                            </span>
                             <Textarea
                                 value={plan.notes}
                                 onChange={(e) => updatePlanField("notes", e.target.value)}
                                 rows={2}
-                                className="resize-none text-sm"
+                                className="resize-none text-xs leading-relaxed"
+                                placeholder="Notas privadas de decisiones clínicas..."
                             />
                         </div>
-                    )}
-                    <div className="space-y-1">
-                        <span className="text-xs font-medium text-muted-foreground">
-                            Tips de nutrición para este plan:
-                        </span>
-                        <Textarea
-                            value={plan.tips ?? ""}
-                            onChange={(e) => updatePlanField("tips", e.target.value)}
-                            rows={3}
-                            className="resize-none text-sm"
-                            placeholder={"Escribí tips personalizados, uno por línea.\nEl paciente verá solo los tips de su plan."}
-                        />
+                        <div className="space-y-1">
+                            <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                                <Lightbulb className="size-3" />
+                                Tips para el paciente
+                            </span>
+                            <Textarea
+                                value={plan.tips ?? ""}
+                                onChange={(e) => updatePlanField("tips", e.target.value)}
+                                rows={2}
+                                className="resize-none text-xs leading-relaxed"
+                                placeholder={"Uno por línea. El paciente verá solo los tips de su plan."}
+                            />
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -686,7 +750,7 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                                                             className="w-14 h-8 text-sm text-center bg-transparent border-transparent hover:border-input focus:border-input text-amber-600/70 dark:text-amber-400/70"
                                                             title="Grasas (g)"
                                                         />
-                                                        <Button
+                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
                                                             className="size-7 text-muted-foreground hover:text-destructive shrink-0"
@@ -695,7 +759,19 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                                                             }
                                                         >
                                                             <Trash2 className="size-3" />
-                                                        </Button>
+                                                         </Button>
+                                                         {chatUndo?.keys.includes(`${dayIndex}:${mealIndex}:${foodIndex}`) && (
+                                                             <Button
+                                                                 variant="ghost"
+                                                                 size="icon"
+                                                                 className="size-7 text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950 shrink-0"
+                                                                 onClick={() => undoChatFood(`${dayIndex}:${mealIndex}:${foodIndex}`)}
+                                                                 title="Deshacer cambio de la IA"
+                                                             >
+                                                                 <Undo2 className="size-3" />
+                                                                 <span className="sr-only">Deshacer cambio</span>
+                                                             </Button>
+                                                         )}
                                                     </div>
                                                 ))}
                                                 <Button
@@ -744,19 +820,23 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                             No hay suplementos en este plan. Agregá los recomendados para el paciente.
                         </p>
                     ) : (
-                        plan.supplements.map((supp, suppIndex) => (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                        {plan.supplements.map((supp, suppIndex) => (
                             <div
                                 key={suppIndex}
-                                className="rounded-lg border p-3 space-y-2"
+                                className="rounded-xl border p-3 space-y-2.5 bg-background"
                             >
                                 <div className="flex items-center gap-2">
+                                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-950">
+                                        <Pill className="size-3.5 text-purple-600 dark:text-purple-400" />
+                                    </div>
                                     <Input
                                         value={supp.name}
                                         onChange={(e) =>
                                             updateSupplement(suppIndex, "name", e.target.value)
                                         }
                                         placeholder="Nombre del suplemento"
-                                        className="flex-1 h-8 text-sm font-medium"
+                                        className="flex-1 h-8 text-sm font-medium border-0 bg-transparent px-0 focus-visible:ring-0"
                                     />
                                     <Button
                                         variant="ghost"
@@ -767,31 +847,40 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                                         <Trash2 className="size-3.5" />
                                     </Button>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                    <Input
-                                        value={supp.dosage ?? ""}
-                                        onChange={(e) =>
-                                            updateSupplement(suppIndex, "dosage", e.target.value)
-                                        }
-                                        placeholder="Dosis (ej: 30g, 1 scoop)"
-                                        className="h-8 text-sm"
-                                    />
-                                    <Input
-                                        value={supp.timing ?? ""}
-                                        onChange={(e) =>
-                                            updateSupplement(suppIndex, "timing", e.target.value)
-                                        }
-                                        placeholder="Momento (ej: Post-entreno)"
-                                        className="h-8 text-sm"
-                                    />
-                                    <Input
-                                        value={supp.frequency ?? ""}
-                                        onChange={(e) =>
-                                            updateSupplement(suppIndex, "frequency", e.target.value)
-                                        }
-                                        placeholder="Frecuencia (ej: Diario)"
-                                        className="h-8 text-sm"
-                                    />
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] text-muted-foreground uppercase">Dosis</span>
+                                        <Input
+                                            value={supp.dosage ?? ""}
+                                            onChange={(e) =>
+                                                updateSupplement(suppIndex, "dosage", e.target.value)
+                                            }
+                                            placeholder="30g, 1 scoop"
+                                            className="h-8 text-sm"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] text-muted-foreground uppercase">Frecuencia</span>
+                                        <Input
+                                            value={supp.frequency ?? ""}
+                                            onChange={(e) =>
+                                                updateSupplement(suppIndex, "frequency", e.target.value)
+                                            }
+                                            placeholder="Diario"
+                                            className="h-8 text-sm"
+                                        />
+                                    </div>
+                                    <div className="col-span-2 space-y-1">
+                                        <span className="text-[10px] text-muted-foreground uppercase">Momento</span>
+                                        <Input
+                                            value={supp.timing ?? ""}
+                                            onChange={(e) =>
+                                                updateSupplement(suppIndex, "timing", e.target.value)
+                                            }
+                                            placeholder="Post-entreno"
+                                            className="h-8 text-sm"
+                                        />
+                                    </div>
                                 </div>
                                 <Textarea
                                     value={supp.notes ?? ""}
@@ -803,7 +892,8 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                                     className="h-8 min-h-0 text-xs resize-none text-muted-foreground"
                                 />
                             </div>
-                        ))
+                        ))}
+                        </div>
                     )}
                 </CardContent>
             </Card>
@@ -863,6 +953,17 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                     </Button>
                 </div>
             </div>
+
+            <PlanChatDrawer
+                plan={plan}
+                onPlanChange={(updated, previous, changedFoodKeys) => {
+                    setPlan(updated);
+                    updateDraftPlan(updated);
+                    setChatUndo({ previous, keys: changedFoodKeys });
+                }}
+                originalOptions={chatOriginalOptions}
+                patientId={primaryPatientId}
+            />
         </div>
     );
 }
