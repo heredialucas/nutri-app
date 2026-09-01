@@ -24,9 +24,11 @@ export default async function NewPlanPage({
         <NewPlanClient
             initialPatientIds={patientId ? [patientId] : undefined}
             patients={(patients as any[]).map((p) => ({
-                id: p.id,
-                firstName: p.firstName,
-                lastName: p.lastName,
+                 id: p.id,
+                 firstName: p.firstName,
+                 lastName: p.lastName,
+                 email: p.email,
+                 documentNumber: p.documentNumber,
             }))}
         />
     );

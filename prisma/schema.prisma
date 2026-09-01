@@ -29,6 +29,7 @@ model User {
 
   // Patient portal
   patient Patient?
+  anamnesisCreatedBy PatientAnamnesis[] @relation("AnamnesisCreatedBy")
 
   // Nutrition relations
   professionalAppointments Appointment[]               @relation("ProfessionalAppointments")
@@ -148,8 +149,63 @@ model Patient {
   payments        Payment[]
   waitlistEntries WaitlistEntry[]
   messageThreads  MessageThread[]
+  anamnesis       PatientAnamnesis?
 
   @@map("patients")
+}
+
+model PatientAnamnesis {
+  id String @id @default(uuid()) @db.Uuid
+  patientId String @unique @db.Uuid
+  consultationReason String?
+  mainObjective String?
+  mealsPerDay String?
+  waterIntake String?
+  breakfast String?
+  lunch String?
+  snack String?
+  dinner String?
+  snacksDrinks String?
+  likedFoods String?
+  dislikedFoods String?
+  difficultFoods String?
+  eatsOut Boolean?
+  eatsOutFrequency String?
+  physicalActivity Boolean?
+  activityName String?
+  activityDays String?
+  activityDuration String?
+  activitySchedule String?
+  activityLevel String?
+  sportsObjective String?
+  sleepHours String?
+  sleepQuality String?
+  stressLevel String?
+  energyLevel String?
+  supplements String?
+  digestiveSymptoms String?
+  bowelFrequency String?
+  digestiveNotes String?
+  previousDiets Boolean?
+  adherenceDifficulty String?
+  readinessScore Int?
+  treatmentGoal String?
+  agreedGoal String?
+  nextControl DateTime?
+  anthropometryMethod String?
+  visceralFat String?
+  professionalNotes String?
+  status String @default("DRAFT")
+  completedBy String? @db.Uuid
+  completedAt DateTime?
+  reviewedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("AnamnesisCreatedBy", fields: [completedBy], references: [id], onDelete: SetNull)
+
+  @@map("patient_anamneses")
 }
 
 // ──────────────────────────────────────────────

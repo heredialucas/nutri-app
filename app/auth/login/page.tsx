@@ -3,7 +3,8 @@ import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ reset?: string }> }) {
+  const { reset } = await searchParams;
   const user = await getCurrentUser();
   if (user) {
     if (isPatientUser(user)) {
@@ -27,7 +28,7 @@ export default async function Page() {
             Volver al inicio
           </Link>
         </div>
-        <LoginForm />
+         <LoginForm resetSuccess={reset === "success"} />
       </div>
     </div>
   );

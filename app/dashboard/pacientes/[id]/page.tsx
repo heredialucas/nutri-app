@@ -380,6 +380,30 @@ export default async function PatientDetailPage({
                     </AccordionContent>
                 </AccordionItem>
 
+                {/* Anamnesis nutricional */}
+                <AccordionItem value="anamnesis" className="border rounded-lg px-4">
+                    <AccordionTrigger className="py-3 hover:no-underline">
+                        <div className="flex items-center gap-2.5">
+                            <ClipboardList className="h-4 w-4 text-emerald-500" />
+                            <span className="text-sm font-semibold">Anamnesis nutricional</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-1">
+                        <Link
+                            href={`/dashboard/pacientes/${id}/anamnesis`}
+                            className="flex items-center justify-between rounded-lg border border-emerald-600/30 bg-emerald-500/5 p-3 transition-colors hover:bg-emerald-500/10"
+                        >
+                            <div>
+                                <p className="text-sm font-semibold">Ficha de anamnesis</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Alimentación, preferencias, actividad, descanso, digestión y objetivos
+                                </p>
+                            </div>
+                            <span className="text-sm text-emerald-600">Abrir →</span>
+                        </Link>
+                    </AccordionContent>
+                </AccordionItem>
+
                 {/* Fotos de progreso */}
                 <AccordionItem value="fotos" className="border rounded-lg px-4">
                     <AccordionTrigger className="py-3 hover:no-underline">

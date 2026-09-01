@@ -293,6 +293,18 @@ async function main() {
             observations: "Objetivo principal: mejorar composición corporal y organización alimentaria.",
         },
     });
+    await prisma.patientAnamnesis.upsert({
+        where: { patientId: demoPatient.id },
+        update: { status: "REVIEWED" },
+        create: {
+            patientId: demoPatient.id, consultationReason: "Mejorar composición corporal y ordenar la alimentación.", mainObjective: "Recomposición corporal", mealsPerDay: "4", waterIntake: "2 L",
+            breakfast: "Avena con yogur sin lactosa y fruta", lunch: "Pollo o pescado con arroz y ensalada", snack: "Fruta y frutos secos", dinner: "Tortilla de vegetales o ensalada completa", snacksDrinks: "Café y picoteos ocasionales",
+            likedFoods: "Frutas, verduras, pollo, pescado, arroz", dislikedFoods: "Leche y comidas muy grasas", difficultFoods: "Panificados durante la tarde", eatsOut: true, eatsOutFrequency: "2",
+            physicalActivity: true, activityName: "Entrenamiento de fuerza y caminatas", activityDays: "4", activityDuration: "60", activitySchedule: "18:00", activityLevel: "Intermedio", sportsObjective: "Mejorar fuerza",
+            sleepHours: "7", sleepQuality: "Bueno", stressLevel: "Moderado", energyLevel: "Buena", supplements: "Creatina monohidratada", digestiveSymptoms: "Distensión ocasional", bowelFrequency: "7", digestiveNotes: "Mejora con mayor regularidad de comidas", previousDiets: true, adherenceDifficulty: "Comer fuera de casa", readinessScore: 8,
+            treatmentGoal: "Sentirse con más energía y mejorar composición corporal", agreedGoal: "Sostener cuatro comidas planificadas", nextControl: new Date("2026-09-12"), anthropometryMethod: "ISAK", visceralFat: "No informado", professionalNotes: "Revisar tolerancia a lácteos y opciones para comer fuera.", status: "REVIEWED", completedBy: adminUser.id, completedAt: new Date(), reviewedAt: new Date(),
+        },
+    });
     await prisma.allergy.create({ data: { patientId: demoPatient.id, name: "Lactosa", reaction: "Distensión abdominal", severity: "LEVE", notes: "Tolera yogur y quesos duros." } });
     await prisma.medication.create({ data: { patientId: demoPatient.id, name: "Levotiroxina", dosage: "50 mcg", frequency: "Una vez al día", indication: "Control endocrinológico", startDate: new Date("2021-03-01"), notes: "Según indicación médica." } });
     await prisma.patientGoal.createMany({ data: [

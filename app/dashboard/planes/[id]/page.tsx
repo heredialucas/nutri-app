@@ -71,6 +71,8 @@ export default async function PlanDetailPage({ params }: Props) {
                             id: p.id,
                             firstName: p.firstName,
                             lastName: p.lastName,
+                            email: p.email,
+                            documentNumber: p.documentNumber,
                         }))}
                         selectedIds={patientIds}
                     />

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { UserPlus, Loader2 } from "lucide-react";
@@ -15,11 +14,14 @@ import {
     SheetFooter,
 } from "@/components/ui/sheet";
 import { assignPatientsToPlan } from "@/app/actions/nutrition-plans";
+import { PatientPicker } from "./patient-picker";
 
 interface Patient {
     id: string;
     firstName: string;
     lastName: string;
+    email?: string | null;
+    documentNumber?: string | null;
 }
 
 interface AssignPlanPatientsProps {
@@ -33,12 +35,6 @@ export function AssignPlanPatients({ planId, patients, selectedIds }: AssignPlan
     const [open, setOpen] = useState(false);
     const [selected, setSelected] = useState<string[]>(selectedIds);
     const [saving, setSaving] = useState(false);
-
-    const toggle = (id: string) => {
-        setSelected((prev) =>
-            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-        );
-    };
 
     const handleSave = async () => {
         setSaving(true);
@@ -70,34 +66,7 @@ export function AssignPlanPatients({ planId, patients, selectedIds }: AssignPlan
                         </SheetDescription>
                     </SheetHeader>
 
-                    <div className="space-y-4">
-                        <div className="flex flex-wrap gap-1.5">
-                            {patients.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                    No hay pacientes cargados
-                                </p>
-                            ) : (
-                                patients.map((p) => {
-                                    const active = selected.includes(p.id);
-                                    return (
-                                        <Badge
-                                            key={p.id}
-                                            variant={active ? "default" : "outline"}
-                                            className={`cursor-pointer text-xs py-0.5 px-2 ${
-                                                active
-                                                    ? "bg-green-600 text-white hover:bg-green-700"
-                                                    : "hover:bg-green-50 hover:text-green-700"
-                                            }`}
-                                            onClick={() => toggle(p.id)}
-                                        >
-                                            {active && <span className="mr-1">✓</span>}
-                                            {p.firstName} {p.lastName}
-                                        </Badge>
-                                    );
-                                })
-                            )}
-                        </div>
-                    </div>
+                     <PatientPicker patients={patients} selectedIds={selected} onChange={setSelected} label="Pacientes asignados" />
 
                     <SheetFooter className="mt-6">
                         <Button

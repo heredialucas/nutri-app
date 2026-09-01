@@ -10,6 +10,7 @@ import { recipeService } from "@/services/recipe-service";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serializePrisma } from "@/lib/utils";
+import type { AnamnesisInput } from "@/app/actions/anamnesis";
 
 async function requirePatient() {
     const user = await getCurrentUser();
@@ -23,6 +24,23 @@ async function requirePatient() {
 export async function getMyProfile() {
     const { patient } = await requirePatient();
     return serializePrisma(patient);
+}
+
+export async function getMyAnamnesis() {
+    const { patient } = await requirePatient();
+    return serializePrisma(await prisma.patientAnamnesis.findUnique({ where: { patientId: patient.id } }));
+}
+
+export async function saveMyAnamnesis(data: AnamnesisInput) {
+    const { patient } = await requirePatient();
+    const { nextControl, professionalNotes: _professionalNotes, ...rest } = data;
+    const result = await prisma.patientAnamnesis.upsert({
+        where: { patientId: patient.id },
+        create: { patientId: patient.id, ...rest, nextControl: nextControl ? new Date(nextControl) : undefined, status: "SUBMITTED", completedAt: new Date() },
+        update: { ...rest, nextControl: nextControl ? new Date(nextControl) : null, status: "SUBMITTED", completedAt: new Date() },
+    });
+    revalidatePath("/paciente/dashboard/anamnesis");
+    return serializePrisma(result);
 }
 
 export async function getMyAppointments() {

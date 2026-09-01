@@ -4,12 +4,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Settings2, Sparkles, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { AIPlanGenerator } from "./ai-plan-generator";
 import { PlanEditor } from "./plan-editor";
 import { usePlanDraftStore } from "@/stores/plan-draft-store";
 import type { GeneratedMealPlan } from "@/lib/ai/meal-plan-generator";
+import { PatientPicker } from "./patient-picker";
 
 interface Patient {
     id: string;
@@ -41,12 +41,6 @@ export function NewPlanClient({ patients, initialPatientIds }: NewPlanClientProp
             setShowDraftBanner(true);
         }
     }, []);
-
-    const togglePatient = (id: string) => {
-        setSelectedPatientIds((prev) =>
-            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-        );
-    };
 
     const handleContinueDraft = () => {
         if (draftPlan && draftPatientId) {
@@ -131,40 +125,7 @@ export function NewPlanClient({ patients, initialPatientIds }: NewPlanClientProp
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium">Paciente/s</label>
-                            <span className="text-xs text-muted-foreground">
-                                {selectedPatientIds.length > 0
-                                    ? `${selectedPatientIds.length} seleccionado${selectedPatientIds.length > 1 ? "s" : ""}`
-                                    : "Plan genérico (opcional)"}
-                            </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                            {patients.length === 0 ? (
-                                <span className="text-sm text-muted-foreground">
-                                    No hay pacientes cargados — podés crear un plan genérico
-                                </span>
-                            ) : (
-                                patients.map((p) => {
-                                    const active = selectedPatientIds.includes(p.id);
-                                    return (
-                                        <Badge
-                                            key={p.id}
-                                            variant={active ? "default" : "outline"}
-                                            className={`cursor-pointer text-xs py-0.5 px-2 ${
-                                                active
-                                                    ? "bg-green-600 text-white hover:bg-green-700"
-                                                    : "hover:bg-green-50 hover:text-green-700"
-                                            }`}
-                                            onClick={() => togglePatient(p.id)}
-                                        >
-                                            {active && <span className="mr-1">✓</span>}
-                                            {p.firstName} {p.lastName}
-                                        </Badge>
-                                    );
-                                })
-                            )}
-                        </div>
+                        <PatientPicker patients={patients} selectedIds={selectedPatientIds} onChange={setSelectedPatientIds} />
                         <div className="flex items-center gap-3">
                             <Button
                                 variant="outline"

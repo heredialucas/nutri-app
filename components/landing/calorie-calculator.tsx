@@ -12,20 +12,7 @@ import {
   ArrowRight,
   ChevronDown,
 } from "lucide-react";
-
-const activityLevels = [
-  { value: "sedentario", label: "Sedentario", factor: 1.2 },
-  { value: "ligero", label: "Ligero", factor: 1.375 },
-  { value: "moderado", label: "Moderado", factor: 1.55 },
-  { value: "activo", label: "Activo", factor: 1.725 },
-  { value: "muy_activo", label: "Muy activo", factor: 1.9 },
-];
-
-const goals = [
-  { value: "perder", label: "Perder grasa", factor: 0.85 },
-  { value: "mantener", label: "Mantener peso", factor: 1 },
-  { value: "ganar", label: "Ganar masa muscular", factor: 1.15 },
-];
+import { activityLevels, calculateCalorieTargets, goals } from "@/lib/calorie-calculator";
 
 const fieldBase =
   "w-full rounded-xl bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.14)] px-4 py-3 text-white text-sm font-normal outline-none transition-all duration-300 placeholder:text-[rgba(255,255,255,0.3)] focus:border-[rgba(255,255,255,0.5)] focus:bg-[rgba(255,255,255,0.09)]";
@@ -44,39 +31,20 @@ export function CalorieCalculator() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   const result = useMemo(() => {
-    const kg = parseFloat(weight) || 0;
-    const cm = parseFloat(height) || 0;
-    const years = parseFloat(age) || 0;
-    if (!kg || !cm || !years) return null;
-
-    const bmr =
-      sex === "femenino"
-        ? 10 * kg + 6.25 * cm - 5 * years - 161
-        : 10 * kg + 6.25 * cm - 5 * years + 5;
-
-    const activityFactor =
-      activityLevels.find((a) => a.value === activity)?.factor ?? 1.55;
-    const goalFactor = goals.find((g) => g.value === objective)?.factor ?? 1;
-    const calories = Math.round(bmr * activityFactor * goalFactor);
-
-    const proteinMin = Math.round(1.6 * kg);
-    const proteinMax = Math.round(2.2 * kg);
-    const fatMin = Math.round((calories * 0.25) / 9);
-    const fatMax = Math.round((calories * 0.35) / 9);
-    const carbsMin = Math.max(0, Math.round((calories - proteinMax * 4 - fatMax * 9) / 4));
-    const carbsMax = Math.max(0, Math.round((calories - proteinMin * 4 - fatMin * 9) / 4));
+    const calculation = calculateCalorieTargets({ sex, age: parseFloat(age) || 0, weight: parseFloat(weight) || 0, height: parseFloat(height) || 0, activity, objective });
+    if (!calculation) return null;
 
     return {
-      calories,
-      bmr: Math.round(bmr),
-      goalLabel: goals.find((g) => g.value === objective)?.label ?? "",
-      activityLabel: activityLevels.find((a) => a.value === activity)?.label ?? "",
+      calories: calculation.calories,
+      bmr: calculation.bmr,
+      goalLabel: calculation.goalLabel,
+      activityLabel: calculation.activityLabel,
       macros: [
         {
           label: "Proteínas",
           icon: Dumbbell,
-          min: proteinMin,
-          max: proteinMax,
+          min: calculation.proteinMin,
+          max: calculation.proteinMax,
           note: "1.6–2.2 g / kg de peso",
           valueClass: "text-emerald-400",
           dotClass: "bg-emerald-400",
@@ -84,8 +52,8 @@ export function CalorieCalculator() {
         {
           label: "Carbohidratos",
           icon: Wheat,
-          min: carbsMin,
-          max: carbsMax,
+          min: calculation.carbsMin,
+          max: calculation.carbsMax,
           note: "Energía para el día a día",
           valueClass: "text-amber-400",
           dotClass: "bg-amber-400",
@@ -93,8 +61,8 @@ export function CalorieCalculator() {
         {
           label: "Grasas",
           icon: Droplets,
-          min: fatMin,
-          max: fatMax,
+          min: calculation.fatMin,
+          max: calculation.fatMax,
           note: "25–35% de las calorías",
           valueClass: "text-sky-400",
           dotClass: "bg-sky-400",

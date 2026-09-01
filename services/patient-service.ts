@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 
 const patientInclude = {
     medicalHistory: true,
+    anamnesis: true,
     allergies: true,
     medications: true,
     goals: { where: { status: "ACTIVE" } },

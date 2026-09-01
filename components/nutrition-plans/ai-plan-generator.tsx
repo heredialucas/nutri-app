@@ -23,6 +23,7 @@ import {
     Minus,
     Plus,
     Pill,
+    Calculator,
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateMealPlanWithAI } from "@/app/actions/ai-meal-plan";
@@ -33,6 +34,8 @@ import {
     macroPresetById,
 } from "@/lib/ai/macro-presets";
 import type { GeneratedMealPlan, PlanOptions } from "@/lib/ai/meal-plan-generator";
+import { activityLevels, calculateCalorieTargets, goals } from "@/lib/calorie-calculator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SUGGESTIONS = [
     "Plan para bajar de peso",
@@ -175,6 +178,23 @@ export function AIPlanGenerator({
     const [customCarbs, setCustomCarbs] = useState(250);
     const [customFat, setCustomFat] = useState(70);
     const [selectedSupplements, setSelectedSupplements] = useState<string[]>([]);
+    const [calculatorSex, setCalculatorSex] = useState<"masculino" | "femenino">("masculino");
+    const [calculatorAge, setCalculatorAge] = useState(30);
+    const [calculatorWeight, setCalculatorWeight] = useState(70);
+    const [calculatorHeight, setCalculatorHeight] = useState(170);
+    const [calculatorActivity, setCalculatorActivity] = useState("moderado");
+    const [calculatorObjective, setCalculatorObjective] = useState("mantener");
+    const calorieCalculation = calculateCalorieTargets({ sex: calculatorSex, age: calculatorAge, weight: calculatorWeight, height: calculatorHeight, activity: calculatorActivity, objective: calculatorObjective });
+
+    const applyCalorieCalculation = () => {
+        if (!calorieCalculation) return;
+        setCalories(calorieCalculation.calories);
+        setCustomProtein(calorieCalculation.proteinMax);
+        setCustomCarbs(calorieCalculation.carbsMax);
+        setCustomFat(calorieCalculation.fatMax);
+        setMacroPreset("custom");
+        toast.success("Objetivos calculados aplicados");
+    };
 
     const toggleRestriction = (r: string) => {
         setRestrictions((prev) =>
@@ -372,7 +392,7 @@ export function AIPlanGenerator({
                             Las opciones seleccionadas se ven junto al chat de generación
                         </div>
 
-                        <div className="space-y-2">
+                         <div className="space-y-2">
                             <label className="text-sm font-medium flex items-center gap-1.5">
                                 <Flame className="size-3.5 text-orange-500" />
                                 Calorías diarias *
@@ -388,10 +408,23 @@ export function AIPlanGenerator({
                                 max={6000}
                                 step={50}
                                 className="h-9"
-                            />
-                        </div>
+                             />
+                         </div>
 
-                        <Separator />
+                         <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-800 dark:bg-emerald-950/30">
+                             <div className="mb-3 flex items-center gap-2 text-sm font-medium"><Calculator className="size-4 text-emerald-600" />Calcular objetivos manualmente</div>
+                             <div className="grid grid-cols-2 gap-2">
+                                 <div className="space-y-1"><label className="text-[10px] font-medium">Sexo</label><Select value={calculatorSex} onValueChange={(value) => setCalculatorSex(value as "masculino" | "femenino")}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="masculino">Masculino</SelectItem><SelectItem value="femenino">Femenino</SelectItem></SelectContent></Select></div>
+                                 <div className="space-y-1"><label className="text-[10px] font-medium">Edad (años)</label><Input type="number" min={1} value={calculatorAge} onChange={(e) => setCalculatorAge(Number(e.target.value) || 0)} className="h-8 text-xs" /></div>
+                                 <div className="space-y-1"><label className="text-[10px] font-medium">Peso (kg)</label><Input type="number" min={1} step="0.1" value={calculatorWeight} onChange={(e) => setCalculatorWeight(Number(e.target.value) || 0)} className="h-8 text-xs" /></div>
+                                 <div className="space-y-1"><label className="text-[10px] font-medium">Altura (cm)</label><Input type="number" min={1} value={calculatorHeight} onChange={(e) => setCalculatorHeight(Number(e.target.value) || 0)} className="h-8 text-xs" /></div>
+                                 <div className="space-y-1"><label className="text-[10px] font-medium">Actividad</label><Select value={calculatorActivity} onValueChange={setCalculatorActivity}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{activityLevels.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent></Select></div>
+                                 <div className="space-y-1"><label className="text-[10px] font-medium">Objetivo</label><Select value={calculatorObjective} onValueChange={setCalculatorObjective}><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent>{goals.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent></Select></div>
+                             </div>
+                             {calorieCalculation && <div className="mt-3 flex items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{calorieCalculation.calories} kcal · P {calorieCalculation.proteinMin}–{calorieCalculation.proteinMax} g · HC {calorieCalculation.carbsMin}–{calorieCalculation.carbsMax} g · G {calorieCalculation.fatMin}–{calorieCalculation.fatMax} g</p><Button type="button" size="sm" className="h-8 shrink-0" onClick={applyCalorieCalculation}>Aplicar</Button></div>}
+                         </div>
+
+                         <Separator />
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Comidas por día</label>

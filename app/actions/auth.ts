@@ -143,6 +143,8 @@ export async function updatePasswordAction(password: string, resetToken?: string
     if (resetToken) {
         try {
             await authService.resetPassword(resetToken, password);
+            const cookieStore = await cookies();
+            cookieStore.delete("session_token");
             return { success: true };
         } catch (error) {
             return { error: error instanceof Error ? error.message : "El enlace no es válido o venció" };

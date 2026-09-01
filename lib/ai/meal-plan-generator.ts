@@ -113,6 +113,19 @@ export function buildPatientContext(patient: any): string {
         }
     }
 
+    if (patient.anamnesis) {
+        const a = patient.anamnesis;
+        const fields = [
+            ["Motivo de consulta", a.consultationReason], ["Objetivo principal", a.mainObjective], ["Comidas por día", a.mealsPerDay], ["Agua diaria", a.waterIntake],
+            ["Desayuno habitual", a.breakfast], ["Almuerzo habitual", a.lunch], ["Merienda habitual", a.snack], ["Cena habitual", a.dinner], ["Colaciones y bebidas", a.snacksDrinks],
+            ["Alimentos preferidos", a.likedFoods], ["Alimentos que no consume", a.dislikedFoods], ["Alimentos difíciles de controlar", a.difficultFoods], ["Come fuera de casa", a.eatsOut == null ? null : a.eatsOut ? "Sí" : "No"], ["Frecuencia de comidas fuera", a.eatsOutFrequency],
+            ["Actividad física", a.activityName], ["Días de actividad", a.activityDays], ["Duración", a.activityDuration], ["Horario de actividad", a.activitySchedule], ["Nivel deportivo", a.activityLevel], ["Objetivo deportivo", a.sportsObjective],
+            ["Horas de sueño", a.sleepHours], ["Calidad del descanso", a.sleepQuality], ["Estrés", a.stressLevel], ["Energía", a.energyLevel], ["Suplementos", a.supplements],
+            ["Síntomas digestivos", a.digestiveSymptoms], ["Frecuencia intestinal", a.bowelFrequency], ["Observaciones digestivas", a.digestiveNotes], ["Dietas anteriores", a.previousDiets == null ? null : a.previousDiets ? "Sí" : "No"], ["Dificultad de adherencia", a.adherenceDifficulty], ["Disposición al cambio", a.readinessScore], ["Objetivo del tratamiento", a.treatmentGoal], ["Objetivo acordado", a.agreedGoal],
+        ].filter(([, value]) => value != null && value !== "");
+        if (fields.length) sections.push(`[ANAMNESIS NUTRICIONAL]\n${fields.map(([label, value]) => `- ${label}: ${value}`).join("\n")}`);
+    }
+
     // Allergies
     if (patient.allergies && patient.allergies.length > 0) {
         const allergyList = patient.allergies

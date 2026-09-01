@@ -40,6 +40,8 @@ export default async function EditPlanPage({ params }: Props) {
                 id: p.id,
                 firstName: p.firstName,
                 lastName: p.lastName,
+                email: p.email,
+                documentNumber: p.documentNumber,
             }))}
             initialPlan={{
                 ...(plan as any),

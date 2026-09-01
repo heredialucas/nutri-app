@@ -17,9 +17,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function LoginForm({
+  resetSuccess = false,
   className,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}: React.ComponentPropsWithoutRef<"div"> & { resetSuccess?: boolean }) {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +59,11 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {resetSuccess && (
+            <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              Contraseña actualizada. Iniciá sesión con la cuenta que acabás de recuperar.
+            </p>
+          )}
           <form onSubmit={handleLogin}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">

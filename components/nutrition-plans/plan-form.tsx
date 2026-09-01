@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlanDayCards, FoodField, DayCardDay } from "./plan-day-cards";
 import { SupplementEditor, SupplementData } from "./supplement-editor";
@@ -16,6 +15,10 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { PlanChatDrawer } from "./plan-chat-drawer";
 import type { GeneratedMealPlan } from "@/lib/ai/meal-plan-generator";
+import { activityLevels, calculateCalorieTargets, goals } from "@/lib/calorie-calculator";
+import { Calculator } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PatientPicker } from "./patient-picker";
 import {
     createNutritionPlan,
     updateNutritionPlan,
@@ -25,6 +28,8 @@ interface Patient {
     id: string;
     firstName: string;
     lastName: string;
+    email?: string | null;
+    documentNumber?: string | null;
 }
 
 interface PlanFormProps {
@@ -102,6 +107,12 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
     const [fatTarget, setFatTarget] = useState(
         initialPlan?.fatTarget?.toString() || ""
     );
+    const [calculatorSex, setCalculatorSex] = useState<"masculino" | "femenino">("masculino");
+    const [calculatorAge, setCalculatorAge] = useState(30);
+    const [calculatorWeight, setCalculatorWeight] = useState(70);
+    const [calculatorHeight, setCalculatorHeight] = useState(170);
+    const [calculatorActivity, setCalculatorActivity] = useState("moderado");
+    const [calculatorObjective, setCalculatorObjective] = useState("mantener");
     const [notes, setNotes] = useState(initialPlan?.notes || "");
     const [tips, setTips] = useState(initialPlan?.tips || "");
     const [days, setDays] = useState<DayCardDay[]>(
@@ -134,6 +145,16 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
     );
     const [saving, setSaving] = useState(false);
     const [chatUndo, setChatUndo] = useState<{ previous: GeneratedMealPlan; keys: string[] } | null>(null);
+    const calorieCalculation = calculateCalorieTargets({ sex: calculatorSex, age: calculatorAge, weight: calculatorWeight, height: calculatorHeight, activity: calculatorActivity, objective: calculatorObjective });
+
+    const applyCalorieCalculation = () => {
+        if (!calorieCalculation) return;
+        setCalorieTarget(String(calorieCalculation.calories));
+        setProteinTarget(String(calorieCalculation.proteinMax));
+        setCarbTarget(String(calorieCalculation.carbsMax));
+        setFatTarget(String(calorieCalculation.fatMax));
+        toast.success("Objetivos calculados aplicados al plan");
+    };
 
     const updateSupplement = (index: number, supplement: SupplementData) => {
         const updated = [...supplements];
@@ -314,12 +335,6 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
 
     const removeDay = (index: number) => {
         setDays(days.filter((_, i) => i !== index));
-    };
-
-    const togglePatient = (id: string) => {
-        setPatientIds((prev) =>
-            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-        );
     };
 
     const handleSubmit = async (status?: string) => {
@@ -551,45 +566,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                                 onChange={(e) => setTitle(e.target.value)}
                             />
                         </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label>Pacientes asignados</Label>
-                                <span className="text-xs text-muted-foreground">
-                                    {patientIds.length > 0
-                                        ? `${patientIds.length} seleccionado${patientIds.length > 1 ? "s" : ""}`
-                                        : "Opcional — podrás asignarlo luego"}
-                                </span>
-                            </div>
-                            <div className="rounded-md border border-input bg-background px-3 py-2 flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
-                                {patients.length === 0 ? (
-                                    <span className="text-sm text-muted-foreground">
-                                        No hay pacientes cargados
-                                    </span>
-                                ) : (
-                                    patients.map((p) => {
-                                        const active = patientIds.includes(p.id);
-                                        return (
-                                            <Badge
-                                                key={p.id}
-                                                variant={active ? "default" : "outline"}
-                                                className={`cursor-pointer text-xs py-0.5 px-2 ${
-                                                    active
-                                                        ? "bg-green-600 text-white hover:bg-green-700"
-                                                        : "hover:bg-green-50 hover:text-green-700"
-                                                }`}
-                                                onClick={() => togglePatient(p.id)}
-                                            >
-                                                {active && <span className="mr-1">✓</span>}
-                                                {p.firstName} {p.lastName}
-                                            </Badge>
-                                        );
-                                    })
-                                )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Un plan puede asignarse a uno o varios pacientes, o crearse sin asignar.
-                            </p>
-                        </div>
+                        <PatientPicker patients={patients} selectedIds={patientIds} onChange={setPatientIds} label="Pacientes asignados" />
                     </div>
 
                     <div className="space-y-2">
@@ -633,6 +610,34 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                             />
                         </div>
                     </div>
+
+                    <Card className="border-emerald-200 bg-emerald-50/40">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Calculator className="h-4 w-4 text-emerald-700" />
+                                Calculador de calorías y macronutrientes
+                            </CardTitle>
+                            <p className="text-xs text-muted-foreground">
+                                Herramienta orientativa para definir manualmente los objetivos del plan. Revisá los resultados antes de aplicarlos.
+                            </p>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                <div className="space-y-2"><Label>Sexo</Label><Select value={calculatorSex} onValueChange={(value) => setCalculatorSex(value as "masculino" | "femenino")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="masculino">Masculino</SelectItem><SelectItem value="femenino">Femenino</SelectItem></SelectContent></Select></div>
+                                <div className="space-y-2"><Label>Edad (años)</Label><Input type="number" min="1" value={calculatorAge} onChange={(e) => setCalculatorAge(Number(e.target.value) || 0)} /></div>
+                                <div className="space-y-2"><Label>Peso (kg)</Label><Input type="number" min="1" step="0.1" value={calculatorWeight} onChange={(e) => setCalculatorWeight(Number(e.target.value) || 0)} /></div>
+                                <div className="space-y-2"><Label>Altura (cm)</Label><Input type="number" min="1" step="0.1" value={calculatorHeight} onChange={(e) => setCalculatorHeight(Number(e.target.value) || 0)} /></div>
+                                <div className="space-y-2"><Label>Actividad</Label><Select value={calculatorActivity} onValueChange={setCalculatorActivity}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{activityLevels.map((activity) => <SelectItem key={activity.value} value={activity.value}>{activity.label}</SelectItem>)}</SelectContent></Select></div>
+                                <div className="space-y-2"><Label>Objetivo</Label><Select value={calculatorObjective} onValueChange={setCalculatorObjective}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{goals.map((goal) => <SelectItem key={goal.value} value={goal.value}>{goal.label}</SelectItem>)}</SelectContent></Select></div>
+                            </div>
+                            {calorieCalculation ? (
+                                <div className="flex flex-col gap-3 rounded-xl border bg-background p-4 sm:flex-row sm:items-end sm:justify-between">
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4"><div><p className="text-xs text-muted-foreground">Meta calórica</p><p className="text-xl font-semibold text-emerald-700">{calorieCalculation.calories} kcal</p></div><div><p className="text-xs text-muted-foreground">Proteínas</p><p className="font-semibold">{calorieCalculation.proteinMin}–{calorieCalculation.proteinMax} g</p></div><div><p className="text-xs text-muted-foreground">Carbohidratos</p><p className="font-semibold">{calorieCalculation.carbsMin}–{calorieCalculation.carbsMax} g</p></div><div><p className="text-xs text-muted-foreground">Grasas</p><p className="font-semibold">{calorieCalculation.fatMin}–{calorieCalculation.fatMax} g</p></div></div>
+                                    <Button type="button" onClick={applyCalorieCalculation}>Aplicar al plan</Button>
+                                </div>
+                            ) : <p className="text-sm text-muted-foreground">Completá valores válidos para calcular los objetivos.</p>}
+                        </CardContent>
+                    </Card>
 
                     <div className="grid gap-4 sm:grid-cols-3">
                         <div className="space-y-2">
