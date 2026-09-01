@@ -137,8 +137,17 @@ export async function forgotPasswordAction(email: string) {
     }
 }
 
-export async function updatePasswordAction(password: string) {
+export async function updatePasswordAction(password: string, resetToken?: string) {
     if (!password) return { error: "Contraseña requerida" };
+
+    if (resetToken) {
+        try {
+            await authService.resetPassword(resetToken, password);
+            return { success: true };
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : "El enlace no es válido o venció" };
+        }
+    }
 
     const cookieStore = await cookies();
     const token = cookieStore.get("session_token");

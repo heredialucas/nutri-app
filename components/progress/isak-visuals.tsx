@@ -49,7 +49,7 @@ export function IsakVisuals({ data }: { data: Point[] }) {
   const basics = sorted.map((item) => ({ date: item.date, peso: item.result.datos.peso, imc: item.result.datos.imc }));
   const circumferences = sorted.map((item) => ({ date: item.date, cintura: item.result.salud.find((s) => s.nombre === "Perímetro cintura")?.valor ?? null, cadera: null }));
   const folds = sorted.map((item) => ({ date: item.date, total: item.result.sumatorio6Pliegues }));
-  const breadths = sorted.map((item) => ({ date: item.date, húmero: item.result.diametros.humerusBreadth, fémur: item.result.diametros.femurBreadth, muñeca: item.result.diametros.biStyloidWrist }));
+  const breadths = sorted.map((item) => ({ date: item.date, húmero: item.result.diametros.humerusBreadth, muñeca: item.result.diametros.biStyloidWrist, fémur: item.result.diametros.femurBreadth }));
 
   return (
     <section className="space-y-4" aria-label="Gráficos de evolución antropométrica">
@@ -63,7 +63,7 @@ export function IsakVisuals({ data }: { data: Point[] }) {
         <ChartCard title="Composición corporal" description="Estimaciones expresadas como porcentaje del peso" data={composition} lines={[{ key: "grasa", label: "Masa adiposa", color: "#e76f51" }, { key: "musculo", label: "Masa muscular", color: "#159a72" }]} unit="%" />
         <ChartCard title="Cintura" description="Útil para observar cambios en la zona abdominal" data={circumferences} lines={[{ key: "cintura", label: "Cintura", color: "#d97706" }]} unit="cm" />
         <ChartCard title="Sumatorio de pliegues" description="Suma de seis sitios medidos con plicómetro" data={folds} lines={[{ key: "total", label: "Total", color: "#dc2626" }]} unit="mm" />
-        <ChartCard title="Diámetros óseos" description="Medidas estructurales, no indicadores de salud" data={breadths} lines={[{ key: "húmero", label: "Húmero", color: "#0f766e" }, { key: "fémur", label: "Fémur", color: "#0891b2" }, { key: "muñeca", label: "Muñeca", color: "#7c3aed" }]} unit="mm" />
+         <ChartCard title="Diámetros óseos" description="Medidas estructurales, no indicadores de salud" data={breadths} lines={[{ key: "húmero", label: "Húmero · codo", color: "#0f766e" }, { key: "muñeca", label: "Muñeca · radio-cúbito", color: "#7c3aed" }, { key: "fémur", label: "Fémur · rodilla", color: "#0891b2" }]} unit="mm" />
       </div>
     </section>
   );

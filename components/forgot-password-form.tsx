@@ -30,7 +30,6 @@ export function ForgotPasswordForm({
     setError(null);
 
     try {
-      // Mock sending email via server action
       const result = await forgotPasswordAction(email);
       if (result?.error) throw new Error(result.error);
 

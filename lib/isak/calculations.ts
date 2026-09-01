@@ -61,12 +61,6 @@ export interface IsakInputs {
   humerusBreadth?: number | null;
   femurBreadth?: number | null;
   biStyloidWrist?: number | null;
-  biMalleolarAnkle?: number | null;
-  biacromial?: number | null;
-  biiliocristal?: number | null;
-  transverseChest?: number | null;
-  apChestDepth?: number | null;
-  apAbdominalDepth?: number | null;
 }
 
 export interface ReferenceRange {
@@ -106,6 +100,9 @@ export interface IsakResult {
     piernaCorregida: number | null;
   };
   adiposidad: { sumatorio: number | null; porPliegue: { nombre: string; valor: number }[] };
+  mediciones: {
+    perimetros: { nombre: string; valor: number | null }[];
+  };
   muscularidad: {
     brazoCorregido: number | null;
     musloCorregido: number | null;
@@ -130,12 +127,6 @@ export interface IsakResult {
     humerusBreadth: number | null;
     femurBreadth: number | null;
     biStyloidWrist: number | null;
-    biMalleolarAnkle: number | null;
-    biacromial: number | null;
-    biiliocristal: number | null;
-    transverseChest: number | null;
-    apChestDepth: number | null;
-    apAbdominalDepth: number | null;
   };
 }
 
@@ -437,6 +428,16 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
       sumatorio: s6 != null ? round(s6) : null,
       porPliegue,
     },
+    mediciones: {
+      perimetros: [
+        { nombre: "Brazo relajado", valor: round(inputs.relaxedArm ?? NaN) },
+        { nombre: "Brazo flexionado y contraído", valor: round(inputs.flexedArm ?? NaN) },
+        { nombre: "Cintura", valor: round(inputs.waist ?? NaN) },
+        { nombre: "Cadera", valor: round(inputs.hip ?? NaN) },
+        { nombre: "Muslo medio", valor: round(inputs.midThigh ?? NaN) },
+        { nombre: "Pierna", valor: round(inputs.calf ?? NaN) },
+      ],
+    },
     muscularidad: {
       brazoCorregido: brazoCorregido != null ? round(brazoCorregido) : null,
       musloCorregido: musloCorregido != null ? round(musloCorregido) : null,
@@ -459,10 +460,7 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
     },
     diametros: {
       humerusBreadth: round(inputs.humerusBreadth ?? NaN), femurBreadth: round(inputs.femurBreadth ?? NaN),
-      biStyloidWrist: round(inputs.biStyloidWrist ?? NaN), biMalleolarAnkle: round(inputs.biMalleolarAnkle ?? NaN),
-      biacromial: round(inputs.biacromial ?? NaN), biiliocristal: round(inputs.biiliocristal ?? NaN),
-      transverseChest: round(inputs.transverseChest ?? NaN), apChestDepth: round(inputs.apChestDepth ?? NaN),
-      apAbdominalDepth: round(inputs.apAbdominalDepth ?? NaN),
+      biStyloidWrist: round(inputs.biStyloidWrist ?? NaN),
     },
   };
 }
@@ -490,12 +488,6 @@ export function inputsFromMeasurement(m: {
    humerusBreadth?: unknown;
    femurBreadth?: unknown;
    biStyloidWrist?: unknown;
-   biMalleolarAnkle?: unknown;
-   biacromial?: unknown;
-   biiliocristal?: unknown;
-   transverseChest?: unknown;
-   apChestDepth?: unknown;
-   apAbdominalDepth?: unknown;
    birthDate?: Date | string | null;
    measuredAt?: Date | string | null;
 }): IsakInputs {
@@ -527,8 +519,6 @@ export function inputsFromMeasurement(m: {
     midThigh: num(m.midThigh),
     calf: num(m.calf),
     humerusBreadth: num(m.humerusBreadth), femurBreadth: num(m.femurBreadth),
-    biStyloidWrist: num(m.biStyloidWrist), biMalleolarAnkle: num(m.biMalleolarAnkle),
-    biacromial: num(m.biacromial), biiliocristal: num(m.biiliocristal),
-    transverseChest: num(m.transverseChest), apChestDepth: num(m.apChestDepth), apAbdominalDepth: num(m.apAbdominalDepth),
+     biStyloidWrist: num(m.biStyloidWrist),
   };
 }

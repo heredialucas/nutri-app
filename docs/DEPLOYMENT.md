@@ -26,6 +26,8 @@ Configurar en el panel de Vercel (Settings → Environment Variables):
 | `CLOUDINARY_API_SECRET` | API secret | Production, Preview |
 | `NEXT_PUBLIC_APP_URL` | URL de producción (ej: `https://tu-dominio.vercel.app`) | Production |
 | `OPENAI_API_KEY` | API key de OpenAI | Production, Preview |
+| `RESEND_API_KEY` | API key de Resend para recuperación de contraseña | Production, Preview |
+| `RESEND_FROM_EMAIL` | Remitente verificado, ej. `Mauro Acosta <no-reply@tu-dominio.com>` | Production, Preview |
 
 ### DATABASE_URL vs DIRECT_URL
 

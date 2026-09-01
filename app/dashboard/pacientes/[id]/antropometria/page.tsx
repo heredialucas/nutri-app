@@ -37,7 +37,7 @@ export default async function AntropometriaPage({
     notFound();
   }
 
-  const assessments = (await getIsakAssessments(id).catch(() => [])) as any[];
+  const assessments = (await getIsakAssessments(id)) as any[];
 
   if (assessments.length === 0) {
     return (

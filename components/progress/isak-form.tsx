@@ -48,12 +48,6 @@ const initialForm = {
     humerusBreadth: "",
     femurBreadth: "",
     biStyloidWrist: "",
-    biMalleolarAnkle: "",
-    biacromial: "",
-    biiliocristal: "",
-    transverseChest: "",
-    apChestDepth: "",
-    apAbdominalDepth: "",
     notes: "",
 };
 
@@ -76,15 +70,9 @@ const PERIMETERS: { key: string; label: string; placeholder: string }[] = [
 ];
 
 const BREADTHS: { key: string; label: string; placeholder: string; help?: string }[] = [
-    { key: "humerusBreadth", label: "Húmero biepicondilar", placeholder: "7.0", help: "Codo" },
-    { key: "femurBreadth", label: "Fémur biepicondilar", placeholder: "9.5", help: "Rodilla" },
-    { key: "biStyloidWrist", label: "Muñeca biestiloidea", placeholder: "5.5" },
-    { key: "biMalleolarAnkle", label: "Tobillo bimaleolar", placeholder: "7.0" },
-    { key: "biacromial", label: "Biacromial", placeholder: "38" },
-    { key: "biiliocristal", label: "Biiliocrestal", placeholder: "28" },
-    { key: "transverseChest", label: "Tórax transversal", placeholder: "28" },
-    { key: "apChestDepth", label: "Tórax anteroposterior", placeholder: "20" },
-    { key: "apAbdominalDepth", label: "Abdomen anteroposterior", placeholder: "23" },
+    { key: "humerusBreadth", label: "Biepicondíleo de húmero", placeholder: "70", help: "Codo · mm" },
+    { key: "biStyloidWrist", label: "Biestiloideo de muñeca", placeholder: "55", help: "Radio-cúbito · mm" },
+    { key: "femurBreadth", label: "Biepicondíleo de fémur", placeholder: "95", help: "Rodilla · mm" },
 ];
 
 export function IsakForm({ patientId, embedded = false, onSuccess, assessment }: IsakFormProps) {
@@ -132,12 +120,6 @@ export function IsakForm({ patientId, embedded = false, onSuccess, assessment }:
                 humerusBreadth: numOrUndefined(form.humerusBreadth),
                 femurBreadth: numOrUndefined(form.femurBreadth),
                 biStyloidWrist: numOrUndefined(form.biStyloidWrist),
-                biMalleolarAnkle: numOrUndefined(form.biMalleolarAnkle),
-                biacromial: numOrUndefined(form.biacromial),
-                biiliocristal: numOrUndefined(form.biiliocristal),
-                transverseChest: numOrUndefined(form.transverseChest),
-                apChestDepth: numOrUndefined(form.apChestDepth),
-                apAbdominalDepth: numOrUndefined(form.apAbdominalDepth),
                 notes: form.notes || undefined,
             };
             if (assessment?.id) await updateIsak(String(assessment.id), payload);
@@ -255,7 +237,7 @@ export function IsakForm({ patientId, embedded = false, onSuccess, assessment }:
                     <div className="rounded-2xl border border-amber-200/70 bg-amber-50/40 p-4 sm:p-5">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                             <div>
-                                <Label className="font-semibold text-base">Diámetros óseos (mm)</Label>
+                                     <Label className="font-semibold text-base">Diámetros óseos seleccionados (mm)</Label>
                                 <p className="text-xs text-muted-foreground mt-1 max-w-xl">
                                     Medidas estructurales para comparar proporciones corporales. No indican por sí solas un estado de salud.
                                 </p>

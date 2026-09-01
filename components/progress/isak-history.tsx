@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -38,6 +38,9 @@ export function IsakHistory({ assessments, patientId, currentId }: IsakHistoryPr
   const router = useRouter();
   const pathname = usePathname();
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const handleSelect = (id: string) => {
     router.push(`${pathname}?eval=${id}`);
@@ -87,31 +90,37 @@ export function IsakHistory({ assessments, patientId, currentId }: IsakHistoryPr
                   </p>
                 </div>
               </button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                    <Trash2 className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Eliminar evaluación</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta acción no se puede deshacer. ¿Eliminar la evaluación del {fecha}?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => handleDelete(a.id)}
-                      disabled={deleting === a.id}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {deleting === a.id ? "Eliminando..." : "Eliminar"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {mounted ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Eliminar evaluación</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer. ¿Eliminar la evaluación del {fecha}?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(a.id)}
+                        disabled={deleting === a.id}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {deleting === a.id ? "Eliminando..." : "Eliminar"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled>
+                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              )}
             </div>
           );
         })}

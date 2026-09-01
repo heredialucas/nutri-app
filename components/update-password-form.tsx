@@ -15,10 +15,7 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function UpdatePasswordForm({
-  className,
-  ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+export function UpdatePasswordForm({ token, className, ...props }: React.ComponentPropsWithoutRef<"div"> & { token?: string }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,10 +27,10 @@ export function UpdatePasswordForm({
     setError(null);
 
     try {
-      const result = await updatePasswordAction(password);
+      const result = await updatePasswordAction(password, token);
       if (result?.error) throw new Error(result.error);
 
-      router.push("/dashboard");
+      router.push(token ? "/auth/login?reset=success" : "/dashboard");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Ocurrió un error");
     } finally {
@@ -46,8 +43,8 @@ export function UpdatePasswordForm({
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Restablecer tu contraseña</CardTitle>
-          <CardDescription>
-            Por favor ingresa tu nueva contraseña abajo.
+            <CardDescription>
+             {token ? "Elegí una nueva contraseña para recuperar el acceso a tu cuenta." : "Por favor ingresa tu nueva contraseña abajo."}
           </CardDescription>
         </CardHeader>
         <CardContent>

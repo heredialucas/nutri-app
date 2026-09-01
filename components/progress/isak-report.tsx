@@ -56,7 +56,7 @@ export function IsakReport({ result, paciente, fecha, evaluador, assessmentId, p
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <IsakPdfButton result={result} paciente={paciente} fecha={fechaTexto} evaluador={evaluador} evolutionData={evolutionData} />
+           <IsakPdfButton result={result} paciente={paciente} fecha={fechaTexto} evaluador={evaluador} evolutionData={evolutionData} />
           {assessmentId && <Button onClick={publish} variant={publishedToPatientAt ? "outline" : "default"} size="sm"><span className="mr-2">{publishedToPatientAt ? <EyeOff className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}</span>{publishedToPatientAt ? "Retirar del portal" : "Mostrar al paciente"}</Button>}
         </div>
       </div>
@@ -130,12 +130,12 @@ export function IsakReport({ result, paciente, fecha, evaluador, assessmentId, p
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Diámetros óseos</CardTitle><p className="text-xs text-muted-foreground">Medidas estructurales tomadas según el perfil registrado</p></CardHeader>
-        <CardContent><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{[
-          ["Húmero biepicondilar", result.diametros.humerusBreadth], ["Fémur biepicondilar", result.diametros.femurBreadth], ["Muñeca biestiloidea", result.diametros.biStyloidWrist], ["Tobillo bimaleolar", result.diametros.biMalleolarAnkle], ["Biacromial", result.diametros.biacromial], ["Biiliocrestal", result.diametros.biiliocristal], ["Tórax transversal", result.diametros.transverseChest], ["Tórax AP", result.diametros.apChestDepth], ["Abdomen AP", result.diametros.apAbdominalDepth]
-        ].map(([label, value]) => <Stat key={String(label)} label={String(label)} value={value == null ? "—" : `${value} mm`} />)}</div></CardContent>
-      </Card>
+       <Card>
+         <CardHeader className="pb-2"><CardTitle className="text-base">Diámetros óseos seleccionados</CardTitle><p className="text-xs text-muted-foreground">Medidas estructurales para seguimiento antropométrico; no son indicadores de salud aislados.</p></CardHeader>
+         <CardContent><div className="grid grid-cols-1 gap-3 sm:grid-cols-3">{[
+           ["Biepicondíleo de húmero · codo", result.diametros.humerusBreadth], ["Biestiloideo de muñeca · radio-cúbito", result.diametros.biStyloidWrist], ["Biepicondíleo de fémur · rodilla", result.diametros.femurBreadth]
+         ].map(([label, value]) => <Stat key={String(label)} label={String(label)} value={value == null ? "—" : `${value} mm`} />)}</div></CardContent>
+       </Card>
 
       {/* Distribución adiposo-muscular */}
       <div className="grid gap-6 lg:grid-cols-2">
