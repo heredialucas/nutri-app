@@ -189,12 +189,15 @@ export function generatePlanPdf(data: PlanPdfInput) {
   });
   y += 34;
 
-  sectionTitle("Tu semana", GREEN);
   const days = data.days || [];
+  if (days.length) {
+    newPage();
+    sectionTitle("Tu semana", GREEN);
+  }
   days.forEach((day, dayIndex) => {
     const dayColor = DAY_COLORS[dayIndex % DAY_COLORS.length];
     const meals = day.meals || [];
-    ensureSpace(24);
+    if (dayIndex > 0) newPage();
 
     doc.setFillColor(...dayColor);
     doc.roundedRect(margin, y, contentW, 11, 3, 3, "F");
@@ -202,7 +205,7 @@ export function generatePlanPdf(data: PlanPdfInput) {
     doc.text(text(day.label) || `Día ${dayIndex + 1}`, margin + 6, y + 7.3);
     setFont(doc, 8, [240, 253, 250], "normal");
     doc.text(`${meals.length} ${meals.length === 1 ? "comida" : "comidas"}`, pageW - margin - 6, y + 7.3, { align: "right" });
-    y += 15;
+    y += 14;
 
     meals.forEach((meal) => {
       const mealColor = dayColor.map((channel) => Math.min(255, channel + 25)) as RGB;
@@ -212,7 +215,8 @@ export function generatePlanPdf(data: PlanPdfInput) {
         text(food.notes),
       ]);
       if (rows.length === 0) rows.push(["Sin alimentos", "", ""]);
-      ensureSpace(Math.min(52, 19 + rows.length * 6));
+      const mealH = 13.5 + rows.length * 6.8 + (meal.notes ? 14 : 0);
+      if (y + mealH > pageH - 18 && mealH <= pageH - 36) newPage();
       setFont(doc, 9.5, dayColor, "bold");
       doc.text(text(meal.label) || "Comida", margin + 2, y);
       if (meal.calories || meal.protein || meal.carbs || meal.fat) {
@@ -228,7 +232,7 @@ export function generatePlanPdf(data: PlanPdfInput) {
       y += 2;
       autoTable(doc, {
         startY: y,
-        margin: { left: margin + 2, right: margin + 2 },
+        margin: { left: margin + 2, right: margin + 2, top: 18, bottom: 18 },
         head: [["Alimento", "Cantidad", "Indicaciones"]],
         body: rows,
         theme: "grid",
@@ -236,7 +240,7 @@ export function generatePlanPdf(data: PlanPdfInput) {
           font: "helvetica",
           fontSize: 8.5,
           textColor: INK,
-          cellPadding: 2.2,
+          cellPadding: 1.8,
           lineColor: [229, 231, 235],
           lineWidth: 0.2,
           overflow: "linebreak",
@@ -254,7 +258,7 @@ export function generatePlanPdf(data: PlanPdfInput) {
           2: { cellWidth: contentW * 0.38, textColor: MUTED },
         },
       });
-      y = (doc as any).lastAutoTable.finalY + 3;
+      y = (doc as any).lastAutoTable.finalY + 2.5;
       if (meal.notes) {
         const lines = doc.splitTextToSize(`Indicación: ${text(meal.notes)}`, contentW - 14);
         ensureSpace(lines.length * 4 + 6);
@@ -269,12 +273,16 @@ export function generatePlanPdf(data: PlanPdfInput) {
     y += 5;
   });
 
+  const tips = text(data.tips).split("\n").map((tip) => tip.trim()).filter(Boolean);
+  if (data.supplements?.length || data.recipes?.length || tips.length) {
+    newPage();
+  }
+
   if (data.supplements?.length) {
     sectionTitle("Suplementos", PURPLE);
-    ensureSpace(25);
     autoTable(doc, {
       startY: y,
-      margin: { left: margin, right: margin },
+      margin: { left: margin, right: margin, top: 18, bottom: 18 },
       head: [["Suplemento", "Dosis", "Momento", "Frecuencia", "Indicaciones"]],
       body: data.supplements.map((supplement) => [
         text(supplement.name),
@@ -317,7 +325,6 @@ export function generatePlanPdf(data: PlanPdfInput) {
     });
   }
 
-  const tips = text(data.tips).split("\n").map((tip) => tip.trim()).filter(Boolean);
   if (tips.length) {
     sectionTitle("Tips para acompañar tu plan", GREEN);
     tips.forEach((tip) => {
