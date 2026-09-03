@@ -74,6 +74,7 @@ export default async function PlanPage() {
                                                 name: f.name,
                                                 quantity: f.quantity,
                                                 unit: f.unit,
+                                                equivalence: f.equivalence,
                                                 notes: f.notes,
                                             })),
                                         })),
@@ -167,6 +168,11 @@ export default async function PlanPage() {
                                                                 {(food.quantity || food.unit) && (
                                                                     <span className="text-xs text-[#999]">
                                                                         {food.quantity}{food.unit ? ` ${food.unit}` : ""}
+                                                                    </span>
+                                                                )}
+                                                                {food.equivalence && (
+                                                                    <span className="text-xs text-[#999]">
+                                                                        ≈ {food.equivalence}
                                                                     </span>
                                                                 )}
                                                                 {food.notes && (

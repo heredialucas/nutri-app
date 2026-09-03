@@ -73,6 +73,7 @@ export const nutritionPlanService = {
                     name: string;
                     quantity?: string;
                     unit?: string;
+                    equivalence?: string;
                     notes?: string;
                     calories?: number;
                     protein?: number;
@@ -116,6 +117,7 @@ export const nutritionPlanService = {
                                             name: food.name,
                                             quantity: food.quantity,
                                             unit: food.unit,
+                                            equivalence: food.equivalence,
                                             notes: food.notes,
                                             calories: food.calories,
                                             protein: food.protein,
@@ -171,6 +173,7 @@ export const nutritionPlanService = {
                     name: string;
                     quantity?: string;
                     unit?: string;
+                    equivalence?: string;
                     notes?: string;
                     calories?: number;
                     protein?: number;
@@ -225,6 +228,7 @@ export const nutritionPlanService = {
                                                 name: food.name,
                                                 quantity: food.quantity,
                                                 unit: food.unit,
+                                                equivalence: food.equivalence,
                                                 notes: food.notes,
                                                 calories: food.calories,
                                                 protein: food.protein,
@@ -332,6 +336,7 @@ export const nutritionPlanService = {
                         name: food.name,
                         quantity: food.quantity ?? undefined,
                         unit: food.unit ?? undefined,
+                        equivalence: food.equivalence ?? undefined,
                         notes: food.notes ?? undefined,
                         calories: food.calories ?? undefined,
                         protein: food.protein ? Number(food.protein) : undefined,

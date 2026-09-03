@@ -479,11 +479,12 @@ model Meal {
 }
 
 model MealFood {
-  id       String   @id @default(uuid()) @db.Uuid
-  mealId   String   @db.Uuid
-  name     String
-  quantity String?
-  unit     String?
+  id          String   @id @default(uuid()) @db.Uuid
+  mealId      String   @db.Uuid
+  name        String
+  quantity    String?
+  unit        String?
+  equivalence String?
   notes    String?
   calories Int?
   protein  Decimal? @db.Decimal(5, 2)

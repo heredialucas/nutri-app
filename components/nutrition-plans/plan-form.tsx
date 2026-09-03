@@ -69,6 +69,7 @@ interface PlanFormProps {
                     name: string;
                     quantity: string | null;
                     unit: string | null;
+                    equivalence: string | null;
                     notes: string | null;
                     calories?: number | null;
                     protein?: number | null;
@@ -125,6 +126,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                     ...f,
                     quantity: f.quantity || "",
                     unit: f.unit || "",
+                    equivalence: f.equivalence || "",
                     notes: f.notes || "",
                     calories: f.calories ?? undefined,
                     protein: f.protein ? Number(f.protein) : undefined,
@@ -288,6 +290,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                                                 name: "",
                                                 quantity: "",
                                                 unit: "",
+                                                equivalence: "",
                                                 notes: "",
                                                 calories: undefined,
                                                 protein: undefined,
@@ -379,6 +382,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                                 name: String(f.name ?? "").trim(),
                                 quantity: String(f.quantity ?? "").trim() || undefined,
                                 unit: String(f.unit ?? "").trim() || undefined,
+                                equivalence: String(f.equivalence ?? "").trim() || undefined,
                                 notes: String(f.notes ?? "").trim() || undefined,
                                 calories: (f.calories ?? 0) > 0 ? f.calories : undefined,
                                 protein: (f.protein ?? 0) > 0 ? f.protein : undefined,
@@ -444,6 +448,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                     name: f.name ?? "",
                     quantity: f.quantity ?? "",
                     unit: f.unit ?? "",
+                    equivalence: f.equivalence ?? "",
                     notes: f.notes ?? "",
                     calories: f.calories ?? undefined,
                     protein: f.protein ? Number(f.protein) : undefined,
@@ -490,6 +495,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                         name: f.name,
                         quantity: f.quantity ?? "",
                         unit: f.unit ?? "",
+                        equivalence: f.equivalence ?? "",
                         notes: f.notes ?? "",
                         calories: f.calories,
                         protein: f.protein,

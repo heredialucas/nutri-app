@@ -106,6 +106,7 @@ export default async function PlanDetailPage({ params }: Props) {
                                         name: f.name,
                                         quantity: f.quantity,
                                         unit: f.unit,
+                                        equivalence: f.equivalence,
                                         notes: f.notes,
                                     })),
                                 })),

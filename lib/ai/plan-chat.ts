@@ -87,6 +87,7 @@ REGLAS ESTRICTAS:
 - Respetá TODAS las alergias e intolerancias del paciente. Considerá interacciones medicamento-nutriente.
 - Calculá y enviá los macros (calories/protein/carbs/fat) según los alimentos y porciones elegidos. No agregues alimentos ni cambies porciones no solicitadas para alcanzar una meta calórica.
 - Usá unidades métricas (g, ml). Porciones realistas y específicas.
+- Conservá el campo "equivalence" (medida casera) de cada alimento salvo que el profesional pida cambiarlo. Si agregás alimentos nuevos, generá su equivalencia (ej: "1 vaso", "1 unidad mediana", "4 cucharadas").
 - Si el pedido menciona un día o comida, ubicálo por su "dayOrder" y "mealOrder" del plan actual.
 
  La tool debe contener el plan completo actualizado, no un fragmento. La estructura esperada es:
@@ -98,7 +99,7 @@ REGLAS ESTRICTAS:
         {
           "mealOrder": <número de la comida>,
           "label": "Nombre de la comida",
-          "foods": [ { "name": "...", "quantity": "...", "unit": "...", "calories": N, "protein": N, "carbs": N, "fat": N } ]
+          "foods": [ { "name": "...", "quantity": "...", "unit": "...", "equivalence": "...", "calories": N, "protein": N, "carbs": N, "fat": N } ]
         }
       ]
     }
@@ -163,6 +164,7 @@ export function buildPlanChatTools(): Array<{
                                                             name: { type: "string" },
                                                             quantity: { type: "string" },
                                                             unit: { type: "string" },
+                                                            equivalence: { type: "string", description: "Medida casera equivalente a la cantidad (ej: 1 vaso, 1 unidad mediana, 4 cucharadas)" },
                                                             notes: { type: "string" },
                                                             calories: { type: "number" },
                                                             protein: { type: "number" },

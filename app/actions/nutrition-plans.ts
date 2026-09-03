@@ -72,6 +72,7 @@ export async function createNutritionPlan(data: {
                 name: string;
                 quantity?: string;
                 unit?: string;
+                equivalence?: string;
                 notes?: string;
                 calories?: number;
                 protein?: number;
@@ -132,6 +133,7 @@ export async function updateNutritionPlan(id: string, data: {
                 name: string;
                 quantity?: string;
                 unit?: string;
+                equivalence?: string;
                 notes?: string;
                 calories?: number;
                 protein?: number;

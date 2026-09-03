@@ -22,6 +22,7 @@ export interface DayCardFood {
     name: string;
     quantity?: string | null;
     unit?: string | null;
+    equivalence?: string | null;
     notes?: string | null;
     calories?: number | null;
     protein?: number | null;
@@ -52,6 +53,7 @@ export type FoodField =
     | "name"
     | "quantity"
     | "unit"
+    | "equivalence"
     | "notes"
     | "calories"
     | "protein"
@@ -351,6 +353,21 @@ export function PlanDayCards({
                                                                         className="w-16 h-8 text-sm bg-transparent border-transparent hover:border-input focus:border-input shrink-0"
                                                                     />
                                                                     <Input
+                                                                        value={food.equivalence ?? ""}
+                                                                        onChange={(e) =>
+                                                                            onFoodChange?.(
+                                                                                dayIndex,
+                                                                                mealIndex,
+                                                                                foodIndex,
+                                                                                "equivalence",
+                                                                                e.target.value
+                                                                            )
+                                                                        }
+                                                                        placeholder="Equiv."
+                                                                        className="w-20 h-8 text-sm bg-transparent border-transparent hover:border-input focus:border-input shrink-0"
+                                                                        title="Equivalencia casera (ej: 1 vaso, 1 unidad mediana)"
+                                                                    />
+                                                                    <Input
                                                                         value={food.notes ?? ""}
                                                                         onChange={(e) =>
                                                                             onFoodChange?.(
@@ -467,6 +484,11 @@ export function PlanDayCards({
                                                                     {(food.quantity || food.unit) && (
                                                                         <span className="text-sm text-muted-foreground">
                                                                             {renderFoodValue(food)}
+                                                                        </span>
+                                                                    )}
+                                                                    {food.equivalence && (
+                                                                        <span className="text-sm text-muted-foreground">
+                                                                            ≈ {food.equivalence}
                                                                         </span>
                                                                     )}
                                                                     {food.notes && (

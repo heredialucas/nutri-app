@@ -5,6 +5,7 @@ export interface PlanFoodPdf {
   name: string;
   quantity?: string | null;
   unit?: string | null;
+  equivalence?: string | null;
   notes?: string | null;
   calories?: number | null;
   protein?: number | null;
@@ -212,9 +213,10 @@ export function generatePlanPdf(data: PlanPdfInput) {
       const rows = (meal.foods || []).map((food) => [
         text(food.name),
         quantity(food),
+        text(food.equivalence),
         text(food.notes),
       ]);
-      if (rows.length === 0) rows.push(["Sin alimentos", "", ""]);
+      if (rows.length === 0) rows.push(["Sin alimentos", "", "", ""]);
       const mealH = 13.5 + rows.length * 6.8 + (meal.notes ? 14 : 0);
       if (y + mealH > pageH - 18 && mealH <= pageH - 36) newPage();
       setFont(doc, 9.5, dayColor, "bold");
@@ -233,7 +235,7 @@ export function generatePlanPdf(data: PlanPdfInput) {
       autoTable(doc, {
         startY: y,
         margin: { left: margin + 2, right: margin + 2, top: 18, bottom: 18 },
-        head: [["Alimento", "Cantidad", "Indicaciones"]],
+        head: [["Alimento", "Cantidad", "Equivalencia", "Indicaciones"]],
         body: rows,
         theme: "grid",
         styles: {
@@ -253,9 +255,10 @@ export function generatePlanPdf(data: PlanPdfInput) {
         },
         alternateRowStyles: { fillColor: [249, 250, 251] },
         columnStyles: {
-          0: { cellWidth: contentW * 0.42, fontStyle: "bold" },
-          1: { cellWidth: contentW * 0.2 },
-          2: { cellWidth: contentW * 0.38, textColor: MUTED },
+          0: { cellWidth: contentW * 0.32, fontStyle: "bold" },
+          1: { cellWidth: contentW * 0.16 },
+          2: { cellWidth: contentW * 0.22 },
+          3: { cellWidth: contentW * 0.3, textColor: MUTED },
         },
       });
       y = (doc as any).lastAutoTable.finalY + 2.5;

@@ -161,7 +161,7 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
         const meals = [...days[dayIndex].meals];
         const foods = [
             ...meals[mealIndex].foods,
-            { name: "", quantity: "", unit: "", notes: "", calories: 0, protein: 0, carbs: 0, fat: 0 },
+            { name: "", quantity: "", unit: "", equivalence: "", notes: "", calories: 0, protein: 0, carbs: 0, fat: 0 },
         ];
         meals[mealIndex] = { ...meals[mealIndex], foods };
         days[dayIndex] = { ...days[dayIndex], meals };
@@ -347,6 +347,7 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                                 name: String(f.name ?? "").trim(),
                                 quantity: String(f.quantity ?? "").trim() || undefined,
                                 unit: String(f.unit ?? "").trim() || undefined,
+                                equivalence: String(f.equivalence ?? "").trim() || undefined,
                                 notes: String(f.notes ?? "").trim() || undefined,
                                 calories: (f.calories ?? 0) > 0 ? f.calories : undefined,
                                 protein: (f.protein ?? 0) > 0 ? f.protein : undefined,
@@ -671,6 +672,21 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                                                             }
                                                             placeholder="Unidad"
                                                             className="w-16 h-8 text-sm bg-transparent border-transparent hover:border-input focus:border-input"
+                                                        />
+                                                        <Input
+                                                            value={food.equivalence ?? ""}
+                                                            onChange={(e) =>
+                                                                updateFood(
+                                                                    dayIndex,
+                                                                    mealIndex,
+                                                                    foodIndex,
+                                                                    "equivalence",
+                                                                    e.target.value
+                                                                )
+                                                            }
+                                                            placeholder="Equiv."
+                                                            className="w-20 h-8 text-sm bg-transparent border-transparent hover:border-input focus:border-input"
+                                                            title="Equivalencia casera (ej: 1 vaso, 1 unidad mediana)"
                                                         />
                                                         <Input
                                                             value={food.notes}

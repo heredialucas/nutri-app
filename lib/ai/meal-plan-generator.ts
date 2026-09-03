@@ -27,6 +27,7 @@ export interface GeneratedFood {
     name: string;
     quantity: string;
     unit: string;
+    equivalence: string; // medida casera equivalente, ej. "1 vaso", "1 unidad mediana"
     notes: string;
     calories?: number; // kcal aproximadas
     protein?: number; // g
@@ -207,6 +208,7 @@ Reglas estrictas:
 - Calculá y reportá los macronutrientes: para cada alimento indicá sus calorías aproximadas (kcal) y gramos de proteína, carbohidratos y grasas. Sumá estos valores por comida y luego el total diario.
 - Incluí alimentos variados, accesibles y económicos en Argentina.
 - Usá unidades métricas (gramos, ml).
+- Para cada alimento, indicá en "equivalence" la medida casera equivalente a la cantidad métrica, entendible para el paciente (ej: "170 g" → "1 vaso", "150 g de manzana" → "1 unidad mediana", "30 g de avena" → "4 cucharadas", "120 g de arroz crudo" → "3/4 taza"). Si el alimento ya se expresa en unidades caseras (unidades, tazas, cucharadas), la equivalencia puede repetir o aclarar esa medida (ej: "1 taza" → "1 taza del tamaño de un puño").
 - Las porciones deben ser realistas y específicas.
 - Generá exactamente 7 días (de Lunes a Domingo).
 - Cada día debe tener 5 comidas: Desayuno, Media mañana, Almuerzo, Merienda, Cena.
@@ -322,7 +324,8 @@ FORMATO DE RESPUESTA - JSON con la siguiente estructura exacta:
             {
               "name": "Nombre del alimento",
               "quantity": "cantidad numérica",
-              "unit": "unidades (g, ml, unidades, taza, cucharada, etc.)",
+              "unit": "unidades métricas (g, ml)",
+              "equivalence": "medida casera equivalente a la cantidad (ej. 1 vaso, 1 unidad mediana, 4 cucharadas, media taza)",
               "calories": <kcal aproximadas del alimento>,
               "protein": <gramos aproximados>,
               "carbs": <gramos aproximados>,
@@ -420,6 +423,7 @@ export async function generateMealPlan(
                         name: String(f.name ?? ""),
                         quantity: String(f.quantity ?? ""),
                         unit: String(f.unit ?? ""),
+                        equivalence: String(f.equivalence ?? ""),
                         notes: String(f.notes ?? ""),
                         calories: num(f.calories),
                         protein: num(f.protein),
