@@ -48,6 +48,7 @@ export const appointmentService = {
         type: "ONLINE" | "IN_PERSON";
         startAt: Date;
         endAt: Date;
+        locationId?: string | null;
         location?: string;
         meetingUrl?: string;
         notes?: string;
@@ -81,6 +82,7 @@ export const appointmentService = {
         cancellationReason?: string;
         startAt?: Date;
         endAt?: Date;
+        locationId?: string | null;
         meetingUrl?: string;
     }) {
         return prisma.appointment.update({

@@ -21,6 +21,7 @@ interface Appointment {
     status: string;
     notes?: string | null;
     meetingUrl?: string | null;
+    location?: string | null;
     patient: { id: string; firstName: string; lastName: string };
 }
 
@@ -90,6 +91,12 @@ export function AppointmentList({ appointments }: { appointments: Appointment[] 
                                         <Clock className="h-3 w-3" />
                                         {endTime}
                                     </span>
+                                    {a.type === "IN_PERSON" && a.location && (
+                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                            <MapPin className="h-3 w-3" />
+                                            {a.location}
+                                        </span>
+                                    )}
                                     {a.type === "ONLINE" && a.meetingUrl && (
                                         <a
                                             href={a.meetingUrl}

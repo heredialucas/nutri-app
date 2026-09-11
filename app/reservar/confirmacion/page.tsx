@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
-import { useBooking } from "@/components/booking/booking-context";
+import { needsLocation, useBooking } from "@/components/booking/booking-context";
 import { createPublicBooking } from "@/app/actions/public-booking";
 import { formatInTimeZone } from "date-fns-tz";
 import { es } from "date-fns/locale";
@@ -23,6 +23,8 @@ interface ConfirmedBooking {
   firstName: string;
   lastName: string;
   email: string;
+  locationName?: string;
+  locationAddress?: string;
 }
 
 function ConfirmacionContent() {
@@ -37,8 +39,16 @@ function ConfirmacionContent() {
 
   const isLoggedIn = !!loggedPatient;
 
+  const needsSede = needsLocation(data);
+
   useEffect(() => {
-    if (status !== "loading" || bookedRef.current) return;
+    if (needsSede) {
+      router.replace("/reservar/sede");
+    }
+  }, [needsSede, router]);
+
+  useEffect(() => {
+    if (status !== "loading" || bookedRef.current || needsSede) return;
     bookedRef.current = true;
 
     async function book() {
@@ -52,6 +62,7 @@ function ConfirmacionContent() {
           goal: data.goal || undefined,
           billingType: data.billingType,
           type: data.type,
+          locationId: data.type === "IN_PERSON" ? data.locationId : undefined,
           date: data.date,
           time: data.time,
         });
@@ -62,6 +73,8 @@ function ConfirmacionContent() {
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
+          locationName: data.locationName || undefined,
+          locationAddress: data.locationAddress || undefined,
         });
         setStatus("success");
       } catch (err) {
@@ -71,7 +84,7 @@ function ConfirmacionContent() {
     }
 
     book();
-  }, [data, status]);
+  }, [data, status, needsSede]);
 
   useEffect(() => {
     if (status !== "success" || !confirmedBooking) return;
@@ -195,6 +208,18 @@ function ConfirmacionContent() {
           <span className="text-xs text-[#999] uppercase tracking-[0.05em] shrink-0">Tipo</span>
           <span className="text-sm font-medium text-[#1a1a1a] text-right break-words">{typeLabels[confirmedBooking!.type] || confirmedBooking!.type}</span>
         </div>
+        {confirmedBooking!.type === "IN_PERSON" && confirmedBooking!.locationName && (
+          <>
+            <div className="w-full h-px bg-[rgba(0,0,0,0.06)]" />
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-xs text-[#999] uppercase tracking-[0.05em] shrink-0">Sede</span>
+              <span className="text-sm font-medium text-[#1a1a1a] text-right break-words">
+                {confirmedBooking!.locationName}
+                {confirmedBooking!.locationAddress ? ` — ${confirmedBooking!.locationAddress}` : ""}
+              </span>
+            </div>
+          </>
+        )}
         <div className="w-full h-px bg-[rgba(0,0,0,0.06)]" />
         <div className="flex items-center justify-between gap-4">
           <span className="text-xs text-[#999] uppercase tracking-[0.05em] shrink-0">Fecha</span>

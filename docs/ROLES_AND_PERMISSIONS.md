@@ -132,6 +132,8 @@ La aplicación utiliza un sistema de control de acceso basado en roles (RBAC) co
 | `users:manage` | Gestionar usuarios, roles y permisos |
 | `settings:manage` | Configurar datos del consultorio |
 
+> La gestión de **Sedes** (`/dashboard/configuracion/sedes`) requiere el rol `ADMIN`. No se expone a otros roles.
+
 ## Matriz de asignación
 
 | Permiso | ADMIN | PROFESSIONAL | ASSISTANT | RECEPTION | PATIENT |

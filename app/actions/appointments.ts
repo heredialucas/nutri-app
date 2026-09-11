@@ -70,6 +70,7 @@ export async function createAppointment(data: {
     type: "ONLINE" | "IN_PERSON";
     startAt: string;
     endAt: string;
+    locationId?: string | null;
     location?: string;
     meetingUrl?: string;
     notes?: string;
@@ -95,6 +96,7 @@ export async function updateAppointment(id: string, data: {
     cancellationReason?: string;
     startAt?: string;
     endAt?: string;
+    locationId?: string | null;
     meetingUrl?: string;
 }) {
     await requireAuth("appointments:update");
@@ -105,6 +107,7 @@ export async function updateAppointment(id: string, data: {
     if (data.cancellationReason !== undefined) updateData.cancellationReason = data.cancellationReason;
     if (data.startAt !== undefined) updateData.startAt = new Date(data.startAt);
     if (data.endAt !== undefined) updateData.endAt = new Date(data.endAt);
+    if (data.locationId !== undefined) updateData.locationId = data.locationId;
     if (data.meetingUrl !== undefined) updateData.meetingUrl = data.meetingUrl;
 
     const appointment = await appointmentService.update(id, updateData);

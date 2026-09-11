@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useBooking } from "@/components/booking/booking-context";
+import { needsLocation, useBooking } from "@/components/booking/booking-context";
 import { updateMyProfile } from "@/app/actions/patient-portal";
 import { useState, useEffect } from "react";
 
@@ -21,11 +21,13 @@ export default function DatosPage() {
     isComplete(data.phone)
   );
 
+  const nextHref = needsLocation(data) ? "/reservar/sede" : "/reservar/horario";
+
   useEffect(() => {
     if (requiredComplete) {
-      router.replace("/reservar/horario");
+      router.replace(nextHref);
     }
-  }, [requiredComplete, router]);
+  }, [requiredComplete, nextHref, router]);
 
   const [form, setForm] = useState({
     firstName: data.firstName,
@@ -54,7 +56,7 @@ export default function DatosPage() {
         billingType: form.billingType,
       }).catch(() => {});
     }
-    router.push("/reservar/horario");
+    router.push(nextHref);
   };
 
   if (requiredComplete) {
@@ -185,7 +187,7 @@ export default function DatosPage() {
 
         <div className="flex gap-3 mt-4">
           <Link
-            href="/reservar"
+            href={data.type === "IN_PERSON" ? "/reservar/sede" : "/reservar"}
             className="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] no-underline transition-colors hover:bg-[rgba(0,0,0,0.02)]"
           >
             Volver

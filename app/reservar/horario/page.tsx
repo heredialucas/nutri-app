@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
-import { useBooking } from "@/components/booking/booking-context";
+import { needsLocation, useBooking } from "@/components/booking/booking-context";
 import { getPublicAvailableSlots } from "@/app/actions/public-booking";
 import { CalendarDays, Loader2 } from "lucide-react";
 
 function HorarioForm() {
   const { data, setStep3, loggedPatient } = useBooking();
   const router = useRouter();
+  const locationId = data.type === "IN_PERSON" ? data.locationId : null;
   const [selected, setSelected] = useState<string | null>(data.time || null);
   const [selectedDate, setSelectedDate] = useState<string>(
     data.date || (() => {
@@ -22,11 +23,17 @@ function HorarioForm() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (needsLocation(data)) {
+      router.replace("/reservar/sede");
+    }
+  }, [data, router]);
+
+  useEffect(() => {
     async function loadSlots() {
       setLoading(true);
       setError(null);
       try {
-        const result = await getPublicAvailableSlots(selectedDate);
+        const result = await getPublicAvailableSlots(selectedDate, locationId);
         setSlots(result);
         if (result.length === 0) {
           setError("No hay horarios disponibles para esa fecha. Elegí otro día.");
@@ -38,7 +45,7 @@ function HorarioForm() {
       }
     }
     loadSlots();
-  }, [selectedDate]);
+  }, [selectedDate, locationId]);
 
   const handleContinue = () => {
     if (!selected) return;
@@ -59,6 +66,16 @@ function HorarioForm() {
       <p className="text-sm text-[#666] mb-6 m-0">
         Seleccioná el día y luego el horario que mejor te quede.
       </p>
+
+      {data.type === "IN_PERSON" && data.locationName && (
+        <div className="mb-6 p-3 rounded-lg border border-[rgba(0,0,0,0.06)] bg-white text-sm">
+          <span className="text-[#999]">Sede: </span>
+          <span className="font-medium text-[#1a1a1a]">{data.locationName}</span>
+          {data.locationAddress && (
+            <span className="text-[#666]"> — {data.locationAddress}</span>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-1.5 mb-6">
         <label htmlFor="date" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
@@ -116,7 +133,13 @@ function HorarioForm() {
 
       <div className="flex gap-3">
         <Link
-          href={loggedPatient ? "/paciente/dashboard" : "/reservar/datos"}
+          href={
+            data.type === "IN_PERSON"
+              ? "/reservar/sede"
+              : loggedPatient
+              ? "/paciente/dashboard"
+              : "/reservar/datos"
+          }
           className="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] no-underline transition-colors hover:bg-[rgba(0,0,0,0.02)]"
         >
           Volver

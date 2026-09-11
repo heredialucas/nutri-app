@@ -5,7 +5,14 @@ import { fromZonedTime, formatInTimeZone, toZonedTime } from "date-fns-tz";
 const AR_TZ = "America/Argentina/Buenos_Aires";
 
 export const availabilityService = {
-    async getByProfessional(professionalId: string) {
+    async getByProfessional(professionalId: string, locationId: string | null = null) {
+        return prisma.availability.findMany({
+            where: { professionalId, locationId: locationId ?? null },
+            orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+        });
+    },
+
+    async getAllByProfessional(professionalId: string) {
         return prisma.availability.findMany({
             where: { professionalId },
             orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
@@ -14,15 +21,17 @@ export const availabilityService = {
 
     async create(data: {
         professionalId: string;
+        locationId: string | null;
         weekday: number;
         startTime: string;
         endTime: string;
         slotDuration?: number;
     }) {
-        // Verificar que no haya superposición en el mismo día
+        // Verificar que no haya superposición en el mismo día para la misma sede/Online
         const existing = await prisma.availability.findMany({
             where: {
                 professionalId: data.professionalId,
+                locationId: data.locationId ?? null,
                 weekday: data.weekday,
                 isActive: true,
             },
@@ -55,7 +64,7 @@ export const availabilityService = {
         return prisma.availability.delete({ where: { id } });
     },
 
-    async getAvailableSlots(professionalId: string, date: Date) {
+    async getAvailableSlots(professionalId: string, date: Date, locationId: string | null = null) {
         // date is a correct UTC Date; get Argentina weekday
         const arDate = toZonedTime(date, AR_TZ);
         const weekday = arDate.getDay();
@@ -63,6 +72,7 @@ export const availabilityService = {
         const availability = await prisma.availability.findMany({
             where: {
                 professionalId,
+                locationId: locationId ?? null,
                 weekday,
                 isActive: true,
             },

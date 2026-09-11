@@ -2,13 +2,14 @@
 
 ## Visión general
 
-La reserva de turnos es un proceso público (sin login) que permite a nuevos pacientes agendar una primera consulta con Mauro Acosta. El flujo consta de 4 pasos.
+La reserva de turnos es un proceso público (sin login) que permite a nuevos pacientes agendar una primera consulta con Mauro Acosta. El flujo consta de 4 pasos para turnos online y 5 para turnos presenciales (se agrega la elección de sede).
 
 ## Rutas
 
 | Ruta | Descripción |
 |------|-------------|
 | `/reservar` | Selección de tipo de turno (presencial u online) |
+| `/reservar/sede` | Selección de sede (solo turnos presenciales) |
 | `/reservar/datos` | Formulario con datos personales del paciente |
 | `/reservar/horario` | Selección de fecha y horario disponible |
 | `/reservar/confirmacion` | Resumen y confirmación de la reserva |
@@ -18,10 +19,17 @@ La reserva de turnos es un proceso público (sin login) que permite a nuevos pac
 ### 1. Tipo de turno (`/reservar`)
 
 El paciente elige entre:
-- **Presencial**: consulta en el consultorio.
-- **Online**: consulta por videollamada.
+- **Presencial**: consulta en el consultorio. Continúa a la selección de sede.
+- **Online**: consulta por videollamada. Salta directo a los datos personales.
 
-### 2. Datos personales (`/reservar/datos`)
+### 2. Sede (`/reservar/sede`)
+
+Solo para turnos presenciales:
+- Se listan las sedes activas administradas desde `/dashboard/configuracion/sedes`.
+- Cada sede muestra nombre y dirección.
+- La sede elegida determina la disponibilidad horaria que se ofrece en el paso de horario.
+
+### 3. Datos personales (`/reservar/datos`)
 
 Formulario con:
 - Nombre y apellido
@@ -30,17 +38,18 @@ Formulario con:
 - Fecha de nacimiento (opcional)
 - Observaciones (opcional)
 
-### 3. Selección de horario (`/reservar/horario`)
+### 4. Selección de horario (`/reservar/horario`)
 
 - Se muestra un calendario con los días disponibles.
-- La disponibilidad se obtiene de la tabla `availability` del profesional.
+- La disponibilidad se obtiene de la tabla `availability` del profesional, filtrando por la sede elegida (o por modalidad online).
 - Se muestran los slots disponibles según la `slotDuration` configurada.
 - Se filtran horarios ocupados (turnos existentes con status `PENDING` o `CONFIRMED`).
 
-### 4. Confirmación (`/reservar/confirmacion`)
+### 5. Confirmación (`/reservar/confirmacion`)
 
 Resumen con:
 - Tipo de turno
+- Sede (solo presencial)
 - Datos del paciente
 - Fecha y horario seleccionado
 - Botón de confirmación
@@ -71,10 +80,19 @@ Al confirmar:
 ## Reglas de negocio
 
 - No se permiten turnos en horarios pasados.
-- No se permiten solapamientos de turnos para el mismo profesional.
+- Los turnos presenciales requieren elegir una sede activa.
+- La disponibilidad se configura por separado para cada sede y para la modalidad online.
+- No se permiten solapamientos de turnos para el mismo profesional (aunque sean en sedes distintas).
 - La duración del slot es configurable por el profesional.
 - Se valida la disponibilidad horaria configurada.
 - Los turnos online pueden incluir un link de videollamada.
+
+## Gestión de sedes
+
+Desde `/dashboard/configuracion/sedes` (solo administradores) se puede:
+- Crear, editar y eliminar sedes (nombre y dirección).
+- Activar o desactivar sedes (las inactivas no se ofrecen al reservar).
+- Una sede no se puede eliminar si tiene turnos o disponibilidad asociada.
 
 ## Gestión desde el dashboard profesional
 

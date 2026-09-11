@@ -24,6 +24,7 @@ import {
     PanelLeftOpen,
     MessageSquare,
     Ruler,
+    MapPin,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -155,6 +156,12 @@ const sidebarGroups: SidebarGroup[] = [
         groupTitle: "Configuración",
         defaultOpen: false,
         items: [
+            {
+                title: "Sedes",
+                href: "/dashboard/configuracion/sedes",
+                icon: MapPin,
+                requiresAdmin: true,
+            },
             {
                 title: "Usuarios",
                 href: "/dashboard/users",

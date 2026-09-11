@@ -281,6 +281,20 @@ model PatientGoal {
 // APPOINTMENTS & AVAILABILITY
 // ──────────────────────────────────────────────
 
+model Location {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  address   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+  availability Availability[]
+
+  @@map("locations")
+}
+
 model Appointment {
   id                 String            @id @default(uuid()) @db.Uuid
   patientId          String            @db.Uuid
@@ -289,6 +303,7 @@ model Appointment {
   status             AppointmentStatus @default(PENDING)
   startAt            DateTime
   endAt              DateTime
+  locationId         String?           @db.Uuid
   location           String?
   meetingUrl         String?
   notes              String?
@@ -296,23 +311,28 @@ model Appointment {
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
 
-  patient      Patient @relation(fields: [patientId], references: [id])
-  professional User    @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
+  patient      Patient  @relation(fields: [patientId], references: [id])
+  professional User     @relation("ProfessionalAppointments", fields: [professionalId], references: [id])
+  sede         Location? @relation(fields: [locationId], references: [id])
 
+  @@index([locationId])
   @@map("appointments")
 }
 
 model Availability {
   id             String  @id @default(uuid()) @db.Uuid
   professionalId String  @db.Uuid
+  locationId     String? @db.Uuid
   weekday        Int
   startTime      String
   endTime        String
   slotDuration   Int     @default(30)
   isActive       Boolean @default(true)
 
-  professional User @relation(fields: [professionalId], references: [id])
+  professional User      @relation(fields: [professionalId], references: [id])
+  sede         Location? @relation(fields: [locationId], references: [id])
 
+  @@index([locationId])
   @@map("availability")
 }
 

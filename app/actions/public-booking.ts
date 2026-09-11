@@ -28,7 +28,12 @@ async function getDefaultProfessionalId(): Promise<string> {
     return admin.id;
 }
 
-export async function getPublicAvailableSlots(date: string) {
+export async function getPublicLocations() {
+    const { locationService } = await import("@/services/location-service");
+    return locationService.listActive();
+}
+
+export async function getPublicAvailableSlots(date: string, locationId?: string | null) {
     const professionalId = await getDefaultProfessionalId();
     const { availabilityService } = await import("@/services/availability-service");
     // date string is the Argentina-local date the user picked (e.g. "2026-08-27")
@@ -36,7 +41,7 @@ export async function getPublicAvailableSlots(date: string) {
     const [y, m, d] = date.split("-").map(Number);
     const localNoon = new Date(y, m - 1, d, 12, 0, 0);
     const utcDate = fromZonedTime(localNoon, AR_TZ);
-    const slots = await availabilityService.getAvailableSlots(professionalId, utcDate);
+    const slots = await availabilityService.getAvailableSlots(professionalId, utcDate, locationId ?? null);
     return slots;
 }
 
@@ -49,6 +54,7 @@ export async function createPublicBooking(data: {
     goal?: string;
     billingType: string;
     type: "ONLINE" | "IN_PERSON";
+    locationId?: string;
     date: string;
     time: string;
 }) {
@@ -58,6 +64,16 @@ export async function createPublicBooking(data: {
     if (!data.phone?.trim()) throw new Error("El teléfono es obligatorio");
     if (!data.date) throw new Error("La fecha es obligatoria");
     if (!data.time) throw new Error("El horario es obligatorio");
+
+    // Los turnos presenciales requieren una sede válida
+    let sede: { id: string; name: string; address: string } | null = null;
+    if (data.type === "IN_PERSON") {
+        if (!data.locationId) throw new Error("Elegí la sede del turno presencial");
+        const { locationService } = await import("@/services/location-service");
+        const found = await locationService.getById(data.locationId);
+        if (!found || !found.isActive) throw new Error("La sede elegida no está disponible");
+        sede = { id: found.id, name: found.name, address: found.address };
+    }
 
     // Prevent booking past dates/times
     const [y, m, d] = data.date.split("-").map(Number);
@@ -129,6 +145,8 @@ export async function createPublicBooking(data: {
             status: "PENDING",
             startAt,
             endAt,
+            locationId: sede?.id,
+            location: sede ? `${sede.name} — ${sede.address}` : undefined,
             notes: data.goal?.trim() || undefined,
         },
         include: {

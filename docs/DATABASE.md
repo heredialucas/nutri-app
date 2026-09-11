@@ -63,6 +63,17 @@ Objetivos del paciente (1:N). Campos: `type`, `description`, `targetValue`, `tar
 
 ## Modelos de agenda
 
+### Location
+
+Sede o sucursal donde se atienden los turnos presenciales.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | UUID | Identificador único |
+| name | String | Nombre de la sede (ej: Sede Centro) |
+| address | String | Dirección de la sede |
+| isActive | Boolean | Sede disponible para reservar |
+
 ### Appointment
 
 Turno entre paciente y profesional.
@@ -72,12 +83,19 @@ Turno entre paciente y profesional.
 | type | Enum | `ONLINE` o `IN_PERSON` |
 | status | Enum | `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`, `NO_SHOW`, `RESCHEDULED` |
 | startAt / endAt | DateTime | Horario del turno |
+| locationId | UUID? | FK a Location (solo turnos presenciales) |
+| location | String? | Snapshot de texto de la sede (nombre — dirección) |
 | meetingUrl | String? | Link de videollamada (online) |
 | cancellationReason | String? | Motivo de cancelación |
 
 ### Availability
 
-Horarios disponibles del profesional. Campos: `weekday` (0-6), `startTime`, `endTime`, `slotDuration` (minutos), `isActive`.
+Horarios disponibles del profesional, separados por sede/modalidad.
+
+- `locationId` = `null` → disponibilidad para turnos **online**.
+- `locationId` = sede → disponibilidad para turnos **presenciales** en esa sede.
+
+Campos: `professionalId`, `locationId?`, `weekday` (0-6), `startTime`, `endTime`, `slotDuration` (minutos), `isActive`.
 
 ## Modelos de mediciones
 

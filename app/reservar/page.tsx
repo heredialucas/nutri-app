@@ -1,7 +1,7 @@
 "use client";
 
 import { Building2, Video } from "lucide-react";
-import { useBooking } from "@/components/booking/booking-context";
+import { needsLocation, useBooking } from "@/components/booking/booking-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -21,26 +21,26 @@ const types = [
 ];
 
 export default function ReservarPage() {
-  const { setStep1, loggedPatient } = useBooking();
+  const { setStep1, loggedPatient, data } = useBooking();
   const router = useRouter();
 
   useEffect(() => {
     if (loggedPatient) {
-      router.replace("/reservar/horario");
+      router.replace(needsLocation(data) ? "/reservar/sede" : "/reservar/horario");
     }
-  }, [loggedPatient, router]);
+  }, [loggedPatient, data, router]);
 
   if (loggedPatient) {
     return (
       <div className="text-center py-12 text-sm text-[#999]">
-        Redirigiendo a selección de horario...
+        Redirigiendo...
       </div>
     );
   }
 
   const handleSelect = (type: "ONLINE" | "IN_PERSON") => {
     setStep1(type);
-    router.push("/reservar/datos");
+    router.push(type === "IN_PERSON" ? "/reservar/sede" : "/reservar/datos");
   };
 
   return (

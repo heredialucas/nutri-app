@@ -347,8 +347,35 @@ async function main() {
     await prisma.consent.create({ data: { patientId: demoPatient.id, type: "TRATAMIENTO_NUTRICIONAL", version: "1.0", signedAt: dates[0], signature: "Valentina Gómez", ipAddress: "127.0.0.1", documentUrl: "https://example.com/demo-consentimiento.pdf" } });
     await prisma.payment.createMany({ data: [{ patientId: demoPatient.id, amount: 18000, method: "TRANSFERENCIA", description: "Consulta inicial", date: dates[0], notes: "Pago demo." }, { patientId: demoPatient.id, amount: 18000, method: "EFECTIVO", description: "Control mensual", date: dates[1] }] });
     await prisma.expense.create({ data: { category: "SERVICIOS", description: "Material de evaluación demo", amount: 2500, date: dates[0], notes: "Gasto de prueba para reportes." } });
-    await prisma.availability.createMany({ data: [{ professionalId: adminUser.id, weekday: 1, startTime: "09:00", endTime: "13:00", slotDuration: 60 }, { professionalId: adminUser.id, weekday: 3, startTime: "15:00", endTime: "19:00", slotDuration: 60 }] });
-    await prisma.appointment.createMany({ data: [{ patientId: demoPatient.id, professionalId: adminUser.id, type: "IN_PERSON", status: "COMPLETED", startAt: new Date("2026-08-29T10:00:00"), endAt: new Date("2026-08-29T11:00:00"), location: "Consultorio Mauro Acosta", notes: "Control antropométrico." }, { patientId: demoPatient.id, professionalId: adminUser.id, type: "ONLINE", status: "CONFIRMED", startAt: new Date("2026-09-12T11:00:00"), endAt: new Date("2026-09-12T12:00:00"), meetingUrl: "https://meet.google.com/demo-mauro", notes: "Revisión del plan y seguimiento." }] });
+    const centroSede = await prisma.location.upsert({
+        where: { id: "00000000-0000-0000-0000-000000000001" },
+        update: {},
+        create: {
+            id: "00000000-0000-0000-0000-000000000001",
+            name: "Sede Centro",
+            address: "San Miguel de Tucumán, Tucumán",
+        },
+    });
+    await prisma.location.upsert({
+        where: { id: "00000000-0000-0000-0000-000000000002" },
+        update: {},
+        create: {
+            id: "00000000-0000-0000-0000-000000000002",
+            name: "Sede Yerba Buena",
+            address: "Yerba Buena, Tucumán",
+        },
+    });
+
+    await prisma.availability.createMany({ data: [
+        { professionalId: adminUser.id, locationId: null, weekday: 1, startTime: "09:00", endTime: "13:00", slotDuration: 60 },
+        { professionalId: adminUser.id, locationId: null, weekday: 3, startTime: "15:00", endTime: "19:00", slotDuration: 60 },
+        { professionalId: adminUser.id, locationId: centroSede.id, weekday: 1, startTime: "09:00", endTime: "13:00", slotDuration: 60 },
+        { professionalId: adminUser.id, locationId: centroSede.id, weekday: 3, startTime: "15:00", endTime: "19:00", slotDuration: 60 },
+    ] });
+    await prisma.appointment.createMany({ data: [
+        { patientId: demoPatient.id, professionalId: adminUser.id, type: "IN_PERSON", status: "COMPLETED", startAt: new Date("2026-08-29T10:00:00"), endAt: new Date("2026-08-29T11:00:00"), locationId: centroSede.id, location: `${centroSede.name} — ${centroSede.address}`, notes: "Control antropométrico." },
+        { patientId: demoPatient.id, professionalId: adminUser.id, type: "ONLINE", status: "CONFIRMED", startAt: new Date("2026-09-12T11:00:00"), endAt: new Date("2026-09-12T12:00:00"), meetingUrl: "https://meet.google.com/demo-mauro", notes: "Revisión del plan y seguimiento." },
+    ] });
     const thread = await prisma.messageThread.create({ data: { patientId: demoPatient.id } });
     await prisma.message.create({ data: { threadId: thread.id, authorId: adminUser.id, content: "Hola Valentina, ya está disponible tu plan de ejemplo. Nos vemos en el próximo control." } });
 

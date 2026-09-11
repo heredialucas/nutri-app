@@ -17,16 +17,25 @@ async function requireAuth(permission?: string) {
     return user;
 }
 
-export async function getAvailability(professionalId?: string) {
+export async function getAvailability(professionalId?: string, locationId?: string | null) {
     const user = await requireAuth("availability:read");
     const targetId = professionalId || user.id;
 
-    const availability = await availabilityService.getByProfessional(targetId);
+    const availability = await availabilityService.getByProfessional(targetId, locationId ?? null);
+    return serializePrisma(availability);
+}
+
+export async function getAllAvailability(professionalId?: string) {
+    const user = await requireAuth("availability:read");
+    const targetId = professionalId || user.id;
+
+    const availability = await availabilityService.getAllByProfessional(targetId);
     return serializePrisma(availability);
 }
 
 export async function createAvailabilitySlot(data: {
     professionalId?: string;
+    locationId?: string | null;
     weekday: number;
     startTime: string;
     endTime: string;
@@ -36,6 +45,7 @@ export async function createAvailabilitySlot(data: {
 
     const result = await availabilityService.create({
         professionalId: data.professionalId || user.id,
+        locationId: data.locationId ?? null,
         weekday: data.weekday,
         startTime: data.startTime,
         endTime: data.endTime,
@@ -65,11 +75,11 @@ export async function deleteAvailabilitySlot(id: string) {
     return { success: true };
 }
 
-export async function getAvailableSlots(professionalId: string, date: string) {
+export async function getAvailableSlots(professionalId: string, date: string, locationId?: string | null) {
     // date string is the Argentina-local date (e.g. "2026-08-27")
     const [y, m, d] = date.split("-").map(Number);
     const localNoon = new Date(y, m - 1, d, 12, 0, 0);
     const utcDate = fromZonedTime(localNoon, AR_TZ);
-    const slots = await availabilityService.getAvailableSlots(professionalId, utcDate);
+    const slots = await availabilityService.getAvailableSlots(professionalId, utcDate, locationId ?? null);
     return slots;
 }

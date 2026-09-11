@@ -13,17 +13,24 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { createAvailabilitySlot, deleteAvailabilitySlot } from "@/app/actions/availability";
 import { toast } from "sonner";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, MapPin, Video } from "lucide-react";
 
 interface AvailabilitySlot {
     id: string;
+    locationId: string | null;
     weekday: number;
     startTime: string;
     endTime: string;
     slotDuration: number;
     isActive: boolean;
+}
+
+interface LocationOption {
+    id: string;
+    name: string;
 }
 
 const weekdayNames = [
@@ -36,9 +43,18 @@ const weekdayNames = [
     "Sábado",
 ];
 
-export function AvailabilityForm({ slots }: { slots: AvailabilitySlot[] }) {
+const ONLINE = "__online__";
+
+export function AvailabilityForm({
+    slots,
+    locations,
+}: {
+    slots: AvailabilitySlot[];
+    locations: LocationOption[];
+}) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [scope, setScope] = useState<string>(locations[0]?.id ?? ONLINE);
     const [form, setForm] = useState({
         weekday: "1",
         startTime: "09:00",
@@ -46,11 +62,18 @@ export function AvailabilityForm({ slots }: { slots: AvailabilitySlot[] }) {
         slotDuration: "30",
     });
 
+    const scopeLocationId = scope === ONLINE ? null : scope;
+
+    const scopedSlots = slots.filter(
+        (s) => (s.locationId ?? ONLINE) === scope,
+    );
+
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
             await createAvailabilitySlot({
+                locationId: scopeLocationId,
                 weekday: parseInt(form.weekday),
                 startTime: form.startTime,
                 endTime: form.endTime,
@@ -79,11 +102,41 @@ export function AvailabilityForm({ slots }: { slots: AvailabilitySlot[] }) {
     const groupedSlots = weekdayNames.map((name, index) => ({
         name,
         index,
-        slots: slots.filter((s) => s.weekday === index),
+        slots: scopedSlots.filter((s) => s.weekday === index),
     }));
 
     return (
         <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-base">Sede / modalidad</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Select value={scope} onValueChange={setScope}>
+                        <SelectTrigger className="w-full sm:w-[280px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ONLINE}>
+                                <span className="flex items-center gap-2">
+                                    <Video className="h-3.5 w-3.5" /> Online
+                                </span>
+                            </SelectItem>
+                            {locations.map((location) => (
+                                <SelectItem key={location.id} value={location.id}>
+                                    <span className="flex items-center gap-2">
+                                        <MapPin className="h-3.5 w-3.5" /> {location.name}
+                                    </span>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-2">
+                        Configurá un horario por sede. Los turnos online usan la opción &quot;Online&quot;.
+                    </p>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle className="text-base">Agregar horario</CardTitle>
@@ -153,7 +206,14 @@ export function AvailabilityForm({ slots }: { slots: AvailabilitySlot[] }) {
                 {groupedSlots.map((group) => (
                     <Card key={group.index}>
                         <CardHeader className="py-3">
-                            <CardTitle className="text-sm">{group.name}</CardTitle>
+                            <CardTitle className="text-sm flex items-center gap-2">
+                                {group.name}
+                                {scope !== ONLINE && (
+                                    <Badge variant="secondary" className="font-normal">
+                                        {locations.find((l) => l.id === scope)?.name}
+                                    </Badge>
+                                )}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
                             {group.slots.length === 0 ? (

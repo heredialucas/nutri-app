@@ -13,6 +13,9 @@ export interface LoggedPatient {
 
 export interface BookingData {
     type: "ONLINE" | "IN_PERSON";
+    locationId: string;
+    locationName: string;
+    locationAddress: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -30,6 +33,7 @@ interface BookingContextType {
     setStep1: (type: "ONLINE" | "IN_PERSON") => void;
     setStep2: (datos: Partial<BookingData>) => void;
     setStep3: (date: string, time: string) => void;
+    setLocation: (locationId: string, locationName: string, locationAddress: string) => void;
     reset: () => void;
 }
 
@@ -42,6 +46,9 @@ function buildInitialData(loggedPatient: LoggedPatient | null): BookingData {
     if (loggedPatient) {
         return {
             type: "IN_PERSON",
+            locationId: "",
+            locationName: "",
+            locationAddress: "",
             firstName: loggedPatient.firstName,
             lastName: loggedPatient.lastName,
             email: loggedPatient.email,
@@ -55,6 +62,9 @@ function buildInitialData(loggedPatient: LoggedPatient | null): BookingData {
     }
     return {
         type: "IN_PERSON",
+        locationId: "",
+        locationName: "",
+        locationAddress: "",
         firstName: "",
         lastName: "",
         email: "",
@@ -89,10 +99,14 @@ export function BookingProvider({ children, loggedPatient = null }: BookingProvi
         setData((prev) => ({ ...prev, date, time }));
     };
 
+    const setLocation = (locationId: string, locationName: string, locationAddress: string) => {
+        setData((prev) => ({ ...prev, locationId, locationName, locationAddress }));
+    };
+
     const reset = () => setData(buildInitialData(loggedPatient));
 
     return (
-        <BookingContext.Provider value={{ data, loggedPatient, setStep1, setStep2, setStep3, reset }}>
+        <BookingContext.Provider value={{ data, loggedPatient, setStep1, setStep2, setStep3, setLocation, reset }}>
             {children}
         </BookingContext.Provider>
     );
@@ -102,4 +116,8 @@ export function useBooking() {
     const ctx = useContext(BookingContext);
     if (!ctx) throw new Error("useBooking must be used within BookingProvider");
     return ctx;
+}
+
+export function needsLocation(data: BookingData) {
+    return data.type === "IN_PERSON" && !data.locationId;
 }
