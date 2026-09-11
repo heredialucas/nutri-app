@@ -29,29 +29,43 @@ export function LandingHero() {
         animate={{ opacity: ready ? 1 : 0 }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        {/* Imagen de fondo — cubre toda la altura, centrada horizontalmente */}
-        <div className="absolute inset-0 flex items-center justify-center">
+        {/* Capa de relleno: la misma imagen ampliada y difuminada para cubrir los laterales en desktop */}
+        <div className="absolute inset-0 z-0 hidden md:block overflow-hidden" aria-hidden="true">
+          <img
+            alt=""
+            src="/images/hero-mauro.jpg"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-full min-h-full w-auto h-auto object-cover scale-110"
+            style={{ filter: "blur(32px) brightness(0.65) saturate(1.1)" }}
+          />
+        </div>
+
+        {/* Imagen principal — cubre toda la altura, centrada horizontalmente */}
+        <div className="absolute inset-0 z-[1] flex items-center justify-center">
           <img
             alt="Mauro Acosta - Gestión nutricional"
             src="/images/hero-mauro.jpg"
             className="h-full w-auto object-cover max-w-none"
-            style={{ minHeight: "100%" }}
+            style={{
+            minHeight: "100%",
+            maskImage: "linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)",
+          }}
           />
         </div>
 
-        {/* Degradé izquierdo: fusiona imagen con fondo oscuro */}
+        {/* Degradé izquierdo: la imagen nítida emerge gradualmente desde el relleno difuminado */}
         <div
           className="absolute inset-0 z-[2] pointer-events-none"
           style={{
-            background: "linear-gradient(to right, #0c0c0e 0%, #0c0c0e 8%, rgba(12,12,14,0.7) 20%, transparent 40%)",
+            background: "linear-gradient(to right, rgba(12,12,14,0.65) 0%, rgba(12,12,14,0.5) 12%, rgba(12,12,14,0.3) 24%, rgba(12,12,14,0.12) 38%, transparent 52%)",
           }}
         />
 
-        {/* Degradé derecho: fusiona imagen con fondo oscuro */}
+        {/* Degradé derecho: la imagen nítida emerge gradualmente desde el relleno difuminado */}
         <div
           className="absolute inset-0 z-[2] pointer-events-none"
           style={{
-            background: "linear-gradient(to left, #0c0c0e 0%, #0c0c0e 8%, rgba(12,12,14,0.7) 20%, transparent 40%)",
+            background: "linear-gradient(to left, rgba(12,12,14,0.65) 0%, rgba(12,12,14,0.5) 12%, rgba(12,12,14,0.3) 24%, rgba(12,12,14,0.12) 38%, transparent 52%)",
           }}
         />
 
