@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import type { IsakResult } from "@/lib/isak/calculations";
+import { loadLogoDataUrl, LOGO_DARK_SRC } from "@/lib/pdf-branding";
 
 interface PdfPayload {
   paciente: string;
@@ -22,15 +23,21 @@ const LIGHT: [number, number, number] = [242, 247, 244];
 const AMBER: [number, number, number] = [183, 115, 24];
 
 export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionData = [] }: PdfPayload & { result: IsakResult }) {
-  const generatePdf = () => {
+  const generatePdf = async () => {
     try {
       const validEvolutionData = (evolutionData ?? []).filter((item): item is { date: string; result: IsakResult } => Boolean(item?.date && item?.result));
+      let logoDataUrl: string | null = null;
+      try {
+        logoDataUrl = await loadLogoDataUrl(LOGO_DARK_SRC);
+      } catch {
+        logoDataUrl = null;
+      }
       const doc = new jsPDF({ unit: "mm", format: "a4" }) as PdfDocument;
       const pageWidth = doc.internal.pageSize.getWidth();
       const margin = 16;
       const contentWidth = pageWidth - margin * 2;
 
-      drawPageChrome(doc, paciente, fecha, evaluador);
+      drawPageChrome(doc, paciente, fecha, evaluador, logoDataUrl);
       doc.setFillColor(...GREEN);
       doc.rect(0, 0, pageWidth, 5, "F");
       doc.setTextColor(...GREEN);
@@ -85,7 +92,7 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
       noteBox(doc, "Cómo leer este informe", "Los valores permiten comparar tu evolución entre controles. Las estimaciones y clasificaciones son orientativas y se interpretan durante la consulta, nunca como diagnóstico aislado.", margin, finalY + 12, contentWidth);
 
       doc.addPage();
-      drawPageChrome(doc, paciente, fecha, evaluador);
+      drawPageChrome(doc, paciente, fecha, evaluador, logoDataUrl);
       sectionTitle(doc, "Indicadores y referencias", margin, 24);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
       doc.text("Referencias orientativas según el indicador registrado y el perfil de la persona.", margin, 31);
@@ -95,7 +102,7 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
       noteBox(doc, "Importante", "Un rango de referencia no reemplaza la valoración clínica. Edad, sexo, antecedentes, objetivos y evolución modifican la lectura de cada indicador.", margin, (doc.lastAutoTable?.finalY ?? 100) + 10, contentWidth);
 
       doc.addPage();
-      drawPageChrome(doc, paciente, fecha, evaluador);
+      drawPageChrome(doc, paciente, fecha, evaluador, logoDataUrl);
       sectionTitle(doc, "Mediciones registradas", margin, 24);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
       doc.text("Detalle de las mediciones utilizadas para construir este informe.", margin, 31);
@@ -120,7 +127,7 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
 
       if (validEvolutionData.length > 0) {
         doc.addPage();
-        drawPageChrome(doc, paciente, fecha, evaluador);
+        drawPageChrome(doc, paciente, fecha, evaluador, logoDataUrl);
         sectionTitle(doc, "Evolución entre controles", margin, 24);
         doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
         doc.text("La tendencia ayuda a contextualizar cada medición y orientar el próximo objetivo.", margin, 31);
@@ -132,7 +139,7 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
       }
 
       doc.addPage();
-      drawPageChrome(doc, paciente, fecha, evaluador);
+      drawPageChrome(doc, paciente, fecha, evaluador, logoDataUrl);
       sectionTitle(doc, "Metodología y observaciones", margin, 24);
       const methodology = [
         ["Unidades", "Pliegues y diámetros en milímetros; perímetros en centímetros; peso en kilogramos."],
@@ -154,10 +161,17 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
   return <Button onClick={generatePdf} variant="outline"><Download className="mr-2 h-4 w-4" />Exportar informe antropométrico</Button>;
 }
 
-function drawPageChrome(doc: jsPDF, paciente: string, fecha: string, evaluador: string) {
+function drawPageChrome(doc: jsPDF, paciente: string, fecha: string, evaluador: string, logoDataUrl?: string | null) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const page = doc.getNumberOfPages();
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, "PNG", pageWidth - 16 - 28, 12, 28, 14.8);
+    } catch {
+      void 0;
+    }
+  }
   doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
   doc.text("Mauro Acosta · Gestión nutricional", 16, pageHeight - 12);
   doc.text(`${paciente} · ${fecha}`, pageWidth - 16, pageHeight - 12, { align: "right" });

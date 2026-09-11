@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
+import { loadLogoDataUrl, LOGO_WHITE_SRC } from "@/lib/pdf-branding";
 
 export interface PlanFoodPdf {
   name: string;
@@ -99,13 +100,20 @@ function setFont(doc: jsPDF, size: number, color: RGB, style: "normal" | "bold" 
   doc.setTextColor(...color);
 }
 
-export function generatePlanPdf(data: PlanPdfInput) {
+export async function generatePlanPdf(data: PlanPdfInput) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 14;
   const contentW = pageW - margin * 2;
   let y = 0;
+
+  let logoDataUrl: string | null = null;
+  try {
+    logoDataUrl = await loadLogoDataUrl(LOGO_WHITE_SRC);
+  } catch {
+    logoDataUrl = null;
+  }
 
   const footer = () => {
     setFont(doc, 7.5, [148, 163, 184], "normal");
@@ -137,6 +145,13 @@ export function generatePlanPdf(data: PlanPdfInput) {
   doc.rect(0, 0, pageW, 48, "F");
   doc.setFillColor(22, 128, 92);
   doc.rect(0, 44, pageW, 4, "F");
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, "PNG", pageW - margin - 30, 10, 30, 15.8);
+    } catch {
+      // Si el logo falla, el encabezado textual mantiene la marca.
+    }
+  }
   setFont(doc, 9, [187, 247, 208], "bold");
   doc.text("MAURO ACOSTA", margin, 15);
   setFont(doc, 8, [220, 252, 231], "normal");
@@ -144,9 +159,10 @@ export function generatePlanPdf(data: PlanPdfInput) {
   setFont(doc, 22, [255, 255, 255], "bold");
   doc.text("Plan alimentario", margin, 34);
   setFont(doc, 9, [220, 252, 231], "normal");
-  doc.text(`Paciente: ${text(data.patientName)}`, pageW - margin, 17, { align: "right" });
-  if (data.professionalName) doc.text(`Profesional: ${text(data.professionalName)}`, pageW - margin, 23, { align: "right" });
-  if (data.startDate) doc.text(`Inicio: ${formatDate(data.startDate)}`, pageW - margin, 29, { align: "right" });
+  const rightX = logoDataUrl ? pageW - margin - 40 : pageW - margin;
+  doc.text(`Paciente: ${text(data.patientName)}`, rightX, 17, { align: "right" });
+  if (data.professionalName) doc.text(`Profesional: ${text(data.professionalName)}`, rightX, 23, { align: "right" });
+  if (data.startDate) doc.text(`Inicio: ${formatDate(data.startDate)}`, rightX, 29, { align: "right" });
 
   y = 61;
   setFont(doc, 16, INK, "bold");

@@ -18,9 +18,9 @@ export function PlanExportButton({
   size?: "sm" | "default" | "lg" | "icon";
   className?: string;
 }) {
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      generatePlanPdf(data);
+      await generatePlanPdf(data);
     } catch (e) {
       console.error(e);
       toast.error("No se pudo generar el PDF del plan");
