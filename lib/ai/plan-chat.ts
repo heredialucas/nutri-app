@@ -88,6 +88,7 @@ REGLAS ESTRICTAS:
 - Calculá y enviá los macros (calories/protein/carbs/fat) según los alimentos y porciones elegidos. No agregues alimentos ni cambies porciones no solicitadas para alcanzar una meta calórica.
 - Usá unidades métricas (g, ml). Porciones realistas y específicas.
 - Conservá el campo "equivalence" (medida casera) de cada alimento salvo que el profesional pida cambiarlo. Si agregás alimentos nuevos, generá su equivalencia (ej: "1 vaso", "1 unidad mediana", "4 cucharadas").
+- Conservá y, si es necesario, actualizá el campo "title" de cada comida: es el nombre corto del plato o preparación principal (ej. "Fajitas integrales rellenas"). Si falta, generá uno breve (2 a 6 palabras) a partir de los alimentos.
 - Si el pedido menciona un día o comida, ubicálo por su "dayOrder" y "mealOrder" del plan actual.
 
  La tool debe contener el plan completo actualizado, no un fragmento. La estructura esperada es:
@@ -99,6 +100,7 @@ REGLAS ESTRICTAS:
         {
           "mealOrder": <número de la comida>,
           "label": "Nombre de la comida",
+          "title": "Nombre corto del plato o preparación principal",
           "foods": [ { "name": "...", "quantity": "...", "unit": "...", "equivalence": "...", "calories": N, "protein": N, "carbs": N, "fat": N } ]
         }
       ]
@@ -150,6 +152,7 @@ export function buildPlanChatTools(): Array<{
                                             type: "object",
                                             properties: {
                                                 label: { type: "string" },
+                                                title: { type: "string", description: "Nombre corto del plato o preparación principal de la comida (ej. Fajitas integrales rellenas)" },
                                                 mealOrder: { type: "number" },
                                                 calories: { type: "number" },
                                                 protein: { type: "number" },

@@ -101,6 +101,7 @@ export default async function PlanDetailPage({ params }: Props) {
                                 label: d.label,
                                 meals: (d.meals || []).map((m: any) => ({
                                     label: m.label,
+                                    title: m.title,
                                     notes: m.notes,
                                     foods: (m.foods || []).map((f: any) => ({
                                         name: f.name,

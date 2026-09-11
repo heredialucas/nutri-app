@@ -62,6 +62,7 @@ interface PlanFormProps {
             meals: {
                 id?: string;
                 label: string;
+                title?: string | null;
                 mealOrder: number;
                 notes?: string | null;
                 foods: {
@@ -188,6 +189,21 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                           ...d,
                           meals: d.meals.map((m, mi) =>
                               mi === mealIndex ? { ...m, label } : m
+                          ),
+                      }
+            )
+        );
+    };
+
+    const updateMealTitle = (index: number, mealIndex: number, title: string) => {
+        setDays((prev) =>
+            prev.map((d, i) =>
+                i !== index
+                    ? d
+                    : {
+                          ...d,
+                          meals: d.meals.map((m, mi) =>
+                              mi === mealIndex ? { ...m, title } : m
                           ),
                       }
             )
@@ -374,6 +390,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                     label: d.label || `Día ${i + 1}`,
                     meals: d.meals.map((m, mi) => ({
                         label: m.label || `Comida ${mi + 1}`,
+                        title: (m.title ?? "").trim() || undefined,
                         mealOrder: mi + 1,
                         notes: (m.notes ?? "").trim() || undefined,
                         foods: m.foods
@@ -438,6 +455,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
             label: d.label,
             meals: d.meals.map((m) => ({
                 label: m.label,
+                title: m.title || undefined,
                 mealOrder: m.mealOrder || 0,
                 notes: m.notes || undefined,
                 calories: m.calories ?? undefined,
@@ -485,6 +503,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                 label: d.label,
                 meals: (d.meals || []).map((m) => ({
                     label: m.label,
+                    title: m.title || "",
                     mealOrder: m.mealOrder,
                     notes: m.notes || "",
                     calories: m.calories,
@@ -708,6 +727,7 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                 onDayLabelChange={updateDayLabel}
                 onRemoveDay={removeDay}
                 onMealLabelChange={updateMealLabel}
+                onMealTitleChange={updateMealTitle}
                 onMealNotesChange={updateMealNotes}
                 onAddMeal={addMeal}
                 onRemoveMeal={removeMeal}

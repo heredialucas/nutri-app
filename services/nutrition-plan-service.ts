@@ -67,6 +67,7 @@ export const nutritionPlanService = {
             label: string;
             meals: {
                 label: string;
+                title?: string;
                 mealOrder: number;
                 notes?: string;
                 foods: {
@@ -110,6 +111,7 @@ export const nutritionPlanService = {
                             meals: {
                                 create: day.meals.map((meal) => ({
                                     label: meal.label,
+                                    title: meal.title,
                                     mealOrder: meal.mealOrder,
                                     notes: meal.notes,
                                     foods: {
@@ -167,6 +169,7 @@ export const nutritionPlanService = {
             label: string;
             meals: {
                 label: string;
+                title?: string;
                 mealOrder: number;
                 notes?: string;
                 foods: {
@@ -221,6 +224,7 @@ export const nutritionPlanService = {
                                 meals: {
                                     create: day.meals.map((meal) => ({
                                         label: meal.label,
+                                        title: meal.title,
                                         mealOrder: meal.mealOrder,
                                         notes: meal.notes,
                                         foods: {
@@ -330,6 +334,7 @@ export const nutritionPlanService = {
                 label: day.label,
                 meals: day.meals.map((meal) => ({
                     label: meal.label,
+                    title: meal.title ?? undefined,
                     mealOrder: meal.mealOrder,
                     notes: meal.notes ?? undefined,
                     foods: meal.foods.map((food) => ({

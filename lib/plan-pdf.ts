@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
-import { loadLogoDataUrl, LOGO_WHITE_SRC } from "@/lib/pdf-branding";
+import { loadLogoDataUrl, LOGO_WHITE_SRC, LOGO_DARK_SRC } from "@/lib/pdf-branding";
 
 export interface PlanFoodPdf {
   name: string;
@@ -16,6 +16,7 @@ export interface PlanFoodPdf {
 
 export interface PlanMealPdf {
   label: string;
+  title?: string | null;
   notes?: string | null;
   foods?: PlanFoodPdf[];
   calories?: number | null;
@@ -65,17 +66,29 @@ type RGB = [number, number, number];
 const INK: RGB = [31, 41, 55];
 const MUTED: RGB = [107, 114, 128];
 const GREEN: RGB = [22, 128, 92];
+const GREEN_DARK: RGB = [24, 74, 58];
+const GREEN_MEDIUM: RGB = [15, 118, 110];
+const GREEN_SOFT: RGB = [167, 214, 194];
 const PALE_GREEN: RGB = [236, 253, 245];
-const PURPLE: RGB = [124, 58, 237];
-const PALE_PURPLE: RGB = [245, 243, 255];
-const DAY_COLORS: RGB[] = [
-  [37, 99, 235],
-  [5, 150, 105],
-  [217, 119, 6],
-  [225, 29, 72],
-  [124, 58, 237],
-  [8, 145, 178],
-  [234, 88, 12],
+const PALE_GREEN_ALT: RGB = [240, 250, 245];
+
+// Los logos tienen 688 x 363 px.
+const LOGO_ASPECT = 363 / 688;
+
+interface Density {
+  fontSize: number;
+  padding: number;
+  rowH: number;
+  headH: number;
+  lineGap: number;
+}
+
+// De más aireado a más compacto. Se elige el primero que entre en una hoja.
+const DENSITIES: Density[] = [
+  { fontSize: 9.2, padding: 2.9, rowH: 9.8, headH: 7.8, lineGap: 7.5 },
+  { fontSize: 8.8, padding: 2.5, rowH: 8.8, headH: 7.4, lineGap: 7 },
+  { fontSize: 8.4, padding: 2.1, rowH: 7.9, headH: 7.0, lineGap: 6.5 },
+  { fontSize: 8.0, padding: 1.7, rowH: 7.0, headH: 6.6, lineGap: 6 },
 ];
 
 function text(value: unknown): string {
@@ -100,6 +113,26 @@ function setFont(doc: jsPDF, size: number, color: RGB, style: "normal" | "bold" 
   doc.setTextColor(...color);
 }
 
+function setOpacity(doc: jsPDF, opacity: number) {
+  try {
+    const GState = (doc as any).GState;
+    if (GState) doc.setGState(new GState({ opacity }));
+  } catch {
+    // Si el visor no soporta GState, se dibuja sin opacidad.
+  }
+}
+
+function estimateDayHeight(meals: PlanMealPdf[], density: Density): number {
+  let height = 0;
+  for (const meal of meals) {
+    const rows = Math.max(1, (meal.foods || []).length);
+    height += 4 + density.headH + rows * density.rowH;
+    if (meal.notes) height += 10;
+    height += density.lineGap;
+  }
+  return height;
+}
+
 export async function generatePlanPdf(data: PlanPdfInput) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -109,16 +142,37 @@ export async function generatePlanPdf(data: PlanPdfInput) {
   let y = 0;
 
   let logoDataUrl: string | null = null;
+  let darkLogoDataUrl: string | null = null;
   try {
     logoDataUrl = await loadLogoDataUrl(LOGO_WHITE_SRC);
   } catch {
     logoDataUrl = null;
   }
+  try {
+    darkLogoDataUrl = await loadLogoDataUrl(LOGO_DARK_SRC);
+  } catch {
+    darkLogoDataUrl = null;
+  }
 
-  const footer = () => {
+  // Marca de agua: logo oscuro, grande, muy transparente, en todas las hojas.
+  const watermark = (page: number) => {
+    if (!darkLogoDataUrl) return;
+    doc.setPage(page);
+    const w = 158;
+    const h = w * LOGO_ASPECT;
+    setOpacity(doc, 0.05);
+    try {
+      doc.addImage(darkLogoDataUrl, "PNG", (pageW - w) / 2, (pageH - h) / 2, w, h);
+    } catch {
+      // Sin logo no se dibuja la marca de agua.
+    }
+    setOpacity(doc, 1);
+  };
+
+  const footer = (page: number) => {
     setFont(doc, 7.5, [148, 163, 184], "normal");
-    doc.text("Mauro Acosta · Gestión nutricional", margin, pageH - 8);
-    doc.text(`Página ${(doc as any).getNumberOfPages()}`, pageW - margin, pageH - 8, { align: "right" });
+    doc.text("Mauro Acosta · Nutricionista", margin, pageH - 8);
+    doc.text(`Página ${page}`, pageW - margin, pageH - 8, { align: "right" });
   };
 
   const newPage = () => {
@@ -141,9 +195,9 @@ export async function generatePlanPdf(data: PlanPdfInput) {
   };
 
   // Encabezado editorial.
-  doc.setFillColor(24, 74, 58);
+  doc.setFillColor(...GREEN_DARK);
   doc.rect(0, 0, pageW, 48, "F");
-  doc.setFillColor(22, 128, 92);
+  doc.setFillColor(...GREEN);
   doc.rect(0, 44, pageW, 4, "F");
   if (logoDataUrl) {
     try {
@@ -155,7 +209,7 @@ export async function generatePlanPdf(data: PlanPdfInput) {
   setFont(doc, 9, [187, 247, 208], "bold");
   doc.text("MAURO ACOSTA", margin, 15);
   setFont(doc, 8, [220, 252, 231], "normal");
-  doc.text("GESTIÓN NUTRICIONAL", margin, 20);
+  doc.text("NUTRICIONISTA", margin, 20);
   setFont(doc, 22, [255, 255, 255], "bold");
   doc.text("Plan alimentario", margin, 34);
   setFont(doc, 9, [220, 252, 231], "normal");
@@ -183,10 +237,10 @@ export async function generatePlanPdf(data: PlanPdfInput) {
   }
 
   const metrics = [
-    ["Energía", data.calorieTarget ? `${data.calorieTarget} kcal` : "—", [234, 88, 12] as RGB],
-    ["Proteína", data.proteinTarget ? `${data.proteinTarget} g` : "—", [225, 29, 72] as RGB],
-    ["Carbohidratos", data.carbTarget ? `${data.carbTarget} g` : "—", [2, 132, 199] as RGB],
-    ["Grasas", data.fatTarget ? `${data.fatTarget} g` : "—", [180, 83, 9] as RGB],
+    ["Energía", data.calorieTarget ? `${data.calorieTarget} kcal` : "—", GREEN as RGB],
+    ["Proteína", data.proteinTarget ? `${data.proteinTarget} g` : "—", GREEN as RGB],
+    ["Carbohidratos", data.carbTarget ? `${data.carbTarget} g` : "—", GREEN as RGB],
+    ["Grasas", data.fatTarget ? `${data.fatTarget} g` : "—", GREEN as RGB],
   ];
   const metricGap = 3;
   const metricW = (contentW - metricGap * 3) / 4;
@@ -206,15 +260,44 @@ export async function generatePlanPdf(data: PlanPdfInput) {
   });
   y += 34;
 
+  // Logo grande en el espacio libre de la portada.
+  if (darkLogoDataUrl) {
+    const coverW = Math.min(contentW * 0.66, 126);
+    const coverH = coverW * LOGO_ASPECT;
+    const top = y + 2;
+    const bottom = pageH - 26;
+    if (bottom - top >= coverH) {
+      const logoY = top + (bottom - top - coverH) / 2;
+      setOpacity(doc, 1);
+      try {
+        doc.addImage(darkLogoDataUrl, "PNG", (pageW - coverW) / 2, logoY, coverW, coverH);
+      } catch {
+        // Sin logo no se dibuja.
+      }
+      setFont(doc, 9, MUTED, "italic");
+      doc.text("Plan alimentario personalizado", pageW / 2, logoY + coverH + 8, { align: "center" });
+    }
+  }
+
   const days = data.days || [];
   if (days.length) {
     newPage();
     sectionTitle("Tu semana", GREEN);
   }
   days.forEach((day, dayIndex) => {
-    const dayColor = DAY_COLORS[dayIndex % DAY_COLORS.length];
+    const dayColor = GREEN;
     const meals = day.meals || [];
     if (dayIndex > 0) newPage();
+
+    const pageStartY = y + 14;
+    const available = pageH - 18 - pageStartY;
+    let density = DENSITIES[DENSITIES.length - 1];
+    for (const candidate of DENSITIES) {
+      if (estimateDayHeight(meals, candidate) <= available) {
+        density = candidate;
+        break;
+      }
+    }
 
     doc.setFillColor(...dayColor);
     doc.roundedRect(margin, y, contentW, 11, 3, 3, "F");
@@ -225,7 +308,7 @@ export async function generatePlanPdf(data: PlanPdfInput) {
     y += 14;
 
     meals.forEach((meal) => {
-      const mealColor = dayColor.map((channel) => Math.min(255, channel + 25)) as RGB;
+      const mealColor = GREEN;
       const rows = (meal.foods || []).map((food) => [
         text(food.name),
         quantity(food),
@@ -233,10 +316,21 @@ export async function generatePlanPdf(data: PlanPdfInput) {
         text(food.notes),
       ]);
       if (rows.length === 0) rows.push(["Sin alimentos", "", "", ""]);
-      const mealH = 13.5 + rows.length * 6.8 + (meal.notes ? 14 : 0);
-      if (y + mealH > pageH - 18 && mealH <= pageH - 36) newPage();
-      setFont(doc, 9.5, dayColor, "bold");
-      doc.text(text(meal.label) || "Comida", margin + 2, y);
+
+      // Título de la comida: "Desayuno: Fajitas integrales rellenas".
+      const labelText = text(meal.label) || "Comida";
+      setFont(doc, 9.8, dayColor, "bold");
+      doc.text(labelText, margin + 2, y);
+      if (meal.title) {
+        const labelW = doc.getTextWidth(labelText);
+        const totalsW = meal.calories || meal.protein || meal.carbs || meal.fat ? 52 : 0;
+        const availTitleW = pageW - margin - 4 - totalsW - (margin + 2 + labelW);
+        if (availTitleW > 12) {
+          const titleText = doc.splitTextToSize(`: ${text(meal.title)}`, availTitleW)[0] || "";
+          setFont(doc, 9.2, INK, "normal");
+          doc.text(titleText, margin + 2 + labelW, y);
+        }
+      }
       if (meal.calories || meal.protein || meal.carbs || meal.fat) {
         const totals = [
           meal.calories ? `${meal.calories} kcal` : "",
@@ -247,29 +341,33 @@ export async function generatePlanPdf(data: PlanPdfInput) {
         setFont(doc, 7.5, MUTED, "normal");
         doc.text(totals, pageW - margin, y, { align: "right" });
       }
-      y += 2;
+      y += 3;
+
       autoTable(doc, {
         startY: y,
         margin: { left: margin + 2, right: margin + 2, top: 18, bottom: 18 },
         head: [["Alimento", "Cantidad", "Equivalencia", "Indicaciones"]],
         body: rows,
         theme: "grid",
+        pageBreak: "avoid",
+        rowPageBreak: "avoid",
         styles: {
           font: "helvetica",
-          fontSize: 8.5,
+          fontSize: density.fontSize,
           textColor: INK,
-          cellPadding: 1.8,
+          cellPadding: density.padding,
           lineColor: [229, 231, 235],
           lineWidth: 0.2,
           overflow: "linebreak",
+          valign: "middle",
         },
         headStyles: {
           fillColor: mealColor,
           textColor: [255, 255, 255],
           fontStyle: "bold",
-          fontSize: 7.5,
+          fontSize: Math.max(7, density.fontSize - 1.2),
         },
-        alternateRowStyles: { fillColor: [249, 250, 251] },
+        alternateRowStyles: { fillColor: PALE_GREEN_ALT },
         columnStyles: {
           0: { cellWidth: contentW * 0.32, fontStyle: "bold" },
           1: { cellWidth: contentW * 0.16 },
@@ -277,19 +375,20 @@ export async function generatePlanPdf(data: PlanPdfInput) {
           3: { cellWidth: contentW * 0.3, textColor: MUTED },
         },
       });
-      y = (doc as any).lastAutoTable.finalY + 2.5;
+      y = (doc as any).lastAutoTable.finalY + 3;
       if (meal.notes) {
         const lines = doc.splitTextToSize(`Indicación: ${text(meal.notes)}`, contentW - 14);
         ensureSpace(lines.length * 4 + 6);
-        doc.setFillColor(255, 251, 235);
-        doc.setDrawColor(253, 230, 138);
+        doc.setFillColor(...PALE_GREEN);
+        doc.setDrawColor(...GREEN_SOFT);
         doc.roundedRect(margin + 2, y, contentW - 4, lines.length * 4 + 5, 2, 2, "FD");
-        setFont(doc, 7.8, [146, 64, 14], "italic");
+        setFont(doc, 7.8, GREEN_MEDIUM, "italic");
         doc.text(lines, margin + 6, y + 4);
         y += lines.length * 4 + 8;
       }
+      y += density.lineGap;
     });
-    y += 5;
+    y += 2;
   });
 
   const tips = text(data.tips).split("\n").map((tip) => tip.trim()).filter(Boolean);
@@ -298,7 +397,7 @@ export async function generatePlanPdf(data: PlanPdfInput) {
   }
 
   if (data.supplements?.length) {
-    sectionTitle("Suplementos", PURPLE);
+    sectionTitle("Suplementos", GREEN);
     autoTable(doc, {
       startY: y,
       margin: { left: margin, right: margin, top: 18, bottom: 18 },
@@ -311,22 +410,22 @@ export async function generatePlanPdf(data: PlanPdfInput) {
         text(supplement.notes),
       ]),
       theme: "grid",
-      styles: { font: "helvetica", fontSize: 8, textColor: INK, cellPadding: 2.5, lineColor: [233, 213, 255], lineWidth: 0.2 },
-      headStyles: { fillColor: PURPLE, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.5 },
-      alternateRowStyles: { fillColor: PALE_PURPLE },
+      styles: { font: "helvetica", fontSize: 8, textColor: INK, cellPadding: 2.5, lineColor: GREEN_SOFT, lineWidth: 0.2 },
+      headStyles: { fillColor: GREEN, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.5 },
+      alternateRowStyles: { fillColor: PALE_GREEN },
       columnStyles: { 0: { fontStyle: "bold", cellWidth: 36 }, 1: { cellWidth: 25 }, 2: { cellWidth: 32 }, 3: { cellWidth: 29 }, 4: { cellWidth: contentW - 122 } },
     });
     y = (doc as any).lastAutoTable.finalY + 8;
   }
 
   if (data.recipes?.length) {
-    sectionTitle("Recetas recomendadas", [14, 116, 144]);
+    sectionTitle("Recetas recomendadas", GREEN);
     data.recipes.forEach((recipe) => {
       ensureSpace(30);
-      doc.setFillColor(240, 253, 250);
-      doc.setDrawColor(153, 246, 228);
+      doc.setFillColor(...PALE_GREEN);
+      doc.setDrawColor(...GREEN_SOFT);
       doc.roundedRect(margin, y - 4, contentW, 9, 2, 2, "FD");
-      setFont(doc, 10, [15, 118, 110], "bold");
+      setFont(doc, 10, GREEN_MEDIUM, "bold");
       doc.text(text(recipe.title), margin + 5, y + 2);
       y += 9;
       [["Ingredientes", recipe.ingredients], ["Preparación", recipe.instructions]].forEach(([label, value]) => {
@@ -360,9 +459,11 @@ export async function generatePlanPdf(data: PlanPdfInput) {
     });
   }
 
-  for (let page = 1; page <= (doc as any).getNumberOfPages(); page++) {
+  const totalPages = (doc as any).getNumberOfPages();
+  for (let page = 1; page <= totalPages; page++) {
+    watermark(page);
     doc.setPage(page);
-    footer();
+    footer(page);
   }
 
   const filename = `Plan-${text(data.patientName).replace(/\s+/g, "-")}.pdf`;

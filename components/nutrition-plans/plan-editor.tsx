@@ -119,6 +119,18 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
         });
     };
 
+    const updateMealTitle = (dayIndex: number, mealIndex: number, title: string) => {
+        const days = [...plan.days];
+        const meals = [...days[dayIndex].meals];
+        meals[mealIndex] = { ...meals[mealIndex], title };
+        days[dayIndex] = { ...days[dayIndex], meals };
+        setPlan((prev) => {
+            const updated = { ...prev, days };
+            updateDraftPlan(updated);
+            return updated;
+        });
+    };
+
     const updateFood = (
         dayIndex: number,
         mealIndex: number,
@@ -339,6 +351,7 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                     label: d.label,
                     meals: d.meals.map((m, mi) => ({
                         label: m.label,
+                        title: (m.title ?? "").trim() || undefined,
                         mealOrder: mi + 1,
                         notes: (m.notes ?? "").trim() || undefined,
                         foods: m.foods
@@ -580,8 +593,17 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                                                     onChange={(e) =>
                                                         updateMealLabel(dayIndex, mealIndex, e.target.value)
                                                     }
-                                                    className="font-medium text-sm bg-transparent border-transparent hover:border-input focus:border-input"
-                                                    placeholder="Nombre de la comida"
+                                                    className="w-28 shrink-0 font-medium text-sm bg-transparent border-transparent hover:border-input focus:border-input"
+                                                    placeholder="Comida"
+                                                />
+                                                <span className="text-muted-foreground shrink-0">:</span>
+                                                <Input
+                                                    value={meal.title ?? ""}
+                                                    onChange={(e) =>
+                                                        updateMealTitle(dayIndex, mealIndex, e.target.value)
+                                                    }
+                                                    className="min-w-0 flex-1 text-sm bg-transparent border-transparent hover:border-input focus:border-input"
+                                                    placeholder="Nombre del plato (ej: Fajitas integrales rellenas)"
                                                 />
                                                 <Button
                                                     variant="ghost"

@@ -17,10 +17,11 @@ interface PdfPayload {
 
 type PdfDocument = jsPDF & { lastAutoTable?: { finalY: number } };
 const GREEN: [number, number, number] = [19, 128, 91];
+const GREEN_DARK: [number, number, number] = [16, 94, 68];
+const GREEN_MEDIUM: [number, number, number] = [90, 170, 135];
 const DARK: [number, number, number] = [28, 43, 37];
 const MUTED: [number, number, number] = [93, 108, 101];
 const LIGHT: [number, number, number] = [242, 247, 244];
-const AMBER: [number, number, number] = [183, 115, 24];
 
 export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionData = [] }: PdfPayload & { result: IsakResult }) {
   const generatePdf = async () => {
@@ -50,7 +51,7 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       doc.setTextColor(...MUTED);
-      doc.text("Gestión nutricional · Evaluación corporal ISAK", margin, 42);
+      doc.text("Nutricionista · Evaluación corporal ISAK", margin, 42);
       doc.setDrawColor(215, 226, 219);
       doc.line(margin, 49, pageWidth - margin, 49);
       doc.setTextColor(...DARK);
@@ -123,7 +124,7 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
       let nextY = (doc.lastAutoTable?.finalY ?? 150) + 12;
       sectionTitle(doc, "Composición y energía", margin, nextY);
       nextY += 5;
-      autoTable(doc, { startY: nextY, head: [["Componente", "Resultado", "Método / nota"]], body: [["Masa adiposa", `${result.fraccionamiento.masaAdiposaKg ?? "Sin dato"} kg · ${result.fraccionamiento.masaAdiposaPct ?? "Sin dato"}%`, "Kerr / Ross · estimación"], ["Masa muscular", `${result.fraccionamiento.masaMuscularKg ?? "Sin dato"} kg · ${result.fraccionamiento.masaMuscularPct ?? "Sin dato"}%`, "Lee et al. · estimación"], ["Otros tejidos", `${result.fraccionamiento.otrosTejidosKg ?? "Sin dato"} kg · ${result.fraccionamiento.otrosPct ?? "Sin dato"}%`, "Modelo de 5 componentes"], ["Metabolismo basal", `${result.gastoEnergetico.metabolismoBasal ?? "Sin dato"} kcal`, result.gastoEnergetico.metodo], ["Gasto energético total", `${result.gastoEnergetico.gastoTotal ?? "Sin dato"} kcal`, result.gastoEnergetico.nivelActividad]], theme: "plain", margin: { left: margin, right: margin }, styles: tableStyles(8), headStyles: { fillColor: AMBER, textColor: [255, 255, 255], fontStyle: "bold" }, alternateRowStyles: { fillColor: [255, 249, 239] } });
+      autoTable(doc, { startY: nextY, head: [["Componente", "Resultado", "Método / nota"]], body: [["Masa adiposa", `${result.fraccionamiento.masaAdiposaKg ?? "Sin dato"} kg · ${result.fraccionamiento.masaAdiposaPct ?? "Sin dato"}%`, "Kerr / Ross · estimación"], ["Masa muscular", `${result.fraccionamiento.masaMuscularKg ?? "Sin dato"} kg · ${result.fraccionamiento.masaMuscularPct ?? "Sin dato"}%`, "Lee et al. · estimación"], ["Otros tejidos", `${result.fraccionamiento.otrosTejidosKg ?? "Sin dato"} kg · ${result.fraccionamiento.otrosPct ?? "Sin dato"}%`, "Modelo de 5 componentes"], ["Metabolismo basal", `${result.gastoEnergetico.metabolismoBasal ?? "Sin dato"} kcal`, result.gastoEnergetico.metodo], ["Gasto energético total", `${result.gastoEnergetico.gastoTotal ?? "Sin dato"} kcal`, result.gastoEnergetico.nivelActividad]], theme: "plain", margin: { left: margin, right: margin }, styles: tableStyles(8), headStyles: { fillColor: GREEN, textColor: [255, 255, 255], fontStyle: "bold" }, alternateRowStyles: { fillColor: [240, 248, 244] } });
 
       if (validEvolutionData.length > 0) {
         doc.addPage();
@@ -134,8 +135,8 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
         const evolutionRows = [...validEvolutionData].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((item) => [new Date(item.date).toLocaleDateString("es-AR"), item.result.datos.peso, item.result.datos.imc, item.result.fraccionamiento.masaAdiposaPct ?? "—", item.result.fraccionamiento.masaMuscularPct ?? "—", item.result.sumatorio6Pliegues ?? "—"]);
         autoTable(doc, { startY: 39, head: [["Fecha", "Peso (kg)", "IMC", "Adiposa (%)", "Muscular (%)", "Pliegues (mm)"]], body: evolutionRows, theme: "striped", margin: { left: margin, right: margin }, styles: tableStyles(8), headStyles: { fillColor: GREEN, textColor: [255, 255, 255], fontStyle: "bold" }, alternateRowStyles: { fillColor: [247, 250, 248] } });
         const chartY = (doc.lastAutoTable?.finalY ?? 75) + 18;
-        drawTrendChart(doc, "Peso", validEvolutionData, (item) => item.result.datos.peso, margin, chartY, contentWidth, "kg", [37, 99, 235]);
-        drawTrendChart(doc, "Masa adiposa y muscular", validEvolutionData, (item) => item.result.fraccionamiento.masaAdiposaPct, margin, chartY + 68, contentWidth, "%", [220, 91, 72], (item) => item.result.fraccionamiento.masaMuscularPct);
+        drawTrendChart(doc, "Peso", validEvolutionData, (item) => item.result.datos.peso, margin, chartY, contentWidth, "kg", GREEN);
+        drawTrendChart(doc, "Masa adiposa y muscular", validEvolutionData, (item) => item.result.fraccionamiento.masaAdiposaPct, margin, chartY + 68, contentWidth, "%", GREEN_MEDIUM, (item) => item.result.fraccionamiento.masaMuscularPct, GREEN_DARK);
       }
 
       doc.addPage();
@@ -146,7 +147,7 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
         ["Diámetros óseos", "Biepicondíleo de húmero (codo), biestiloideo de muñeca (radio-cúbito) y biepicondíleo de fémur (rodilla). Son medidas estructurales y no se clasifican como buenas o malas."],
         ["Modelo corporal", "Fraccionamiento estimado según el modelo de cinco componentes de Ross y Kerr. La masa muscular utiliza el modelo de Lee et al."],
         ["Interpretación", "Los rangos son orientativos. La valoración debe considerar contexto clínico, objetivos, antecedentes y cambios entre controles."],
-        ["Profesional", "Informe generado para acompañar la consulta de Mauro Acosta · Gestión nutricional."],
+        ["Profesional", "Informe generado para acompañar la consulta de Mauro Acosta · Nutricionista."],
       ];
       autoTable(doc, { startY: 34, head: [["Tema", "Detalle"]], body: methodology, theme: "plain", margin: { left: margin, right: margin }, styles: tableStyles(9), headStyles: { fillColor: GREEN, textColor: [255, 255, 255], fontStyle: "bold" }, alternateRowStyles: { fillColor: [247, 250, 248] }, columnStyles: { 0: { cellWidth: 35 }, 1: { cellWidth: 129 } } });
       noteBox(doc, "Observaciones de la evaluación", "Registrar aquí las recomendaciones y acuerdos definidos durante la consulta.", margin, (doc.lastAutoTable?.finalY ?? 100) + 15, contentWidth, 38);
@@ -173,7 +174,7 @@ function drawPageChrome(doc: jsPDF, paciente: string, fecha: string, evaluador: 
     }
   }
   doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
-  doc.text("Mauro Acosta · Gestión nutricional", 16, pageHeight - 12);
+  doc.text("Mauro Acosta · Nutricionista", 16, pageHeight - 12);
   doc.text(`${paciente} · ${fecha}`, pageWidth - 16, pageHeight - 12, { align: "right" });
   doc.setDrawColor(220, 229, 223); doc.line(16, pageHeight - 17, pageWidth - 16, pageHeight - 17);
   doc.text(`Página ${page}`, pageWidth / 2, pageHeight - 7, { align: "center" });
@@ -205,7 +206,7 @@ function status(value?: string) {
   return "Interpretar en consulta";
 }
 
-function drawTrendChart(doc: jsPDF, title: string, data: { date: string; result: IsakResult }[], getValue: (item: { date: string; result: IsakResult }) => number | null, x: number, y: number, width: number, unit: string, color: [number, number, number], getSecond?: (item: { date: string; result: IsakResult }) => number | null) {
+function drawTrendChart(doc: jsPDF, title: string, data: { date: string; result: IsakResult }[], getValue: (item: { date: string; result: IsakResult }) => number | null, x: number, y: number, width: number, unit: string, color: [number, number, number], getSecond?: (item: { date: string; result: IsakResult }) => number | null, secondStroke: [number, number, number] = GREEN) {
   const points = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const values = points.flatMap((item) => [getValue(item), getSecond?.(item)]).filter((item): item is number => item != null && Number.isFinite(item));
   if (!values.length) return;
@@ -216,6 +217,6 @@ function drawTrendChart(doc: jsPDF, title: string, data: { date: string; result:
     doc.setDrawColor(...stroke); doc.setFillColor(...stroke); doc.setLineWidth(0.8);
     points.forEach((item, index) => { const current = getter(item); if (current == null) return; const px = x + (points.length === 1 ? width / 2 : index / (points.length - 1) * width); const py = y + height - 5 - ((current - min) / range) * (height - 12); doc.circle(px, py, 1.4, "F"); const nextPoint = points[index + 1]; const next = nextPoint ? getter(nextPoint) : null; if (next != null) { const nx = x + (points.length === 1 ? width / 2 : (index + 1) / (points.length - 1) * width); const ny = y + height - 5 - ((next - min) / range) * (height - 12); doc.line(px, py, nx, ny); } });
   };
-  drawLine(getValue, color); if (getSecond) drawLine(getSecond, GREEN);
+  drawLine(getValue, color); if (getSecond) drawLine(getSecond, secondStroke);
   doc.setTextColor(...MUTED); doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.text(`${min.toFixed(1)} ${unit}`, x, y + height + 7); doc.text(`${max.toFixed(1)} ${unit}`, x + width - 18, y + 5);
 }

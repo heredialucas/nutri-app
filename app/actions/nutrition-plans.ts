@@ -66,6 +66,7 @@ export async function createNutritionPlan(data: {
         label: string;
         meals: {
             label: string;
+            title?: string;
             mealOrder: number;
             notes?: string;
             foods: {
@@ -127,6 +128,7 @@ export async function updateNutritionPlan(id: string, data: {
         label: string;
         meals: {
             label: string;
+            title?: string;
             mealOrder: number;
             notes?: string;
             foods: {

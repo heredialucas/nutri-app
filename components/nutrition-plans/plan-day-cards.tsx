@@ -33,6 +33,7 @@ export interface DayCardFood {
 export interface DayCardMeal {
     id?: string;
     label: string;
+    title?: string | null;
     mealOrder?: number;
     notes?: string | null;
     calories?: number | null;
@@ -66,6 +67,7 @@ interface PlanDayCardsProps {
     onDayLabelChange?: (dayIndex: number, label: string) => void;
     onRemoveDay?: (dayIndex: number) => void;
     onMealLabelChange?: (dayIndex: number, mealIndex: number, label: string) => void;
+    onMealTitleChange?: (dayIndex: number, mealIndex: number, title: string) => void;
     onMealNotesChange?: (dayIndex: number, mealIndex: number, notes: string) => void;
     onAddMeal?: (dayIndex: number) => void;
     onRemoveMeal?: (dayIndex: number, mealIndex: number) => void;
@@ -98,6 +100,7 @@ export function PlanDayCards({
     onDayLabelChange,
     onRemoveDay,
     onMealLabelChange,
+    onMealTitleChange,
     onMealNotesChange,
     onAddMeal,
     onRemoveMeal,
@@ -217,21 +220,42 @@ export function PlanDayCards({
                                                 <div className="flex items-center gap-2">
                                                     <UtensilsCrossed className="size-4 text-muted-foreground shrink-0" />
                                                     {isEdit ? (
-                                                        <Input
-                                                            value={meal.label ?? ""}
-                                                            onChange={(e) =>
-                                                                onMealLabelChange?.(
-                                                                    dayIndex,
-                                                                    mealIndex,
-                                                                    e.target.value
-                                                                )
-                                                            }
-                                                            className="font-medium text-sm bg-transparent border-transparent hover:border-input focus:border-input"
-                                                            placeholder="Nombre de la comida"
-                                                        />
+                                                        <div className="flex flex-1 items-center gap-1 min-w-0">
+                                                            <Input
+                                                                value={meal.label ?? ""}
+                                                                onChange={(e) =>
+                                                                    onMealLabelChange?.(
+                                                                        dayIndex,
+                                                                        mealIndex,
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                                className="w-28 shrink-0 font-medium text-sm bg-transparent border-transparent hover:border-input focus:border-input"
+                                                                placeholder="Comida"
+                                                            />
+                                                            <span className="text-muted-foreground shrink-0">:</span>
+                                                            <Input
+                                                                value={meal.title ?? ""}
+                                                                onChange={(e) =>
+                                                                    onMealTitleChange?.(
+                                                                        dayIndex,
+                                                                        mealIndex,
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                                className="min-w-0 flex-1 text-sm bg-transparent border-transparent hover:border-input focus:border-input"
+                                                                placeholder="Nombre del plato (ej: Fajitas integrales rellenas)"
+                                                            />
+                                                        </div>
                                                     ) : (
                                                         <h4 className="font-medium text-sm">
                                                             {meal.label}
+                                                            {meal.title ? (
+                                                                <span className="font-normal text-muted-foreground">
+                                                                    {": "}
+                                                                    {meal.title}
+                                                                </span>
+                                                            ) : null}
                                                         </h4>
                                                     )}
                                                     {isEdit && onRemoveMeal && (

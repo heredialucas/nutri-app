@@ -489,6 +489,7 @@ model Meal {
   id        String  @id @default(uuid()) @db.Uuid
   dayId     String  @db.Uuid
   label     String
+  title     String?
   mealOrder Int
   notes     String?
 

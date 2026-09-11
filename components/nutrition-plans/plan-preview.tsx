@@ -37,6 +37,7 @@ interface PlanData {
         meals: {
             id?: string;
             label: string;
+            title?: string | null;
             mealOrder: number;
             notes: string | null;
             foods: {

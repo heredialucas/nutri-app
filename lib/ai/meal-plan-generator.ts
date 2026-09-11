@@ -37,6 +37,7 @@ export interface GeneratedFood {
 
 export interface GeneratedMeal {
     label: string;
+    title?: string; // nombre corto del plato principal, ej. "Fajitas integrales rellenas"
     mealOrder: number;
     foods: GeneratedFood[];
     calories?: number; // kcal totales de la comida
@@ -213,6 +214,7 @@ Reglas estrictas:
 - Generá exactamente 7 días (de Lunes a Domingo).
 - Cada día debe tener 5 comidas: Desayuno, Media mañana, Almuerzo, Merienda, Cena.
 - Cada comida debe tener entre 3 y 6 alimentos.
+- Para cada comida, indicá en "title" un nombre corto y apetitoso del plato o preparación principal (2 a 6 palabras, sin el nombre de la comida). Ejemplos: "Fajitas integrales rellenas", "Bowl de avena con frutos rojos", "Pollo al horno con batatas", "Tostadas con palta y huevo". Si la comida combina varios alimentos sin un plato definido, resumila igualmente (ej. "Yogur con frutas y granola").
 - Incluí variaciones entre los días para no ser monótono.
 - Considerá la actividad física del paciente para ajustar porciones.
 - Si hay síntomas digestivos, evitá alimentos que los empeoren (picantes, grasas pesadas, etc.).
@@ -314,6 +316,7 @@ FORMATO DE RESPUESTA - JSON con la siguiente estructura exacta:
       "meals": [
         {
           "label": "Nombre de la comida",
+          "title": "Nombre corto del plato o preparación principal (ej. Fajitas integrales rellenas)",
           "mealOrder": 1,
           "calories": <kcal totales de la comida>,
           "protein": <gramos de proteína de la comida>,
@@ -417,6 +420,7 @@ export async function generateMealPlan(
         // Normalize: compute per-meal totals from foods if not provided by the AI
         for (const day of parsed.days) {
             for (const meal of day.meals) {
+                meal.title = String(meal.title ?? "").trim();
                 meal.foods = (meal.foods || []).map((f) => {
                     const num = (v: unknown) => (typeof v === "number" && !Number.isNaN(v) ? v : undefined);
                     return {

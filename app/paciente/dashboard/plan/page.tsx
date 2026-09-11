@@ -69,6 +69,7 @@ export default async function PlanPage() {
                                         label: d.label,
                                         meals: (d.meals || []).map((m: any) => ({
                                             label: m.label,
+                                            title: m.title,
                                             notes: m.notes,
                                             foods: (m.foods || []).map((f: any) => ({
                                                 name: f.name,
@@ -153,8 +154,11 @@ export default async function PlanPage() {
                                         <div className="pl-3 pb-2">
                                             {day.meals?.map((meal: any) => (
                                                 <div key={meal.id} className="py-2 border-l-2 border-[rgba(0,0,0,0.06)] pl-3 ml-1 mb-1">
-                                                    <p className="text-xs font-semibold text-[#1a1a1a] m-0 mb-1.5 uppercase tracking-wide">
-                                                        {meal.label}
+                                                    <p className="text-xs font-semibold text-[#1a1a1a] m-0 mb-1.5">
+                                                        <span className="uppercase tracking-wide">{meal.label}</span>
+                                                        {meal.title ? (
+                                                            <span className="font-normal text-[#666]">{`: ${meal.title}`}</span>
+                                                        ) : null}
                                                     </p>
                                                     {meal.notes && (
                                                         <p className="text-xs italic text-[#854d0e] bg-[#fef9c3] border border-[rgba(234,179,8,0.2)] rounded-md px-2 py-1.5 m-0 mb-1.5">
