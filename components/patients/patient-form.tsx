@@ -161,7 +161,7 @@ export function PatientForm({
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="PARTICULAR">Particular</SelectItem>
-                                    <SelectItem value="OBRA_SOCIAL">Obra social</SelectItem>
+                                    <SelectItem value="SOCIO_EP">Socio EP</SelectItem>
                                     <SelectItem value="MIXTO">Mixto</SelectItem>
                                 </SelectContent>
                             </Select>

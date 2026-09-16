@@ -69,7 +69,11 @@ function formatDate(date: string | null) {
 function billingLabel(type: string) {
     const labels: Record<string, string> = {
         PARTICULAR: "Particular",
-        OBRA_SOCIAL: "Obra social",
+        particular: "Particular",
+        SOCIO_EP: "Socio EP",
+        socio_ep: "Socio EP",
+        OBRA_SOCIAL: "Socio EP",
+        obra_social: "Socio EP",
         MIXTO: "Mixto",
     };
     return labels[type] || type;

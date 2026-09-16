@@ -209,7 +209,7 @@ export function ProfileForm({ profile }: { profile: Partial<ProfileData> }) {
                 </div>
                 <div className="flex flex-col gap-1.5">
                     <label htmlFor="billingType" className={labelClass}>
-                        Obra social / Particular
+                        Particular / Socio EP
                     </label>
                     <select
                         id="billingType"
@@ -219,7 +219,7 @@ export function ProfileForm({ profile }: { profile: Partial<ProfileData> }) {
                         className={inputClass}
                     >
                         <option value="particular">Particular</option>
-                        <option value="obra_social">Obra social</option>
+                        <option value="socio_ep">Socio EP</option>
                     </select>
                 </div>
             </div>

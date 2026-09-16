@@ -171,7 +171,7 @@ export default function DatosPage() {
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="billingType" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
-            Obra social / Particular
+            Particular / Socio EP
           </label>
           <select
             id="billingType"
@@ -181,7 +181,7 @@ export default function DatosPage() {
             className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
           >
             <option value="particular">Particular</option>
-            <option value="obra_social">Obra social</option>
+            <option value="socio_ep">Socio EP</option>
           </select>
         </div>
 
