@@ -120,6 +120,10 @@ export function LandingHero() {
             <h1 className="text-white text-[clamp(2.5rem,7vw,5.5rem)] font-bold leading-[0.95] tracking-[-0.02em] m-0">
               Mauro Acosta
             </h1>
+            <p className="mt-3 inline-flex items-center gap-2 uppercase tracking-[0.3em] text-emerald-300 text-[clamp(0.7rem,1.4vw,0.95rem)] font-medium m-0">
+              <span className="w-6 h-px bg-emerald-400/60" aria-hidden="true" />
+              MP 1980
+            </p>
           </motion.div>
 
           {/* Subtítulo */}
