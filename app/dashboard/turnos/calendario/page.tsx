@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAppointments } from "@/app/actions/appointments";
-import { AppointmentStatusBadge, AppointmentTypeBadge } from "@/components/appointments/appointment-status-badge";
+import { getAppointments, getAppointmentFormOptions } from "@/app/actions/appointments";
+import { AppointmentFormDialog, type PatientOption, type LocationOption, type ProfessionalOption } from "@/components/appointments/appointment-form-dialog";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { es } from "date-fns/locale";
 
@@ -17,6 +17,10 @@ function getDaysInMonth(year: number, month: number) {
 
 function getFirstDayOfMonth(year: number, month: number) {
     return new Date(year, month, 1).getDay();
+}
+
+function toDateParam(year: number, month: number, day: number) {
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 export default function CalendarPage() {
@@ -31,6 +35,13 @@ export default function CalendarPage() {
     });
     const [appointments, setAppointments] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [options, setOptions] = useState<{
+        patients: PatientOption[];
+        locations: LocationOption[];
+        professional: ProfessionalOption;
+    } | null>(null);
+    const [newOpen, setNewOpen] = useState(false);
+    const [newDate, setNewDate] = useState<string | undefined>(undefined);
 
     const monthName = formatInTimeZone(
         new Date(Date.UTC(currentYear, currentMonth, 15)),
@@ -61,7 +72,14 @@ export default function CalendarPage() {
 
     useEffect(() => {
         loadMonth();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentMonth, currentYear]);
+
+    useEffect(() => {
+        getAppointmentFormOptions()
+            .then((data) => setOptions(data as any))
+            .catch(() => setOptions(null));
+    }, []);
 
     const prevMonth = () => {
         if (currentMonth === 0) {
@@ -79,6 +97,11 @@ export default function CalendarPage() {
         } else {
             setCurrentMonth(currentMonth + 1);
         }
+    };
+
+    const openNewForDay = (day: number) => {
+        setNewDate(toDateParam(currentYear, currentMonth, day));
+        setNewOpen(true);
     };
 
     // Group appointments by AR day
@@ -100,6 +123,16 @@ export default function CalendarPage() {
                     <p className="text-muted-foreground text-sm capitalize">{monthName}</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button
+                        onClick={() => {
+                            setNewDate(todayArString());
+                            setNewOpen(true);
+                        }}
+                        disabled={!options}
+                    >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Nuevo turno
+                    </Button>
                     <Button variant="outline" size="icon" onClick={prevMonth}>
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -131,14 +164,25 @@ export default function CalendarPage() {
                             key={day}
                             className={`bg-card p-2 min-h-[100px] ${isToday ? "ring-2 ring-primary" : ""}`}
                         >
-                            <p className={`text-xs font-medium mb-1 ${isToday ? "text-primary" : ""}`}>
-                                {day}
-                            </p>
+                            <div className="flex items-center justify-between mb-1">
+                                <p className={`text-xs font-medium ${isToday ? "text-primary" : ""}`}>
+                                    {day}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => openNewForDay(day)}
+                                    disabled={!options}
+                                    className="text-muted-foreground hover:text-foreground disabled:opacity-40"
+                                    aria-label={`Nuevo turno el ${day}`}
+                                >
+                                    <Plus className="h-3 w-3" />
+                                </button>
+                            </div>
                             <div className="space-y-1">
                                 {dayAppointments.slice(0, 3).map((a) => (
                                     <Link
                                         key={a.id}
-                                        href={`/dashboard/pacientes/${a.patient.id}`}
+                                        href={`/dashboard/turnos/${a.id}`}
                                         className="block text-[10px] rounded px-1 py-0.5 bg-primary/10 hover:bg-primary/20 truncate"
                                     >
                                         {formatInTimeZone(new Date(a.startAt), AR_TZ, "HH:mm")}{" "}
@@ -155,6 +199,22 @@ export default function CalendarPage() {
                     );
                 })}
             </div>
+
+            {options && (
+                <AppointmentFormDialog
+                    patients={options.patients}
+                    locations={options.locations}
+                    professional={options.professional}
+                    defaultDate={newDate}
+                    open={newOpen}
+                    onOpenChange={setNewOpen}
+                />
+            )}
         </div>
     );
+}
+
+function todayArString() {
+    const arNow = new Date(new Date().toLocaleString("en-US", { timeZone: AR_TZ }));
+    return `${arNow.getFullYear()}-${String(arNow.getMonth() + 1).padStart(2, "0")}-${String(arNow.getDate()).padStart(2, "0")}`;
 }

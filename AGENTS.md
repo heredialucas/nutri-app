@@ -172,6 +172,7 @@ Los documentos `sistema_gestion_stock.md`, `NEW_STRUCTURE.md` y `EXPLICACION_SCH
 - **Fase 25:** ✅ Eliminación del sistema anterior (92 archivos eliminados: 32 rutas dashboard, 34 componentes, 11 acciones, 12 servicios, 3 docs)
 - **Fase 26:** ✅ Documentación final (README.md, ARCHITECTURE.md, DATABASE.md, ROLES_AND_PERMISSIONS.md, BOOKING_FLOW.md, PRIVACY.md, DEPLOYMENT.md)
 - **Fase 27:** ✅ Verificación final obligatoria
+- **Mejora — Gestión completa de turnos (admin):** alta manual con selección de paciente y slots (`appointment-form-dialog.tsx`), alta rápida de paciente nuevo (`components/patients/quick-patient-dialog.tsx`), detalle del turno (`app/dashboard/turnos/[id]`), reprogramación (`appointment-reschedule-dialog.tsx`), completar/ausente, cancelación con motivo, filtro por estado, calendario con alta por día, edición/activación de disponibilidad. Regla de negocio: **la primera consulta de un paciente dura 45 min** y reserva ese bloque completo; el resto usa la `slotDuration` de la disponibilidad. Lógica compartida en `lib/appointment-rules.ts`. El profesional es siempre **Mauro Acosta** (`admin@mauroacosta.com`), resuelto vía `services/professional-service.ts`; no se delega a otros actores.
 
 ### Pendiente
 

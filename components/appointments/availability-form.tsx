@@ -14,9 +14,10 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { createAvailabilitySlot, deleteAvailabilitySlot } from "@/app/actions/availability";
+import { Switch } from "@/components/ui/switch";
+import { createAvailabilitySlot, deleteAvailabilitySlot, updateAvailabilitySlot } from "@/app/actions/availability";
 import { toast } from "sonner";
-import { Trash2, Plus, MapPin, Video } from "lucide-react";
+import { Trash2, Plus, MapPin, Video, Pencil, Check, X } from "lucide-react";
 
 interface AvailabilitySlot {
     id: string;
@@ -54,6 +55,8 @@ export function AvailabilityForm({
 }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState({ startTime: "09:00", endTime: "17:00", slotDuration: "30" });
     const [scope, setScope] = useState<string>(locations[0]?.id ?? ONLINE);
     const [form, setForm] = useState({
         weekday: "1",
@@ -96,6 +99,41 @@ export function AvailabilityForm({
             router.refresh();
         } catch {
             toast.error("Error al eliminar");
+        }
+    };
+
+    const handleToggle = async (id: string, isActive: boolean) => {
+        try {
+            await updateAvailabilitySlot(id, { isActive });
+            toast.success(isActive ? "Horario activado" : "Horario desactivado");
+            router.refresh();
+        } catch {
+            toast.error("Error al actualizar");
+        }
+    };
+
+    const startEdit = (slot: AvailabilitySlot) => {
+        setEditingId(slot.id);
+        setEditForm({
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            slotDuration: String(slot.slotDuration),
+        });
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingId) return;
+        try {
+            await updateAvailabilitySlot(editingId, {
+                startTime: editForm.startTime,
+                endTime: editForm.endTime,
+                slotDuration: parseInt(editForm.slotDuration),
+            });
+            toast.success("Horario actualizado");
+            setEditingId(null);
+            router.refresh();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Error al actualizar");
         }
     };
 
@@ -220,27 +258,105 @@ export function AvailabilityForm({
                                 <p className="text-xs text-muted-foreground">Sin horarios configurados</p>
                             ) : (
                                 <div className="space-y-2">
-                                    {group.slots.map((slot) => (
-                                        <div
-                                            key={slot.id}
-                                            className="flex items-center justify-between gap-2 p-2 rounded border"
-                                        >
-                                            <span className="text-sm font-mono min-w-0 break-words">
-                                                {slot.startTime} — {slot.endTime}
-                                                <span className="text-muted-foreground ml-2 font-sans">
-                                                    ({slot.slotDuration} min)
-                                                </span>
-                                            </span>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                                                onClick={() => handleDelete(slot.id)}
+                                    {group.slots.map((slot) =>
+                                        editingId === slot.id ? (
+                                            <div
+                                                key={slot.id}
+                                                className="flex flex-wrap items-center gap-2 p-2 rounded border"
                                             >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </div>
-                                    ))}
+                                                <Input
+                                                    type="time"
+                                                    value={editForm.startTime}
+                                                    onChange={(e) =>
+                                                        setEditForm({ ...editForm, startTime: e.target.value })
+                                                    }
+                                                    className="h-8 w-[110px]"
+                                                />
+                                                <Input
+                                                    type="time"
+                                                    value={editForm.endTime}
+                                                    onChange={(e) =>
+                                                        setEditForm({ ...editForm, endTime: e.target.value })
+                                                    }
+                                                    className="h-8 w-[110px]"
+                                                />
+                                                <Select
+                                                    value={editForm.slotDuration}
+                                                    onValueChange={(v) =>
+                                                        setEditForm({ ...editForm, slotDuration: v })
+                                                    }
+                                                >
+                                                    <SelectTrigger className="h-8 w-[100px]">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="15">15 min</SelectItem>
+                                                        <SelectItem value="30">30 min</SelectItem>
+                                                        <SelectItem value="45">45 min</SelectItem>
+                                                        <SelectItem value="60">60 min</SelectItem>
+                                                        <SelectItem value="90">90 min</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <div className="flex items-center gap-1 ml-auto">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 text-primary"
+                                                        onClick={handleSaveEdit}
+                                                    >
+                                                        <Check className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 text-muted-foreground"
+                                                        onClick={() => setEditingId(null)}
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                key={slot.id}
+                                                className="flex items-center justify-between gap-2 p-2 rounded border"
+                                            >
+                                                <span
+                                                    className={`text-sm font-mono min-w-0 break-words ${
+                                                        slot.isActive ? "" : "text-muted-foreground line-through"
+                                                    }`}
+                                                >
+                                                    {slot.startTime} — {slot.endTime}
+                                                    <span className="text-muted-foreground ml-2 font-sans no-underline">
+                                                        ({slot.slotDuration} min)
+                                                    </span>
+                                                </span>
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <Switch
+                                                        checked={slot.isActive}
+                                                        onCheckedChange={(checked) => handleToggle(slot.id, checked)}
+                                                        aria-label="Activar o desactivar horario"
+                                                    />
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                                        onClick={() => startEdit(slot)}
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                                                        onClick={() => handleDelete(slot.id)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ),
+                                    )}
                                 </div>
                             )}
                         </CardContent>

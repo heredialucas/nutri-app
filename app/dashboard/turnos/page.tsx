@@ -1,6 +1,8 @@
-import { getAppointments } from "@/app/actions/appointments";
+import { getAppointments, getAppointmentFormOptions } from "@/app/actions/appointments";
 import { AppointmentList } from "@/components/appointments/appointment-list";
 import { MonthNav } from "@/components/appointments/month-nav";
+import { NewAppointmentButton } from "@/components/appointments/appointment-form-dialog";
+import { AppointmentStatusFilter } from "@/components/appointments/appointment-status-filter";
 import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
@@ -14,7 +16,7 @@ export const metadata = {
 };
 
 interface PageProps {
-    searchParams?: Promise<{ month?: string }>;
+    searchParams?: Promise<{ month?: string; status?: string }>;
 }
 
 export default async function AppointmentsPage({ searchParams }: PageProps) {
@@ -47,19 +49,34 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
     const from = fromZonedTime(fromLocal, AR_TZ).toISOString();
     const to = fromZonedTime(toLocal, AR_TZ).toISOString();
 
-    const appointments = await getAppointments({ from, to });
+    const status = params?.status && params.status !== "ALL" ? params.status : undefined;
+
+    const [appointments, options] = await Promise.all([
+        getAppointments({ from, to, status }),
+        getAppointmentFormOptions(),
+    ]);
     const viewDate = new Date(year, month, 1, 12, 0, 0);
 
     return (
         <div className="space-y-6">
-            <MonthNav year={year} month={month} />
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight">Turnos</h1>
-                <p className="text-muted-foreground text-sm">
-                    Turnos del mes de {formatInTimeZone(viewDate, AR_TZ, "LLLL yyyy", { locale: es })}
-                </p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <MonthNav year={year} month={month} />
+                <NewAppointmentButton
+                    patients={options.patients}
+                    locations={options.locations}
+                    professional={options.professional}
+                />
             </div>
-            <AppointmentList appointments={appointments as any} />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Turnos</h1>
+                    <p className="text-muted-foreground text-sm">
+                        Turnos del mes de {formatInTimeZone(viewDate, AR_TZ, "LLLL yyyy", { locale: es })}
+                    </p>
+                </div>
+                <AppointmentStatusFilter value={status ?? "ALL"} />
+            </div>
+            <AppointmentList appointments={appointments as any} locations={options.locations} />
         </div>
     );
 }

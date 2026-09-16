@@ -33,7 +33,7 @@ function HorarioForm() {
       setLoading(true);
       setError(null);
       try {
-        const result = await getPublicAvailableSlots(selectedDate, locationId);
+        const result = await getPublicAvailableSlots(selectedDate, locationId, data.email);
         setSlots(result);
         if (result.length === 0) {
           setError("No hay horarios disponibles para esa fecha. Elegí otro día.");
@@ -45,7 +45,7 @@ function HorarioForm() {
       }
     }
     loadSlots();
-  }, [selectedDate, locationId]);
+  }, [selectedDate, locationId, data.email]);
 
   const handleContinue = () => {
     if (!selected) return;
@@ -128,6 +128,8 @@ function HorarioForm() {
       )}
 
       <p className="text-xs text-[#999] mb-6 m-0">
+        La primera consulta tiene una duración de 45 min (anamnesis, antropometría y evaluación completa).
+        <br />
         Zona horaria: Argentina (GMT-3)
       </p>
 

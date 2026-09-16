@@ -4,6 +4,7 @@ import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { appointmentService } from "@/services/appointment-service";
 import { patientService } from "@/services/patient-service";
 import { reportService } from "@/services/report-service";
+import { professionalService } from "@/services/professional-service";
 import prisma from "@/lib/prisma";
 
 export async function getDashboardSummary() {
@@ -11,15 +12,17 @@ export async function getDashboardSummary() {
     if (!user) throw new Error("No autenticado");
     if (isPatientUser(user)) throw new Error("Acceso no autorizado");
 
+    const professionalId = await professionalService.getDefaultProfessionalId();
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const [summary, todayAppointments, upcomingCount, pendingFollowUps] = await Promise.all([
-        reportService.getDashboardSummary(user.id),
-        appointmentService.getTodayAppointments(user.id),
-        appointmentService.getUpcomingCount(user.id),
+        reportService.getDashboardSummary(professionalId),
+        appointmentService.getTodayAppointments(professionalId),
+        appointmentService.getUpcomingCount(professionalId),
         prisma.followUp.findMany({
             where: {
                 patient: { status: "ACTIVE", deletedAt: null },

@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
+import { FIRST_APPOINTMENT_STATUSES } from "@/lib/appointment-rules";
 
 const AR_TZ = "America/Argentina/Buenos_Aires";
 
@@ -83,8 +84,36 @@ export const appointmentService = {
         startAt?: Date;
         endAt?: Date;
         locationId?: string | null;
+        location?: string;
         meetingUrl?: string;
     }) {
+        if (data.startAt || data.endAt) {
+            const current = await prisma.appointment.findUnique({
+                where: { id },
+                select: { professionalId: true, startAt: true, endAt: true, status: true },
+            });
+            if (!current) throw new Error("Turno no encontrado");
+
+            const newStart = data.startAt ?? current.startAt;
+            const newEnd = data.endAt ?? current.endAt;
+            if (newEnd <= newStart) {
+                throw new Error("El horario de fin debe ser posterior al de inicio");
+            }
+
+            if (current.status !== "CANCELLED") {
+                const conflict = await prisma.appointment.findFirst({
+                    where: {
+                        id: { not: id },
+                        professionalId: current.professionalId,
+                        status: { notIn: ["CANCELLED"] },
+                        startAt: { lt: newEnd },
+                        endAt: { gt: newStart },
+                    },
+                });
+                if (conflict) throw new Error("Ya existe un turno en ese horario");
+            }
+        }
+
         return prisma.appointment.update({
             where: { id },
             data,
@@ -93,6 +122,28 @@ export const appointmentService = {
                 professional: { select: { id: true, fullName: true } },
             },
         });
+    },
+
+    async reschedule(id: string, data: {
+        startAt: Date;
+        endAt: Date;
+        type?: "ONLINE" | "IN_PERSON";
+        locationId?: string | null;
+        location?: string;
+        meetingUrl?: string;
+        notes?: string;
+    }) {
+        return this.update(id, { ...data, status: "RESCHEDULED" });
+    },
+
+    async isFirstAppointment(patientId: string) {
+        const count = await prisma.appointment.count({
+            where: {
+                patientId,
+                status: { in: [...FIRST_APPOINTMENT_STATUSES] },
+            },
+        });
+        return count === 0;
     },
 
     async cancel(id: string, reason?: string) {

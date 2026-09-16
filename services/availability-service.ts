@@ -64,7 +64,34 @@ export const availabilityService = {
         return prisma.availability.delete({ where: { id } });
     },
 
-    async getAvailableSlots(professionalId: string, date: Date, locationId: string | null = null) {
+    async resolveSlotDuration(
+        professionalId: string,
+        date: Date,
+        locationId: string | null,
+        time: string,
+    ) {
+        const arDate = toZonedTime(date, AR_TZ);
+        const weekday = arDate.getDay();
+
+        const blocks = await prisma.availability.findMany({
+            where: {
+                professionalId,
+                locationId: locationId ?? null,
+                weekday,
+                isActive: true,
+            },
+        });
+
+        const block = blocks.find((b) => time >= b.startTime && time < b.endTime);
+        return block?.slotDuration ?? null;
+    },
+
+    async getAvailableSlots(
+        professionalId: string,
+        date: Date,
+        locationId: string | null = null,
+        opts?: { duration?: number; excludeAppointmentId?: string },
+    ) {
         // date is a correct UTC Date; get Argentina weekday
         const arDate = toZonedTime(date, AR_TZ);
         const weekday = arDate.getDay();
@@ -88,11 +115,12 @@ export const availabilityService = {
                 professionalId,
                 startAt: { gte: dayStart, lte: dayEnd },
                 status: { notIn: ["CANCELLED"] },
+                ...(opts?.excludeAppointmentId ? { id: { not: opts.excludeAppointmentId } } : {}),
             },
             select: { startAt: true, endAt: true },
         });
 
-        const slots: { time: string; available: boolean }[] = [];
+        const slots: { time: string; available: boolean; duration: number }[] = [];
 
         // Determine if the requested date is today in Argentina timezone
         const nowArStr = formatInTimeZone(new Date(), AR_TZ, "yyyy-MM-dd");
@@ -107,11 +135,13 @@ export const availabilityService = {
         for (const block of availability) {
             const [startH, startM] = block.startTime.split(":").map(Number);
             const [endH, endM] = block.endTime.split(":").map(Number);
-            const duration = block.slotDuration;
+            const step = block.slotDuration;
+            const duration = opts?.duration && opts.duration > 0 ? opts.duration : block.slotDuration;
 
             let currentMinutes = startH * 60 + startM;
             const endMinutes = endH * 60 + endM;
 
+            // The slot only fits if the full effective duration stays within the block
             while (currentMinutes + duration <= endMinutes) {
                 const h = Math.floor(currentMinutes / 60);
                 const m = currentMinutes % 60;
@@ -119,7 +149,7 @@ export const availabilityService = {
 
                 // Skip past time slots for today
                 if (isToday && currentTimeStr && time <= currentTimeStr) {
-                    currentMinutes += duration;
+                    currentMinutes += step;
                     continue;
                 }
 
@@ -132,8 +162,8 @@ export const availabilityService = {
                     (apt) => apt.startAt < slotEnd && apt.endAt > slotStart
                 );
 
-                slots.push({ time, available: !isBooked });
-                currentMinutes += duration;
+                slots.push({ time, available: !isBooked, duration });
+                currentMinutes += step;
             }
         }
 

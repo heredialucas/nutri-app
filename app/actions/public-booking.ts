@@ -4,28 +4,44 @@ import prisma from "@/lib/prisma";
 import { serializePrisma } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { fromZonedTime } from "date-fns-tz";
+import { getCurrentUser, isPatientUser } from "@/lib/auth";
+import {
+    DEFAULT_SLOT_DURATION,
+    FIRST_CONSULTATION_DURATION_MINUTES,
+    getEffectiveDurationMinutes,
+} from "@/lib/appointment-rules";
 
 const AR_TZ = "America/Argentina/Buenos_Aires";
 
 async function getDefaultProfessionalId(): Promise<string> {
-    const admin = await prisma.user.findFirst({
-        where: {
-            email: "admin@mauroacosta.com",
-            isActive: true,
-        },
-        select: { id: true },
-    });
+    const { professionalService } = await import("@/services/professional-service");
+    return professionalService.getDefaultProfessionalId();
+}
 
-    if (!admin) {
-        const anyProfessional = await prisma.user.findFirst({
-            where: { isActive: true },
-            select: { id: true },
-        });
-        if (!anyProfessional) throw new Error("No hay profesionales disponibles");
-        return anyProfessional.id;
+async function resolveIsFirstAppointment(email?: string | null): Promise<boolean> {
+    const { appointmentService } = await import("@/services/appointment-service");
+
+    let patientId: string | null = null;
+
+    const user = await getCurrentUser();
+    if (user && isPatientUser(user)) {
+        const { patientService } = await import("@/services/patient-service");
+        const patient = await patientService.getByUserId(user.id);
+        patientId = patient?.id ?? null;
     }
 
-    return admin.id;
+    if (!patientId && email?.trim()) {
+        const existing = await prisma.patient.findFirst({
+            where: { email: email.trim(), deletedAt: null },
+            select: { id: true },
+        });
+        patientId = existing?.id ?? null;
+    }
+
+    // Sin paciente asociado => primera consulta
+    if (!patientId) return true;
+
+    return appointmentService.isFirstAppointment(patientId);
 }
 
 export async function getPublicLocations() {
@@ -33,7 +49,7 @@ export async function getPublicLocations() {
     return locationService.listActive();
 }
 
-export async function getPublicAvailableSlots(date: string, locationId?: string | null) {
+export async function getPublicAvailableSlots(date: string, locationId?: string | null, email?: string | null) {
     const professionalId = await getDefaultProfessionalId();
     const { availabilityService } = await import("@/services/availability-service");
     // date string is the Argentina-local date the user picked (e.g. "2026-08-27")
@@ -41,7 +57,19 @@ export async function getPublicAvailableSlots(date: string, locationId?: string 
     const [y, m, d] = date.split("-").map(Number);
     const localNoon = new Date(y, m - 1, d, 12, 0, 0);
     const utcDate = fromZonedTime(localNoon, AR_TZ);
-    const slots = await availabilityService.getAvailableSlots(professionalId, utcDate, locationId ?? null);
+
+    // Primera consulta: reservar 45 min completos. El resto usa la duración del bloque.
+    const isFirstAppointment = await resolveIsFirstAppointment(email);
+    const opts = isFirstAppointment
+        ? { duration: FIRST_CONSULTATION_DURATION_MINUTES }
+        : undefined;
+
+    const slots = await availabilityService.getAvailableSlots(
+        professionalId,
+        utcDate,
+        locationId ?? null,
+        opts,
+    );
     return slots;
 }
 
@@ -118,9 +146,21 @@ export async function createPublicBooking(data: {
         });
     }
 
-    // Calculate end time (30 min slots) - startAt was already computed during validation
+    // Duración: primera consulta 45 min; el resto usa la duración del bloque de disponibilidad
+    const { appointmentService } = await import("@/services/appointment-service");
+    const { availabilityService } = await import("@/services/availability-service");
+    const isFirstAppointment = await appointmentService.isFirstAppointment(patient.id);
+    const baseDuration =
+        (await availabilityService.resolveSlotDuration(
+            professionalId,
+            startAtCheck,
+            data.type === "IN_PERSON" ? sede?.id ?? null : null,
+            data.time,
+        )) ?? DEFAULT_SLOT_DURATION;
+    const duration = getEffectiveDurationMinutes(baseDuration, isFirstAppointment);
+
     const startAt = startAtCheck;
-    const endAt = new Date(startAt.getTime() + 30 * 60 * 1000);
+    const endAt = new Date(startAt.getTime() + duration * 60 * 1000);
 
     // Check for conflicts
     const conflict = await prisma.appointment.findFirst({

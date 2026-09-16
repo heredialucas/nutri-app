@@ -52,7 +52,7 @@ export async function createAvailabilitySlot(data: {
         slotDuration: data.slotDuration || 30,
     });
 
-    revalidatePath("/dashboard/availability");
+    revalidatePath("/dashboard/turnos/disponibilidad");
     return serializePrisma(result);
 }
 
@@ -64,22 +64,32 @@ export async function updateAvailabilitySlot(id: string, data: {
 }) {
     await requireAuth("availability:manage");
     const result = await availabilityService.update(id, data);
-    revalidatePath("/dashboard/availability");
+    revalidatePath("/dashboard/turnos/disponibilidad");
     return serializePrisma(result);
 }
 
 export async function deleteAvailabilitySlot(id: string) {
     await requireAuth("availability:manage");
     await availabilityService.delete(id);
-    revalidatePath("/dashboard/availability");
+    revalidatePath("/dashboard/turnos/disponibilidad");
     return { success: true };
 }
 
-export async function getAvailableSlots(professionalId: string, date: string, locationId?: string | null) {
+export async function getAvailableSlots(
+    professionalId: string,
+    date: string,
+    locationId?: string | null,
+    opts?: { duration?: number; excludeAppointmentId?: string },
+) {
     // date string is the Argentina-local date (e.g. "2026-08-27")
     const [y, m, d] = date.split("-").map(Number);
     const localNoon = new Date(y, m - 1, d, 12, 0, 0);
     const utcDate = fromZonedTime(localNoon, AR_TZ);
-    const slots = await availabilityService.getAvailableSlots(professionalId, utcDate, locationId ?? null);
+    const slots = await availabilityService.getAvailableSlots(
+        professionalId,
+        utcDate,
+        locationId ?? null,
+        opts,
+    );
     return slots;
 }

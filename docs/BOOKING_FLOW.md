@@ -83,7 +83,9 @@ Al confirmar:
 - Los turnos presenciales requieren elegir una sede activa.
 - La disponibilidad se configura por separado para cada sede y para la modalidad online.
 - No se permiten solapamientos de turnos para el mismo profesional (aunque sean en sedes distintas).
-- La duración del slot es configurable por el profesional.
+- **La primera consulta de un paciente dura 45 minutos** (anamnesis, antropometría y evaluación completa). Se considera primera consulta cuando el paciente no tiene turnos en estado `PENDING`, `CONFIRMED`, `COMPLETED` o `RESCHEDULED` (los cancelados y las ausencias no cuentan).
+- La primera consulta reserva 45 minutos completos: la grilla de horarios solo ofrece turnos donde entren los 45 min sin superponerse con otro turno.
+- El resto de los turnos usan la `slotDuration` configurada en el bloque de disponibilidad.
 - Se valida la disponibilidad horaria configurada.
 - Los turnos online pueden incluir un link de videollamada.
 
@@ -96,13 +98,16 @@ Desde `/dashboard/configuracion/sedes` (solo administradores) se puede:
 
 ## Gestión desde el dashboard profesional
 
+El profesional de todos los turnos es siempre **Mauro Acosta** (el admin del sitio). Por el momento no se delega la agenda a otros actores ni se permite elegir otro profesional al crear o reprogramar un turno.
+
 Desde `/dashboard/turnos` el profesional puede:
-- Ver lista de turnos con filtros por estado y fecha.
-- Ver calendario mensual.
-- Crear turnos manualmente.
-- Confirmar, cancelar o reprogramar turnos.
-- Marcar como completado o ausente.
-- Configurar disponibilidad horaria.
+- Ver la lista de turnos del mes con filtro por estado.
+- Ver el calendario mensual (con acceso directo al alta de turno por día).
+- Crear turnos manualmente (duración precargada en 45 min si es la primera consulta).
+- Crear un paciente nuevo desde el mismo alta con un formulario mínimo (nombre, apellido, teléfono y email); el resto de los datos se completa después desde su ficha.
+- Ver el detalle de cada turno.
+- Confirmar, reprogramar, cancelar (con motivo), marcar como completado o ausente.
+- Configurar, editar, activar/desactivar y eliminar bloques de disponibilidad horaria.
 
 ## Gestión desde el portal del paciente
 
