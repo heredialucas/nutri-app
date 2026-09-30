@@ -2,12 +2,16 @@
   "private": true,
   "packageManager": "pnpm@10.13.1",
   "scripts": {
-    "dev": "next dev",
+    "dev": "bash scripts/db-tunnel.sh && next dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
     "migrate": "prisma generate && prisma migrate dev",
-    "migrate:create": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script"
+    "migrate:create": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",
+    "db:tunnel": "bash scripts/db-tunnel.sh",
+    "db:tunnel:stop": "bash scripts/db-tunnel.sh stop",
+    "db:tunnel:status": "bash scripts/db-tunnel.sh status",
+    "db:studio": "bash scripts/db-tunnel.sh && prisma studio"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.1.0",

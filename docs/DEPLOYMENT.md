@@ -146,8 +146,36 @@ bash scripts/setup-db.sh
 
 - Rol/DB dedicados: `nutri_app`.
 - Escucha solo en `127.0.0.1` (no expuesta a Internet) con `scram-sha-256`.
-- `DATABASE_URL` y `DIRECT_URL` apuntan a la misma URL local
-  (`postgresql://nutri_app:...@127.0.0.1:5432/nutri_app`).
+- En la VPS, `DATABASE_URL` y `DIRECT_URL` apuntan a
+  `postgresql://nutri_app:...@127.0.0.1:5432/nutri_app`.
+
+### Túnel de base de datos (desarrollo local)
+
+En local se trabaja contra la base de producción de la VPS a través de un túnel
+SSH, igual que en los otros proyectos. El túnel se levanta **automáticamente
+con `pnpm dev`**.
+
+```bash
+pnpm dev               # levanta el túnel y arranca Next
+pnpm db:tunnel         # levantar el túnel manualmente
+pnpm db:tunnel:status  # ver si está activo
+pnpm db:tunnel:stop    # cerrarlo
+pnpm db:studio         # túnel + Prisma Studio
+```
+
+`.env.local` debe apuntar al puerto local del túnel (`15432`):
+
+```
+DATABASE_URL="postgresql://nutri_app:...@127.0.0.1:15432/nutri_app"
+DIRECT_URL="postgresql://nutri_app:...@127.0.0.1:15432/nutri_app"
+```
+
+El script usa la clave `~/.ssh/id_ed25519_nutri_vps`. Para recrearla:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_nutri_vps -N "" -C "nutri-app-deploy-tunnel"
+cat ~/.ssh/id_ed25519_nutri_vps.pub   # agregar a /root/.ssh/authorized_keys de la VPS
+```
 
 ### Backups de la base
 
