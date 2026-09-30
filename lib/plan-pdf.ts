@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import { loadLogoDataUrl, LOGO_WHITE_SRC, LOGO_DARK_SRC } from "@/lib/pdf-branding";
+import { PROFESSIONAL_BYLINE, PROFESSIONAL_LICENSE, PROFESSIONAL_TITLE } from "@/lib/branding";
 
 export interface PlanFoodPdf {
   name: string;
@@ -171,7 +172,7 @@ export async function generatePlanPdf(data: PlanPdfInput) {
 
   const footer = (page: number) => {
     setFont(doc, 7.5, [148, 163, 184], "normal");
-    doc.text("Mauro Acosta · Nutricionista", margin, pageH - 8);
+    doc.text(PROFESSIONAL_BYLINE, margin, pageH - 8);
     doc.text(`Página ${page}`, pageW - margin, pageH - 8, { align: "right" });
   };
 
@@ -209,7 +210,7 @@ export async function generatePlanPdf(data: PlanPdfInput) {
   setFont(doc, 9, [187, 247, 208], "bold");
   doc.text("MAURO ACOSTA", margin, 15);
   setFont(doc, 8, [220, 252, 231], "normal");
-  doc.text("NUTRICIONISTA", margin, 20);
+  doc.text(`${PROFESSIONAL_TITLE.toUpperCase()} · ${PROFESSIONAL_LICENSE}`, margin, 20);
   setFont(doc, 22, [255, 255, 255], "bold");
   doc.text("Plan alimentario", margin, 34);
   setFont(doc, 9, [220, 252, 231], "normal");

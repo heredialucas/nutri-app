@@ -1,0 +1,5 @@
+export const PROFESSIONAL_NAME = "Mauro Acosta";
+export const PROFESSIONAL_TITLE = "Nutricionista";
+export const PROFESSIONAL_LICENSE = "MP 1980";
+
+export const PROFESSIONAL_BYLINE = `${PROFESSIONAL_NAME} · ${PROFESSIONAL_TITLE} · ${PROFESSIONAL_LICENSE}`;

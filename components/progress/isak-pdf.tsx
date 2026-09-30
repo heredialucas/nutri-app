@@ -7,6 +7,7 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 import type { IsakResult } from "@/lib/isak/calculations";
 import { loadLogoDataUrl, LOGO_DARK_SRC } from "@/lib/pdf-branding";
+import { PROFESSIONAL_BYLINE, PROFESSIONAL_LICENSE, PROFESSIONAL_NAME, PROFESSIONAL_TITLE } from "@/lib/branding";
 
 interface PdfPayload {
   paciente: string;
@@ -44,14 +45,14 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
       doc.setTextColor(...GREEN);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      doc.text("MAURO ACOSTA", margin, 20);
+      doc.text(PROFESSIONAL_NAME.toUpperCase(), margin, 20);
       doc.setTextColor(...DARK);
       doc.setFontSize(25);
       doc.text("Informe antropométrico", margin, 34);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       doc.setTextColor(...MUTED);
-      doc.text("Nutricionista · Evaluación corporal ISAK", margin, 42);
+      doc.text(`${PROFESSIONAL_TITLE} · ${PROFESSIONAL_LICENSE} · Evaluación corporal ISAK`, margin, 42);
       doc.setDrawColor(215, 226, 219);
       doc.line(margin, 49, pageWidth - margin, 49);
       doc.setTextColor(...DARK);
@@ -147,7 +148,7 @@ export function IsakPdfButton({ result, paciente, fecha, evaluador, evolutionDat
         ["Diámetros óseos", "Biepicondíleo de húmero (codo), biestiloideo de muñeca (radio-cúbito) y biepicondíleo de fémur (rodilla). Son medidas estructurales y no se clasifican como buenas o malas."],
         ["Modelo corporal", "Fraccionamiento estimado según el modelo de cinco componentes de Ross y Kerr. La masa muscular utiliza el modelo de Lee et al."],
         ["Interpretación", "Los rangos son orientativos. La valoración debe considerar contexto clínico, objetivos, antecedentes y cambios entre controles."],
-        ["Profesional", "Informe generado para acompañar la consulta de Mauro Acosta · Nutricionista."],
+        ["Profesional", `Informe generado para acompañar la consulta de ${PROFESSIONAL_BYLINE}.`],
       ];
       autoTable(doc, { startY: 34, head: [["Tema", "Detalle"]], body: methodology, theme: "plain", margin: { left: margin, right: margin }, styles: tableStyles(9), headStyles: { fillColor: GREEN, textColor: [255, 255, 255], fontStyle: "bold" }, alternateRowStyles: { fillColor: [247, 250, 248] }, columnStyles: { 0: { cellWidth: 35 }, 1: { cellWidth: 129 } } });
       noteBox(doc, "Observaciones de la evaluación", "Registrar aquí las recomendaciones y acuerdos definidos durante la consulta.", margin, (doc.lastAutoTable?.finalY ?? 100) + 15, contentWidth, 38);
@@ -174,7 +175,7 @@ function drawPageChrome(doc: jsPDF, paciente: string, fecha: string, evaluador: 
     }
   }
   doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(...MUTED);
-  doc.text("Mauro Acosta · Nutricionista", 16, pageHeight - 12);
+  doc.text(PROFESSIONAL_BYLINE, 16, pageHeight - 12);
   doc.text(`${paciente} · ${fecha}`, pageWidth - 16, pageHeight - 12, { align: "right" });
   doc.setDrawColor(220, 229, 223); doc.line(16, pageHeight - 17, pageWidth - 16, pageHeight - 17);
   doc.text(`Página ${page}`, pageWidth / 2, pageHeight - 7, { align: "center" });

@@ -6,6 +6,7 @@ import { shoppingListService } from "@/services/shopping-list-service";
 import { UtensilsCrossed, ShoppingCart, BookOpen, Lightbulb, ChevronDown, ChevronRight, Pill } from "lucide-react";
 import Link from "next/link";
 import { PlanExportButton } from "@/components/nutrition-plans/plan-export-button";
+import { PROFESSIONAL_BYLINE, PROFESSIONAL_NAME } from "@/lib/branding";
 
 export default async function PlanPage() {
     const user = await getCurrentUser();
@@ -98,6 +99,7 @@ export default async function PlanPage() {
                             />
                         </div>
                     </div>
+                    <p className="text-xs text-[#999] m-0 mb-3">{PROFESSIONAL_BYLINE}</p>
                     {activePlan.description && (
                         <p className="text-sm text-[#666] m-0 mb-3">{activePlan.description}</p>
                     )}
@@ -246,7 +248,7 @@ export default async function PlanPage() {
                         Sin plan activo
                     </h2>
                     <p className="text-sm text-[#666] m-0">
-                        Mauro Acosta te asignará tu plan alimentario pronto.
+                        {PROFESSIONAL_NAME} te asignará tu plan alimentario pronto.
                     </p>
                 </div>
             )}

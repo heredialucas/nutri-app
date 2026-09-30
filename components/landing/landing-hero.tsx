@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Calculator } from "lucide-react";
 import Lenis from "lenis";
+import { PROFESSIONAL_LICENSE } from "@/lib/branding";
 
 export function LandingHero() {
   const [ready, setReady] = useState(false);
@@ -122,7 +123,7 @@ export function LandingHero() {
             </h1>
             <p className="mt-3 inline-flex items-center gap-2 uppercase tracking-[0.3em] text-emerald-300 text-[clamp(0.7rem,1.4vw,0.95rem)] font-medium m-0">
               <span className="w-6 h-px bg-emerald-400/60" aria-hidden="true" />
-              MP 1980
+              {PROFESSIONAL_LICENSE}
             </p>
           </motion.div>
 

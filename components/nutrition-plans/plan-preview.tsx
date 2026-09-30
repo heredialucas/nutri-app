@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PlanDayCards } from "./plan-day-cards";
+import { PROFESSIONAL_LICENSE } from "@/lib/branding";
 
 interface PlanData {
     id: string;
@@ -108,7 +109,7 @@ export function PlanPreview({ plan }: { plan: PlanData }) {
                             {plan.fatTarget && ` · ${plan.fatTarget}g G`}
                         </span>
                     )}
-                    <span>Creado por: {plan.professional.fullName}</span>
+                    <span>Creado por: {plan.professional.fullName} · {PROFESSIONAL_LICENSE}</span>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
