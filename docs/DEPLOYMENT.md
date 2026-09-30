@@ -122,13 +122,42 @@ Esto crea:
 ## Despliegue en VPS (auto-hospedado)
 
 El proyecto se despliega en la VPS con PM2 + Nginx. El script `scripts/deploy.sh`
-automatiza el flujo (pull/build/restart) y `scripts/setup-vps.sh` prepara el
-servidor por primera vez.
+automatiza el flujo (pull/build/restart).
 
 ```bash
 # En la VPS, desde el directorio de la app
 bash scripts/deploy.sh
 ```
+
+- App en `/root/apps/nutri-app`, Puerto `3005`, PM2 `nutri-app`.
+- Nginx: `mauroacosta.com`, `www.mauroacosta.com` y `nutricion.mauroacosta.com`.
+- `NEXT_PUBLIC_APP_URL=https://mauroacosta.com`.
+
+### Base de datos local (PostgreSQL)
+
+La aplicación usa un PostgreSQL 16 local en la VPS (no Supabase).
+
+```bash
+# Crear rol + base (imprime las URLs para .env)
+bash scripts/setup-db.sh
+```
+
+- Rol/DB dedicados: `nutri_app`.
+- Escucha solo en `127.0.0.1` (no expuesta a Internet) con `scram-sha-256`.
+- `DATABASE_URL` y `DIRECT_URL` apuntan a la misma URL local
+  (`postgresql://nutri_app:...@127.0.0.1:5432/nutri_app`).
+
+### Backups de la base
+
+```bash
+# Ejecutar un backup manual
+bash scripts/backup-db.sh
+
+# Instalar el cron de backup diario (03:30, retención 14 días)
+bash scripts/setup-backup-cron.sh
+```
+
+Los backups se guardan comprimidos en `/root/backups/nutri-app/`.
 
 ### Recordatorios por WhatsApp vía cron
 
