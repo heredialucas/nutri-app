@@ -130,8 +130,10 @@ bash scripts/deploy.sh
 ```
 
 - App en `/root/apps/nutri-app`, Puerto `3005`, PM2 `nutri-app`.
-- Nginx: `mauroacosta.com`, `www.mauroacosta.com` y `nutricion.mauroacosta.com`.
+- Nginx: `mauroacosta.com` (canónico), `www` y `nutricion` redirigen al canónico.
 - `NEXT_PUBLIC_APP_URL=https://mauroacosta.com`.
+- Plantillas de nginx versionadas en `deploy/nginx/` (los certificados los
+  gestiona Certbot en `/etc/letsencrypt/`).
 
 ### Base de datos local (PostgreSQL)
 
