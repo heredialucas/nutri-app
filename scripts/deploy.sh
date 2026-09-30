@@ -1,32 +1,20 @@
 #!/bin/bash
 set -e
 
-# Deploy de Mauro Acosta · Gestión nutricional en la VPS.
-# Uso: bash scripts/deploy.sh
-# Requiere: git, pnpm, pm2 y el archivo .env presente en la raíz del proyecto.
+# Deploy de nutri-app en la VPS. Mismo patron que las otras apps:
+# /root/deploy_nutri.sh es el lanzador y este script vive versionado en el repo.
+#
+# Uso (en la VPS): bash /root/deploy_nutri.sh
+#   o directamente: bash /root/apps/nutri-app/scripts/deploy.sh
 
-APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$APP_DIR"
+cd /root/apps/nutri-app
 
-echo "==> Directorio: $APP_DIR"
-
-if [ ! -f .env ]; then
-    echo "ERROR: falta el archivo .env en $APP_DIR" >&2
-    exit 1
-fi
-
-echo "==> Actualizando código (git pull)..."
 git fetch origin
 git reset --hard origin/main
 
-echo "==> Instalando dependencias..."
 pnpm install --frozen-lockfile
-
-echo "==> Build (prisma generate + next build)..."
 pnpm build
 
-echo "==> Reiniciando PM2..."
-pm2 startOrReload ecosystem.config.js --update-env
-pm2 save
+pm2 reload nutri-app --update-env
 
-echo "==> Deploy completado."
+echo "==> Deploy completo: $(git log --oneline -1)"
