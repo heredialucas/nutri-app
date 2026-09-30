@@ -34,6 +34,7 @@ model User {
   // Nutrition relations
   professionalAppointments Appointment[]               @relation("ProfessionalAppointments")
   professionalAvailability Availability[]
+  professionalBlockedDays  BlockedDay[]                @relation("ProfessionalBlockedDays")
   uploadedPatientFiles     PatientFile[]               @relation("UploadedPatientFiles")
   uploadedProgressPhotos   ProgressPhoto[]             @relation("UploadedProgressPhotos")
   measurementsTaken        AnthropometricMeasurement[] @relation("MeasurementsTaken")
@@ -334,6 +335,20 @@ model Availability {
 
   @@index([locationId])
   @@map("availability")
+}
+
+model BlockedDay {
+  id             String   @id @default(uuid()) @db.Uuid
+  professionalId String   @db.Uuid
+  date           DateTime @db.Date
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  professional User @relation("ProfessionalBlockedDays", fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@unique([professionalId, date])
+  @@index([date])
+  @@map("blocked_days")
 }
 
 // ──────────────────────────────────────────────

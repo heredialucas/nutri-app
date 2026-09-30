@@ -2,6 +2,7 @@
 
 import { appointmentService } from "@/services/appointment-service";
 import { availabilityService } from "@/services/availability-service";
+import { blockedDayService } from "@/services/blocked-day-service";
 import { locationService } from "@/services/location-service";
 import { professionalService } from "@/services/professional-service";
 import { getCurrentUser, hasPermission, isPatientUser } from "@/lib/auth";
@@ -185,6 +186,10 @@ export async function createAppointment(data: {
     }
     if (Number.isNaN(startAt.getTime())) throw new Error("Fecha u horario inválidos");
 
+    if (await blockedDayService.isBlocked(professionalId, startAt)) {
+        throw new Error("Ese día está bloqueado. Desbloquealo para agendar turnos.");
+    }
+
     const isFirst = await appointmentService.isFirstAppointment(data.patientId);
 
     let baseDuration = data.durationMinutes;
@@ -296,6 +301,9 @@ export async function rescheduleAppointment(id: string, data: {
 
     const type = data.type ?? existing.type;
     const startAt = parseArDateTime(data.date, data.time);
+    if (await blockedDayService.isBlocked(existing.professionalId, startAt)) {
+        throw new Error("Ese día está bloqueado. Desbloquealo para reprogramar el turno.");
+    }
     const baseDuration = data.durationMinutes || minutesBetween(existing.startAt, existing.endAt);
     const endAt = new Date(startAt.getTime() + baseDuration * 60 * 1000);
 

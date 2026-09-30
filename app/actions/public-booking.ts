@@ -114,6 +114,11 @@ export async function createPublicBooking(data: {
 
     const professionalId = await getDefaultProfessionalId();
 
+    const { blockedDayService } = await import("@/services/blocked-day-service");
+    if (await blockedDayService.isBlocked(professionalId, startAtCheck)) {
+        throw new Error("Ese día no está disponible. Elegí otra fecha.");
+    }
+
     // Find or create patient
     let patient = await prisma.patient.findFirst({
         where: {

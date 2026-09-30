@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { getAppointments, getAppointmentFormOptions } from "@/app/actions/appointments";
+import { getBlockedDays } from "@/app/actions/blocked-days";
 import { AppointmentFormDialog, type PatientOption, type LocationOption, type ProfessionalOption } from "@/components/appointments/appointment-form-dialog";
+import { BlockDayDialog } from "@/components/appointments/block-day-dialog";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, Plus } from "lucide-react";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 const AR_TZ = "America/Argentina/Buenos_Aires";
@@ -34,6 +37,9 @@ export default function CalendarPage() {
         return arNow.getFullYear();
     });
     const [appointments, setAppointments] = useState<any[]>([]);
+    const [blockedDays, setBlockedDays] = useState<
+        { id: string; date: string; reason: string | null }[]
+    >([]);
     const [loading, setLoading] = useState(false);
     const [options, setOptions] = useState<{
         patients: PatientOption[];
@@ -42,6 +48,7 @@ export default function CalendarPage() {
     } | null>(null);
     const [newOpen, setNewOpen] = useState(false);
     const [newDate, setNewDate] = useState<string | undefined>(undefined);
+    const [blockDialog, setBlockDialog] = useState<{ date: string; label: string } | null>(null);
 
     const monthName = formatInTimeZone(
         new Date(Date.UTC(currentYear, currentMonth, 15)),
@@ -61,10 +68,21 @@ export default function CalendarPage() {
             const toLocal = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
             const from = fromZonedTime(fromLocal, AR_TZ).toISOString();
             const to = fromZonedTime(toLocal, AR_TZ).toISOString();
-            const data = await getAppointments({ from, to });
+            const firstDayStr = toDateParam(currentYear, currentMonth, 1);
+            const lastDayStr = toDateParam(
+                currentYear,
+                currentMonth,
+                getDaysInMonth(currentYear, currentMonth),
+            );
+            const [data, days] = await Promise.all([
+                getAppointments({ from, to }),
+                getBlockedDays(firstDayStr, lastDayStr).catch(() => []),
+            ]);
             setAppointments(data as any);
+            setBlockedDays(days as any);
         } catch {
             setAppointments([]);
+            setBlockedDays([]);
         } finally {
             setLoading(false);
         }
@@ -104,6 +122,15 @@ export default function CalendarPage() {
         setNewOpen(true);
     };
 
+    const openBlockDialog = (day: number) => {
+        setBlockDialog({
+            date: toDateParam(currentYear, currentMonth, day),
+            label: format(new Date(currentYear, currentMonth, day), "EEEE d 'de' MMMM", {
+                locale: es,
+            }),
+        });
+    };
+
     // Group appointments by AR day
     const arToday = new Date(now.toLocaleString("en-US", { timeZone: AR_TZ }));
     const appointmentsByDay: Record<number, any[]> = {};
@@ -114,6 +141,11 @@ export default function CalendarPage() {
             if (!appointmentsByDay[day]) appointmentsByDay[day] = [];
             appointmentsByDay[day].push(a);
         });
+
+    const blockedByDate: Record<string, { id: string; reason: string | null }> = {};
+    blockedDays.forEach((b) => {
+        blockedByDate[b.date] = { id: b.id, reason: b.reason };
+    });
 
     return (
         <div className="space-y-6">
@@ -142,6 +174,11 @@ export default function CalendarPage() {
                 </div>
             </div>
 
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" />
+                Usá el candado en un día para bloquearlo y evitar que se saquen turnos.
+            </div>
+
             <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
                 {["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((d) => (
                     <div key={d} className="bg-card p-2 text-center text-xs font-medium text-muted-foreground">
@@ -154,6 +191,8 @@ export default function CalendarPage() {
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                     const day = i + 1;
                     const dayAppointments = appointmentsByDay[day] || [];
+                    const dateStr = toDateParam(currentYear, currentMonth, day);
+                    const blocked = blockedByDate[dateStr];
                     const isToday =
                         day === arToday.getDate() &&
                         currentMonth === arToday.getMonth() &&
@@ -162,23 +201,57 @@ export default function CalendarPage() {
                     return (
                         <div
                             key={day}
-                            className={`bg-card p-2 min-h-[100px] ${isToday ? "ring-2 ring-primary" : ""}`}
+                            className={`p-2 min-h-[100px] ${
+                                blocked
+                                    ? "bg-muted/60 [background-image:repeating-linear-gradient(45deg,transparent,transparent_6px,rgba(0,0,0,0.04)_6px,rgba(0,0,0,0.04)_12px)]"
+                                    : "bg-card"
+                            } ${isToday ? "ring-2 ring-primary" : ""}`}
                         >
                             <div className="flex items-center justify-between mb-1">
-                                <p className={`text-xs font-medium ${isToday ? "text-primary" : ""}`}>
+                                <p
+                                    className={`text-xs font-medium ${
+                                        isToday ? "text-primary" : ""
+                                    } ${blocked ? "text-muted-foreground line-through" : ""}`}
+                                >
                                     {day}
                                 </p>
-                                <button
-                                    type="button"
-                                    onClick={() => openNewForDay(day)}
-                                    disabled={!options}
-                                    className="text-muted-foreground hover:text-foreground disabled:opacity-40"
-                                    aria-label={`Nuevo turno el ${day}`}
-                                >
-                                    <Plus className="h-3 w-3" />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => openBlockDialog(day)}
+                                        className={
+                                            blocked
+                                                ? "text-destructive hover:text-destructive/80"
+                                                : "text-muted-foreground hover:text-foreground"
+                                        }
+                                        title={blocked ? "Desbloquear día" : "Bloquear día"}
+                                        aria-label={
+                                            blocked
+                                                ? `Desbloquear el ${day}`
+                                                : `Bloquear el ${day}`
+                                        }
+                                    >
+                                        <Lock className="h-3 w-3" />
+                                    </button>
+                                    {!blocked && (
+                                        <button
+                                            type="button"
+                                            onClick={() => openNewForDay(day)}
+                                            disabled={!options}
+                                            className="text-muted-foreground hover:text-foreground disabled:opacity-40"
+                                            aria-label={`Nuevo turno el ${day}`}
+                                        >
+                                            <Plus className="h-3 w-3" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <div className="space-y-1">
+                                {blocked && (
+                                    <p className="text-[10px] font-medium text-muted-foreground">
+                                        Día bloqueado
+                                    </p>
+                                )}
                                 {dayAppointments.slice(0, 3).map((a) => (
                                     <Link
                                         key={a.id}
@@ -208,6 +281,19 @@ export default function CalendarPage() {
                     defaultDate={newDate}
                     open={newOpen}
                     onOpenChange={setNewOpen}
+                />
+            )}
+
+            {blockDialog && (
+                <BlockDayDialog
+                    date={blockDialog.date}
+                    dateLabel={blockDialog.label}
+                    blockedDay={blockedByDate[blockDialog.date] ?? null}
+                    open={Boolean(blockDialog)}
+                    onOpenChange={(o) => {
+                        if (!o) setBlockDialog(null);
+                    }}
+                    onChanged={loadMonth}
                 />
             )}
         </div>

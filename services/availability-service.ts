@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { fromZonedTime, formatInTimeZone, toZonedTime } from "date-fns-tz";
+import { blockedDayService } from "@/services/blocked-day-service";
 
 const AR_TZ = "America/Argentina/Buenos_Aires";
 
@@ -107,6 +108,11 @@ export const availabilityService = {
 
         // Get Argentina date string for the day range
         const arDateStr = formatInTimeZone(date, AR_TZ, "yyyy-MM-dd");
+
+        // Día bloqueado por el profesional: no se ofrecen turnos
+        const isBlocked = await blockedDayService.isBlocked(professionalId, date);
+        if (isBlocked) return [];
+
         const dayStart = new Date(`${arDateStr}T00:00:00Z`);
         const dayEnd = new Date(`${arDateStr}T23:59:59Z`);
 
