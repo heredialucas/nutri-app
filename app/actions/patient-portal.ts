@@ -61,6 +61,12 @@ export async function requestAppointmentCancel(appointmentId: string, reason: st
     });
 
     revalidatePath("/paciente/dashboard/turnos");
+
+    const { notificationService } = await import("@/services/notification-service");
+    await notificationService.notifyAppointmentEvent(appointmentId, "CANCELLED", {
+        reason,
+    });
+
     return { success: true };
 }
 
@@ -149,6 +155,10 @@ export async function submitFollowUp(data: {
     }
 
     revalidatePath("/paciente/dashboard/seguimiento");
+
+    const { notificationService } = await import("@/services/notification-service");
+    await notificationService.notifyFollowUpSubmitted(patient.id);
+
     return { success: true };
 }
 

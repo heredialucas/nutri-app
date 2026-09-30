@@ -26,8 +26,10 @@ Configurar en el panel de Vercel (Settings → Environment Variables):
 | `CLOUDINARY_API_SECRET` | API secret | Production, Preview |
 | `NEXT_PUBLIC_APP_URL` | URL de producción (ej: `https://tu-dominio.vercel.app`) | Production |
 | `OPENAI_API_KEY` | API key de OpenAI | Production, Preview |
-| `RESEND_API_KEY` | API key de Resend para recuperación de contraseña | Production, Preview |
+| `RESEND_API_KEY` | API key de Resend para recuperación de contraseña y notificaciones | Production, Preview |
 | `RESEND_FROM_EMAIL` | Remitente verificado, ej. `Mauro Acosta <no-reply@tu-dominio.com>` | Production, Preview |
+| `NOTIFICATION_EMAIL` | Buzón donde llegan TODAS las notificaciones (`nutricionmauroacosta@gmail.com`) | Production, Preview |
+| `CRON_SECRET` | Secreto para autenticar el endpoint de recordatorios `/api/cron/notifications` | Production |
 
 ### DATABASE_URL vs DIRECT_URL
 
@@ -116,6 +118,39 @@ Esto crea:
 - Verificar que `.env` y `.env.local` no estén en el repositorio.
 - Rotar credenciales si fueron expuestas durante desarrollo.
 - Configurar dominio personalizado en Vercel.
+
+## Despliegue en VPS (auto-hospedado)
+
+El proyecto se despliega en la VPS con PM2 + Nginx. El script `scripts/deploy.sh`
+automatiza el flujo (pull/build/restart) y `scripts/setup-vps.sh` prepara el
+servidor por primera vez.
+
+```bash
+# En la VPS, desde el directorio de la app
+bash scripts/deploy.sh
+```
+
+### Recordatorios por WhatsApp vía cron
+
+Los recordatorios de WhatsApp se ejecutan con un cron en la VPS que llama al
+endpoint protegido:
+
+```bash
+# crontab -e  (ejecuta cada hora en punto)
+0 * * * * curl -fsS -X POST -H "x-cron-secret: $CRON_SECRET" https://tu-dominio.com/api/cron/notifications > /dev/null 2>&1
+```
+
+El endpoint `/api/cron/notifications` requiere el header `x-cron-secret`
+(o `Authorization: Bearer <CRON_SECRET>`) y recorre todos los usuarios con
+WhatsApp habilitado enviando los recordatorios correspondientes del día.
+
+## Notificaciones por email
+
+- Los eventos (turno reservado, reprogramado, cancelado y seguimiento semanal)
+  envían un email automático a `NOTIFICATION_EMAIL`.
+- El envío usa Resend (`RESEND_API_KEY` + `RESEND_FROM_EMAIL`) y nunca interrumpe
+  el flujo de negocio si falla.
+- La recuperación de contraseña también usa Resend.
 
 ## Comandos útiles
 

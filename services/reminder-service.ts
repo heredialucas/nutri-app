@@ -720,4 +720,44 @@ export const reminderService = {
             message,
         );
     },
+
+    /**
+     * Ejecuta los recordatorios de todos los usuarios con WhatsApp habilitado.
+     * Pensado para ser invocado por un cron (VPS) vía /api/cron/notifications.
+     */
+    async runScheduledForAll(): Promise<
+        {
+            userId: string;
+            results?: { type: string; sent: boolean; reason: string }[];
+            error?: string;
+        }[]
+    > {
+        const settings = await prisma.whatsAppSetting.findMany({
+            where: { enabled: true },
+            select: { userId: true },
+        });
+
+        const output: {
+            userId: string;
+            results?: { type: string; sent: boolean; reason: string }[];
+            error?: string;
+        }[] = [];
+
+        for (const setting of settings) {
+            try {
+                const results = await this.checkAndSendForUser(setting.userId);
+                output.push({ userId: setting.userId, results });
+            } catch (error) {
+                output.push({
+                    userId: setting.userId,
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : "Error desconocido",
+                });
+            }
+        }
+
+        return output;
+    },
 };

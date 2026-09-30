@@ -1,7 +1,6 @@
 "use server";
 
 import { nutritionPlanService } from "@/services/nutrition-plan-service";
-import { notificationService } from "@/services/notification-service";
 import { getCurrentUser, hasPermission, isPatientUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { serializePrisma } from "@/lib/utils";

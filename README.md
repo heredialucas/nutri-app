@@ -21,7 +21,8 @@ Plataforma web de gestión nutricional para el consultorio de **Mauro Acosta**. 
 - **Seguimiento semanal**: check-in del paciente, adherencia, notas.
 - **Archivos y consentimientos**: upload a Cloudinary, registro de consentimientos.
 - **Cobros, gastos y reportes**: finanzas, reportes de pacientes, turnos, retención.
-- **WhatsApp**: configuración de recordatorios y notificaciones.
+- **WhatsApp**: configuración de recordatorios y notificaciones (cron en la VPS).
+- **Email**: notificaciones de turnos y seguimiento al buzón de administración vía Resend.
 
 ### Portal del paciente (`/paciente`)
 

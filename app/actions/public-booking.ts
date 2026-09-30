@@ -197,6 +197,9 @@ export async function createPublicBooking(data: {
 
     revalidatePath("/dashboard/turnos");
 
+    const { notificationService } = await import("@/services/notification-service");
+    await notificationService.notifyAppointmentEvent(appointment.id, "CREATED");
+
     return {
         appointment: serializePrisma(appointment),
         patient: serializePrisma(patient),

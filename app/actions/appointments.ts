@@ -233,6 +233,10 @@ export async function createAppointment(data: {
     });
 
     revalidateAppointmentPaths(appointment.id);
+
+    const { notificationService } = await import("@/services/notification-service");
+    await notificationService.notifyAppointmentEvent(appointment.id, "CREATED");
+
     return serializePrisma(appointment);
 }
 
@@ -306,6 +310,8 @@ export async function rescheduleAppointment(id: string, data: {
         location = `${sede.name} — ${sede.address}`;
     }
 
+    const previousStartAt = existing.startAt;
+
     const appointment = await appointmentService.reschedule(id, {
         startAt,
         endAt,
@@ -317,6 +323,12 @@ export async function rescheduleAppointment(id: string, data: {
     });
 
     revalidateAppointmentPaths(id);
+
+    const { notificationService } = await import("@/services/notification-service");
+    await notificationService.notifyAppointmentEvent(id, "RESCHEDULED", {
+        previousStartAt,
+    });
+
     return serializePrisma(appointment);
 }
 
@@ -326,6 +338,12 @@ export async function cancelAppointment(id: string, reason?: string) {
     if (!trimmed) throw new Error("El motivo de cancelación es obligatorio");
     await appointmentService.cancel(id, trimmed);
     revalidateAppointmentPaths(id);
+
+    const { notificationService } = await import("@/services/notification-service");
+    await notificationService.notifyAppointmentEvent(id, "CANCELLED", {
+        reason: trimmed,
+    });
+
     return { success: true };
 }
 

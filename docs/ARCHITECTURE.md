@@ -56,6 +56,9 @@ lib/
   auth.ts                 # Autenticación, permisos, helpers de sesión
   prisma.ts               # Singleton de PrismaClient con adapter Pg
   cloudinary.ts           # Configuración y presets de Cloudinary
+  email.ts                # Envío de emails (Resend) y notifyAdmin
+  whatsapp-sender.ts      # Envío de mensajes WhatsApp (CallMeBot)
+  whatsapp-settings.ts    # Cifrado y preferencias de WhatsApp
   utils.ts                # Utilidades generales (cn, etc.)
   ai/                     # Servicios de IA (OpenAI)
 services/                 # Capa de servicios (lógica de negocio)

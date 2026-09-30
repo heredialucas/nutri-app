@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { createHash, randomBytes } from "node:crypto";
+import { sendEmail } from "@/lib/email";
 
 const SECRET_KEY = new TextEncoder().encode(
     process.env.JWT_SECRET || "default-secret-change-me-in-prod"
@@ -95,21 +96,13 @@ export const authService = {
 
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
         const resetUrl = `${appUrl}/auth/update-password?token=${rawToken}`;
-        const apiKey = process.env.RESEND_API_KEY;
-        const from = process.env.RESEND_FROM_EMAIL;
-        if (!apiKey || !from) throw new Error("Faltan RESEND_API_KEY o RESEND_FROM_EMAIL");
 
-        const response = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-                from,
-                to: [user.email],
-                subject: "Restablecer contraseña · Mauro Acosta",
-                html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2a26"><h2>Restablecer contraseña</h2><p>Recibimos una solicitud para cambiar la contraseña de tu cuenta.</p><p><a href="${resetUrl}" style="background:#13805b;color:white;padding:12px 18px;border-radius:6px;text-decoration:none">Crear nueva contraseña</a></p><p>El enlace vence en una hora y solo puede utilizarse una vez.</p></div>`,
-            }),
+        const sent = await sendEmail({
+            to: user.email,
+            subject: "Restablecer contraseña · Mauro Acosta",
+            html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2a26"><h2>Restablecer contraseña</h2><p>Recibimos una solicitud para cambiar la contraseña de tu cuenta.</p><p><a href="${resetUrl}" style="background:#13805b;color:white;padding:12px 18px;border-radius:6px;text-decoration:none">Crear nueva contraseña</a></p><p>El enlace vence en una hora y solo puede utilizarse una vez.</p></div>`,
         });
-        if (!response.ok) throw new Error("Resend no pudo enviar el correo");
+        if (!sent) throw new Error("No se pudo enviar el correo de recuperación");
     },
 
     async resetPassword(rawToken: string, password: string): Promise<void> {

@@ -169,7 +169,3 @@ export function requireProfessionalAccess(user: UserWithRoles | null): void {
     }
 }
 
-/** Usuario autorizado para operaciones de recuperación y borrado de auditoría. */
-export function isSuperAdmin(user: UserWithRoles | null): boolean {
-    return user?.email?.toLowerCase() === "admin@gmail.com";
-}

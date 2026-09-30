@@ -37,8 +37,8 @@ export function LandingContact() {
             {
               icon: Mail,
               label: "Email",
-              value: "consultas@mauroacosta.com",
-              href: "mailto:consultas@mauroacosta.com",
+              value: "nutricionmauroacosta@gmail.com",
+              href: "mailto:nutricionmauroacosta@gmail.com",
             },
             {
               icon: MapPin,
