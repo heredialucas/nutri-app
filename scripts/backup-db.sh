@@ -22,10 +22,12 @@ if [ -z "$DB_URL" ]; then
 fi
 
 mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR"
 TS=$(date +%Y%m%d_%H%M%S)
 OUT="$BACKUP_DIR/nutri_app_${TS}.sql.gz"
 
 pg_dump "$DB_URL" | gzip > "$OUT"
+chmod 600 "$OUT"
 find "$BACKUP_DIR" -name 'nutri_app_*.sql.gz' -mtime +"$RETENTION_DAYS" -delete
 
 echo "Backup OK: $OUT ($(du -h "$OUT" | cut -f1))"
