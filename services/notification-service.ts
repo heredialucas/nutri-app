@@ -59,6 +59,7 @@ export const notificationService = {
                         select: {
                             firstName: true,
                             lastName: true,
+                            documentNumber: true,
                             email: true,
                             phone: true,
                         },
@@ -71,6 +72,7 @@ export const notificationService = {
             if (!appointment) return false;
 
             const patientName = `${appointment.patient.firstName} ${appointment.patient.lastName}`;
+            const dni = appointment.patient.documentNumber || "—";
             const typeStr =
                 appointment.type === "ONLINE" ? "Online" : "Presencial";
 
@@ -83,6 +85,7 @@ export const notificationService = {
 
             let body = `<table style="border-collapse:collapse;width:100%">
   ${row("Paciente", patientName)}
+  ${row("DNI", dni)}
   ${row("Email", appointment.patient.email || "—")}
   ${row("Teléfono", appointment.patient.phone || "—")}
   ${row("Fecha", formatDate(appointment.startAt))}
@@ -112,6 +115,7 @@ export const notificationService = {
                 const waMessage = [
                     EVENT_LABELS[event],
                     `👤 ${patientName}`,
+                    `🪪 DNI ${dni}`,
                     `📅 ${formatDate(appointment.startAt)} · ${formatTime(appointment.startAt)} hs`,
                     `📞 ${appointment.patient.phone || "Sin celular"}`,
                     appointment.type === "ONLINE" ? "💻 Online" : `📍 ${locationStr}`,
