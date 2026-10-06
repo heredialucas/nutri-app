@@ -143,6 +143,40 @@ export async function getPublicAvailableSlots(
     return slots;
 }
 
+/**
+ * Devuelve los días del mes con cupos disponibles para la sede elegida.
+ * `month` tiene formato "yyyy-MM". Los días se devuelven como "yyyy-MM-dd"
+ * en hora Argentina, para pintarlos en el calendario de reserva.
+ */
+export async function getPublicMonthAvailability(params: {
+    month: string;
+    locationId?: string | null;
+    dni?: string | null;
+    email?: string | null;
+}) {
+    const [year, month] = params.month.split("-").map(Number);
+    if (!year || !month || month < 1 || month > 12) return [];
+
+    const professionalId = await getDefaultProfessionalId();
+    const { availabilityService } = await import("@/services/availability-service");
+
+    const isFirstAppointment = await resolveIsFirstAppointment(
+        params.dni,
+        params.email,
+    );
+    const opts = isFirstAppointment
+        ? { duration: FIRST_CONSULTATION_DURATION_MINUTES }
+        : undefined;
+
+    return availabilityService.getAvailableDaysInMonth(
+        professionalId,
+        year,
+        month,
+        params.locationId ?? null,
+        opts,
+    );
+}
+
 export async function createPublicBooking(data: {
     firstName: string;
     lastName: string;

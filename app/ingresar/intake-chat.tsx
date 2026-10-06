@@ -20,6 +20,7 @@ import {
     lookupMemberByDni,
 } from "@/app/actions/public-booking";
 import { isValidDni, normalizeDni } from "@/lib/dni";
+import AvailabilityCalendar from "@/components/booking/availability-calendar";
 
 interface PublicLocation {
     id: string;
@@ -361,8 +362,6 @@ export default function IntakeChat() {
         loadLocations();
     };
 
-    const minDate = todayString();
-
     const activationHref = `/auth/sign-up?${new URLSearchParams({
         dni,
         firstName,
@@ -565,12 +564,12 @@ export default function IntakeChat() {
                                 <label className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em] flex items-center gap-1.5">
                                     <CalendarDays size={13} /> Fecha
                                 </label>
-                                <input
-                                    type="date"
-                                    min={minDate}
-                                    value={selectedDate}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
-                                    className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] w-full max-w-[260px]"
+                                <AvailabilityCalendar
+                                    locationId={locationId}
+                                    dni={dni}
+                                    email={member.email}
+                                    selectedDate={selectedDate}
+                                    onSelectDate={setSelectedDate}
                                 />
                             </div>
 
