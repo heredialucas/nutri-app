@@ -90,7 +90,7 @@ export default function DatosPage() {
             value={form.dni}
             onChange={handleChange}
             placeholder="Sin puntos"
-            className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+            className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
           />
         </div>
 
@@ -106,7 +106,7 @@ export default function DatosPage() {
               required
               value={form.firstName}
               onChange={handleChange}
-              className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+              className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -120,7 +120,7 @@ export default function DatosPage() {
               required
               value={form.lastName}
               onChange={handleChange}
-              className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+              className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
             />
           </div>
         </div>
@@ -140,7 +140,7 @@ export default function DatosPage() {
                 type="email"
                 value={form.email}
                 onChange={handleChange}
-                className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+                className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
               />
             </div>
 
@@ -154,7 +154,7 @@ export default function DatosPage() {
                 type="tel"
                 value={form.phone}
                 onChange={handleChange}
-                className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+                className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
               />
             </div>
 
@@ -168,7 +168,7 @@ export default function DatosPage() {
                 type="date"
                 value={form.birthDate}
                 onChange={handleChange}
-                className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+                className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
               />
             </div>
 
@@ -183,7 +183,7 @@ export default function DatosPage() {
                 placeholder="Ej: bajar de peso, mejorar hábitos alimentarios, control médico..."
                 value={form.goal}
                 onChange={handleChange}
-                className="px-4 py-3 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] resize-none"
+                className="px-4 py-3 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] resize-none"
               />
             </div>
           </div>

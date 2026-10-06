@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import {
     createPublicBooking,
+    getActiveAppointmentByDni,
     getPublicAvailableSlots,
     getPublicLocations,
     lookupMemberByDni,
@@ -27,12 +28,20 @@ interface PublicLocation {
     address: string;
 }
 
+interface PendingAppointment {
+    id: string;
+    dateLabel: string;
+    timeLabel: string;
+    typeLabel: string;
+    locationLabel: string | null;
+}
+
 type Step =
     | "modality"
     | "location"
     | "dni"
-    | "firstName"
-    | "lastName"
+    | "name"
+    | "existing"
     | "slots"
     | "confirm"
     | "done";
@@ -82,6 +91,9 @@ export default function IntakeChat({ location }: IntakeChatProps) {
     const [locations, setLocations] = useState<PublicLocation[]>([]);
     const [loadingLocations, setLoadingLocations] = useState(false);
 
+    const [pendingAppointment, setPendingAppointment] = useState<PendingAppointment | null>(null);
+    const [replaceExisting, setReplaceExisting] = useState(false);
+
     const [selectedDate, setSelectedDate] = useState(todayString());
     const [slots, setSlots] = useState<{ time: string; available: boolean }[]>([]);
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -90,6 +102,7 @@ export default function IntakeChat({ location }: IntakeChatProps) {
 
     const [submitting, setSubmitting] = useState(false);
     const [result, setResult] = useState<{ accountCreated: boolean } | null>(null);
+    const [doneKind, setDoneKind] = useState<"booked" | "kept">("booked");
 
     const push = (role: Msg["role"], text: string) => {
         setMessages((prev) => [...prev, { id: idRef.current++, role, text }]);
@@ -130,6 +143,22 @@ export default function IntakeChat({ location }: IntakeChatProps) {
         setStep("slots");
     };
 
+    const continueAfterDni = () => {
+        if (!mode) {
+            pushBot("¿Cómo querés atenderte?");
+            setStep("modality");
+            return;
+        }
+        if (member.firstName && member.lastName) {
+            setFirstName(member.firstName);
+            setLastName(member.lastName);
+            startSlots();
+            return;
+        }
+        pushBot("¿Cuál es tu nombre y apellido?");
+        setStep("name");
+    };
+
     const submitDni = async () => {
         const value = normalizeDni(input);
         if (!isValidDni(value)) {
@@ -154,50 +183,54 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                 if (found.firstName) setFirstName(found.firstName);
                 if (found.lastName) setLastName(found.lastName);
                 if (found.firstName && found.lastName) {
-                    pushBot(
-                        `Te encontré en el padrón: ${found.firstName} ${found.lastName}.`,
-                    );
-                    if (mode) startSlots();
-                    else {
-                        pushBot("¿Cómo querés atenderte?");
-                        setStep("modality");
-                    }
-                    return;
+                    pushBot(`Te encontré en el padrón: ${found.firstName} ${found.lastName}.`);
                 }
             }
         } catch {
             // silencioso: el padrón es opcional
         }
 
-        pushBot("Gracias. ¿Cuál es tu nombre?");
-        setStep("firstName");
+        // Regla: un solo turno activo por DNI
+        try {
+            const pending = await getActiveAppointmentByDni(value);
+            if (pending) {
+                setPendingAppointment(pending);
+                pushBot(
+                    `Ya tenés un turno reservado para el ${pending.dateLabel} a las ${pending.timeLabel} (${pending.typeLabel}).`,
+                );
+                pushBot("¿Querés cambiarlo por otro horario?");
+                setStep("existing");
+                return;
+            }
+        } catch {
+            // si falla la consulta, se continúa con la reserva normal
+        }
+
+        continueAfterDni();
     };
 
-    const submitFirstName = () => {
-        const value = input.trim();
-        if (!value) {
-            setError("Ingresá tu nombre.");
+    const submitName = () => {
+        const f = firstName.trim();
+        const l = lastName.trim();
+        if (!f || !l) {
+            setError("Completá tu nombre y tu apellido.");
             return;
         }
         setError(null);
-        pushUser(value);
-        setFirstName(value);
-        setInput("");
-        pushBot("¿Y tu apellido?");
-        setStep("lastName");
-    };
-
-    const submitLastName = () => {
-        const value = input.trim();
-        if (!value) {
-            setError("Ingresá tu apellido.");
-            return;
-        }
-        setError(null);
-        pushUser(value);
-        setLastName(value);
-        setInput("");
+        pushUser(`${f} ${l}`);
         startSlots();
+    };
+
+    const handleReschedule = () => {
+        pushUser("Sí, quiero cambiarlo");
+        setReplaceExisting(true);
+        continueAfterDni();
+    };
+
+    const handleKeep = () => {
+        pushUser("No, mantener el actual");
+        setDoneKind("kept");
+        setStep("done");
     };
 
     // Cargar horarios cuando entramos al paso de slots o cambia la fecha
@@ -256,9 +289,15 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                 locationId: mode === "IN_PERSON" ? locationId : undefined,
                 date: selectedDate,
                 time: selectedTime!,
+                replaceExisting,
             });
             setResult({ accountCreated: !!res?.accountCreated });
-            pushBot("¡Listo! Tu turno quedó registrado. Te esperamos.");
+            setDoneKind("booked");
+            pushBot(
+                replaceExisting
+                    ? "¡Listo! Tu turno quedó actualizado. Te esperamos."
+                    : "¡Listo! Tu turno quedó registrado. Te esperamos.",
+            );
             setStep("done");
         } catch (err) {
             const msg =
@@ -314,11 +353,14 @@ export default function IntakeChat({ location }: IntakeChatProps) {
         setLocationId(location?.id ?? "");
         setLocationName(location?.name ?? "");
         setLocationAddress(location?.address ?? "");
+        setPendingAppointment(null);
+        setReplaceExisting(false);
         setSelectedDate(todayString());
         setSlots([]);
         setSelectedTime(null);
         setResult(null);
         setError(null);
+        setDoneKind("booked");
         if (location) {
             pushBot(`Estás reservando en ${location.name}.`);
             pushBot("¿Cuál es tu DNI?");
@@ -421,13 +463,11 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                         </div>
                     )}
 
-                    {(step === "dni" || step === "firstName" || step === "lastName") && (
+                    {step === "dni" && (
                         <form
                             onSubmit={(e) => {
                                 e.preventDefault();
-                                if (step === "dni") submitDni();
-                                else if (step === "firstName") submitFirstName();
-                                else submitLastName();
+                                submitDni();
                             }}
                             className="flex items-center gap-2"
                         >
@@ -435,15 +475,9 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                                 autoFocus
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                inputMode={step === "dni" ? "numeric" : "text"}
-                                placeholder={
-                                    step === "dni"
-                                        ? "Tu DNI, sin puntos"
-                                        : step === "firstName"
-                                          ? "Tu nombre"
-                                          : "Tu apellido"
-                                }
-                                className="h-11 flex-1 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+                                inputMode="numeric"
+                                placeholder="Tu DNI, sin puntos"
+                                className="h-11 flex-1 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
                             />
                             <button
                                 type="submit"
@@ -453,6 +487,65 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                                 <Send size={16} />
                             </button>
                         </form>
+                    )}
+
+                    {step === "name" && (
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                submitName();
+                            }}
+                            className="flex flex-col gap-3"
+                        >
+                            <div className="grid grid-cols-2 gap-3">
+                                <input
+                                    autoFocus
+                                    value={firstName}
+                                    onChange={(e) => setFirstName(e.target.value)}
+                                    placeholder="Nombre"
+                                    autoComplete="given-name"
+                                    className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+                                />
+                                <input
+                                    value={lastName}
+                                    onChange={(e) => setLastName(e.target.value)}
+                                    placeholder="Apellido"
+                                    autoComplete="family-name"
+                                    className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                className="h-11 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold hover:bg-[#333] transition-colors cursor-pointer"
+                            >
+                                Continuar
+                            </button>
+                        </form>
+                    )}
+
+                    {step === "existing" && pendingAppointment && (
+                        <div className="flex flex-col gap-3">
+                            <div className="rounded-xl border border-[rgba(0,0,0,0.06)] bg-white p-4 text-sm flex flex-col gap-2">
+                                <Row label="Fecha" value={pendingAppointment.dateLabel} />
+                                <Row label="Horario" value={`${pendingAppointment.timeLabel} hs`} />
+                                <Row label="Modalidad" value={pendingAppointment.typeLabel} />
+                                {pendingAppointment.locationLabel && (
+                                    <Row label="Sede" value={pendingAppointment.locationLabel} />
+                                )}
+                            </div>
+                            <button
+                                onClick={handleReschedule}
+                                className="h-11 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold hover:bg-[#333] transition-colors cursor-pointer"
+                            >
+                                Sí, cambiar el turno
+                            </button>
+                            <button
+                                onClick={handleKeep}
+                                className="h-11 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] hover:bg-[rgba(0,0,0,0.02)] transition-colors cursor-pointer"
+                            >
+                                No, mantener el actual
+                            </button>
+                        </div>
                     )}
 
                     {step === "slots" && (
@@ -466,7 +559,7 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                                     min={minDate}
                                     value={selectedDate}
                                     onChange={(e) => setSelectedDate(e.target.value)}
-                                    className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] w-full max-w-[260px]"
+                                    className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] w-full max-w-[260px]"
                                 />
                             </div>
 
@@ -529,6 +622,11 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                                 )}
                                 <Row label="Fecha" value={selectedDate} />
                                 <Row label="Horario" value={`${selectedTime} hs`} />
+                                {replaceExisting && (
+                                    <p className="text-xs text-[#eab308] m-0 pt-1">
+                                        Se reemplazará tu turno anterior.
+                                    </p>
+                                )}
                             </div>
                             <button
                                 onClick={submitBooking}
@@ -536,7 +634,11 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                                 className="h-11 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold hover:bg-[#333] transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
                             >
                                 {submitting && <Loader2 size={16} className="animate-spin" />}
-                                {submitting ? "Confirmando..." : "Confirmar turno"}
+                                {submitting
+                                    ? "Confirmando..."
+                                    : replaceExisting
+                                      ? "Confirmar cambio"
+                                      : "Confirmar turno"}
                             </button>
                         </div>
                     )}
@@ -545,17 +647,27 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center gap-2 text-[#22c55e] text-sm font-medium">
                                 <CheckCircle2 size={18} />
-                                Turno reservado
+                                {doneKind === "kept" ? "Turno vigente" : "Turno reservado"}
                             </div>
+                            {doneKind === "kept" && pendingAppointment && (
+                                <p className="text-sm text-[#666] m-0">
+                                    Mantenemos tu turno del {pendingAppointment.dateLabel} a las{" "}
+                                    {pendingAppointment.timeLabel} hs.
+                                </p>
+                            )}
                             <button
                                 onClick={() =>
                                     router.push(
-                                        result?.accountCreated ? "/paciente/dashboard" : "/auth/login",
+                                        doneKind === "booked" && !result?.accountCreated
+                                            ? "/auth/login"
+                                            : "/paciente/dashboard",
                                     )
                                 }
                                 className="h-11 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold hover:bg-[#333] transition-colors cursor-pointer"
                             >
-                                {result?.accountCreated ? "Ir a mi panel" : "Iniciar sesión"}
+                                {doneKind === "booked" && !result?.accountCreated
+                                    ? "Iniciar sesión"
+                                    : "Ir a mi panel"}
                             </button>
                             <button
                                 onClick={resetAll}

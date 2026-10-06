@@ -78,9 +78,11 @@ Cada sede tiene un QR descargable desde `/dashboard/configuracion/sedes` que apu
 El chat guiado pide, en orden:
 1. **DNI** (consulta el padrón externo por DNI — hoy sin conectar, ver
    `services/member-lookup-service.ts`; si devuelve datos, se prellenan).
-2. **Nombre y apellido** (si no vinieron del padrón).
-3. **Fecha y horario** (slots reales, con la regla de 45 min de la primera consulta).
-4. **Confirmación**.
+2. Si el DNI ya tiene un **turno activo**, avisa y ofrece **cambiarlo** (reprogramar)
+   o **mantenerlo**. Un DNI solo puede tener un turno activo a la vez.
+3. **Nombre y apellido** (si no vinieron del padrón), en dos campos.
+4. **Fecha y horario** (slots reales, con la regla de 45 min de la primera consulta).
+5. **Confirmación**.
 
 Como el QR identifica la sede, la modalidad viene preseleccionada como presencial en
 esa sede. Sin `?loc=`, el chat permite elegir modalidad y sede.
@@ -118,6 +120,9 @@ esa sede. Sin `?loc=`, el chat permite elegir modalidad y sede.
 - No se permiten solapamientos de turnos para el mismo profesional.
 - La primera consulta dura 45 minutos; el resto usa la `slotDuration` del bloque.
 - El DNI es obligatorio y único; el email es opcional.
+- **Un DNI puede tener un solo turno activo** (`PENDING`/`CONFIRMED`/`RESCHEDULED`).
+  Si intenta reservar otro, el sistema avisa y solo permite reemplazar el anterior
+  cuando el paciente lo confirma (`replaceExisting`).
 
 ## Gestión de sedes
 

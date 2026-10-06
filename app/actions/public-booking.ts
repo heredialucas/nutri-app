@@ -4,7 +4,8 @@ import prisma from "@/lib/prisma";
 import { serializePrisma } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { fromZonedTime } from "date-fns-tz";
+import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
+import { es } from "date-fns/locale";
 import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { normalizeDni, isValidDni } from "@/lib/dni";
 import {
@@ -70,6 +71,49 @@ export async function lookupMemberByDni(dni: string) {
     return memberLookupService.lookupByDni(dni);
 }
 
+const ACTIVE_STATUSES = ["PENDING", "CONFIRMED", "RESCHEDULED"] as const;
+
+/**
+ * Devuelve el próximo turno activo (pendiente/confirmado) de un DNI, si existe.
+ * Regla de negocio: cada DNI debe tener un solo turno activo a la vez.
+ */
+export async function getActiveAppointmentByDni(dni: string) {
+    const normalized = normalizeDni(dni);
+    if (!isValidDni(normalized)) return null;
+
+    const patient = await findPatientByDni(normalized);
+    if (!patient) return null;
+
+    const appointment = await prisma.appointment.findFirst({
+        where: {
+            patientId: patient.id,
+            status: { in: [...ACTIVE_STATUSES] },
+            startAt: { gt: new Date() },
+        },
+        orderBy: { startAt: "asc" },
+        include: {
+            sede: { select: { name: true, address: true } },
+        },
+    });
+
+    if (!appointment) return null;
+
+    return {
+        id: appointment.id,
+        dateLabel: formatInTimeZone(appointment.startAt, AR_TZ, "EEEE d 'de' MMMM", {
+            locale: es,
+        }),
+        timeLabel: formatInTimeZone(appointment.startAt, AR_TZ, "HH:mm"),
+        typeLabel: appointment.type === "ONLINE" ? "Online" : "Presencial",
+        locationLabel:
+            appointment.type === "ONLINE"
+                ? null
+                : appointment.sede
+                  ? `${appointment.sede.name} — ${appointment.sede.address}`
+                  : appointment.location,
+    };
+}
+
 export async function getPublicAvailableSlots(
     date: string,
     locationId?: string | null,
@@ -112,6 +156,7 @@ export async function createPublicBooking(data: {
     birthDate?: string;
     goal?: string;
     billingType?: string;
+    replaceExisting?: boolean;
 }) {
     const dni = normalizeDni(data.dni);
     if (!data.firstName?.trim()) throw new Error("El nombre es obligatorio");
@@ -220,14 +265,54 @@ export async function createPublicBooking(data: {
         where: {
             patientId: patient.id,
             startAt,
-            status: { notIn: ["CANCELLED"] },
+            status: { in: [...ACTIVE_STATUSES] },
         },
         include: appointmentInclude,
     });
 
     const isNewAppointment = !appointment;
 
-    if (!appointment) {
+    if (isNewAppointment) {
+        // Regla: un solo turno activo por DNI.
+        const otherActive = await prisma.appointment.findMany({
+            where: {
+                patientId: patient.id,
+                status: { in: [...ACTIVE_STATUSES] },
+                startAt: { gt: new Date() },
+            },
+            orderBy: { startAt: "asc" },
+        });
+
+        if (otherActive.length > 0) {
+            if (!data.replaceExisting) {
+                const next = otherActive[0];
+                const label = formatInTimeZone(next.startAt, AR_TZ, "d 'de' MMMM 'a las' HH:mm", {
+                    locale: es,
+                });
+                throw new Error(
+                    `Ya tenés un turno reservado para el ${label}. Podés reprogramarlo desde tu panel o confirmar el cambio al reservar de nuevo.`,
+                );
+            }
+
+            // Reemplazo confirmado: cancelar los turnos activos previos
+            await prisma.appointment.updateMany({
+                where: { id: { in: otherActive.map((a) => a.id) } },
+                data: {
+                    status: "CANCELLED",
+                    cancellationReason: "Reemplazado por una nueva reserva",
+                },
+            });
+
+            const { notificationService } = await import(
+                "@/services/notification-service"
+            );
+            for (const old of otherActive) {
+                await notificationService.notifyAppointmentEvent(old.id, "CANCELLED", {
+                    reason: "Reemplazado por una nueva reserva",
+                });
+            }
+        }
+
         // Check for conflicts
         const conflict = await prisma.appointment.findFirst({
             where: {
@@ -295,7 +380,7 @@ export async function createPublicBooking(data: {
     }
 
     // Solo notificar cuando el turno es realmente nuevo (evita emails duplicados)
-    if (isNewAppointment) {
+    if (isNewAppointment && appointment) {
         const { notificationService } = await import("@/services/notification-service");
         await notificationService.notifyAppointmentEvent(appointment.id, "CREATED");
         await notificationService.notifyPatientBooking(appointment.id);
