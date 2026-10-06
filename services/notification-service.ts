@@ -101,10 +101,31 @@ export const notificationService = {
                 body += `<p style="margin-top:16px;font-size:14px"><b>Motivo:</b> ${escapeHtml(options?.reason || appointment.cancellationReason || "No especificado")}</p>`;
             }
 
-            return await notifyAdmin({
+            const sent = await notifyAdmin({
                 subject: `${EVENT_LABELS[event]} · ${patientName} · ${formatDate(appointment.startAt)} ${formatTime(appointment.startAt)} hs`,
                 html: wrapHtml(EVENT_LABELS[event], body),
             });
+
+            // Aviso inmediato por WhatsApp al profesional (solo si configuró CallMeBot).
+            try {
+                const { sendDirectNotification } = await import("@/lib/whatsapp-sender");
+                const waMessage = [
+                    EVENT_LABELS[event],
+                    `👤 ${patientName}`,
+                    `📅 ${formatDate(appointment.startAt)} · ${formatTime(appointment.startAt)} hs`,
+                    `📞 ${appointment.patient.phone || "Sin celular"}`,
+                    appointment.type === "ONLINE" ? "💻 Online" : `📍 ${locationStr}`,
+                ].join("\n");
+                await sendDirectNotification(
+                    appointment.professionalId,
+                    `APPOINTMENT_${event}`,
+                    waMessage,
+                );
+            } catch {
+                // el aviso por WhatsApp es opcional: nunca interrumpe el flujo
+            }
+
+            return sent;
         } catch (error) {
             console.error(
                 "[notification] Error notificando turno:",
@@ -144,21 +165,21 @@ export const notificationService = {
 
             const body = `<p style="margin:0 0 16px;font-size:15px">Hola ${escapeHtml(
                 appointment.patient.firstName,
-            )}, tu turno quedó registrado. Te esperamos.</p>
+            )}, tu turno quedó reservado. Mauro lo va a confirmar y te contactaremos por WhatsApp al número que dejaste. Te esperamos.</p>
 <table style="border-collapse:collapse;width:100%">
   ${row("Fecha", formatDate(appointment.startAt))}
   ${row("Hora", `${formatTime(appointment.startAt)} – ${formatTime(appointment.endAt)} hs`)}
   ${row("Tipo", typeStr)}
   ${row("Sede / Link", locationStr)}
   ${row("Profesional", appointment.professional.fullName)}
-  ${row("Estado", "Pendiente de confirmación")}
+  ${row("Estado", "Pendiente de confirmación por el profesional")}
 </table>
 <p style="margin-top:16px;font-size:13px;color:#64748b">Podés gestionar tus turnos desde tu portal de paciente.</p>`;
 
             return await sendEmail({
                 to: appointment.patient.email,
-                subject: `Turno registrado · ${formatDate(appointment.startAt)} ${formatTime(appointment.startAt)} hs`,
-                html: wrapHtml("Turno registrado", body),
+                subject: `Turno reservado · ${formatDate(appointment.startAt)} ${formatTime(appointment.startAt)} hs`,
+                html: wrapHtml("Turno reservado", body),
             });
         } catch (error) {
             console.error(

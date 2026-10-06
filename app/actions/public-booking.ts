@@ -155,13 +155,13 @@ export async function createPublicBooking(data: {
     phone?: string;
     birthDate?: string;
     goal?: string;
-    billingType?: string;
     replaceExisting?: boolean;
 }) {
     const dni = normalizeDni(data.dni);
     if (!data.firstName?.trim()) throw new Error("El nombre es obligatorio");
     if (!data.lastName?.trim()) throw new Error("El apellido es obligatorio");
     if (!isValidDni(dni)) throw new Error("Ingresá un DNI válido (7 u 8 dígitos)");
+    if (!data.phone?.trim()) throw new Error("El celular es obligatorio");
     if (!data.date) throw new Error("La fecha es obligatoria");
     if (!data.time) throw new Error("El horario es obligatorio");
 
@@ -232,7 +232,7 @@ export async function createPublicBooking(data: {
                 email,
                 phone,
                 birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
-                billingType: data.billingType || "particular",
+                billingType: "particular",
                 notes: data.goal?.trim() || undefined,
             },
         });

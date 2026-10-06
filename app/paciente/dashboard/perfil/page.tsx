@@ -18,7 +18,6 @@ export default async function PerfilPage() {
         birthDate: profile.birthDate
             ? String(profile.birthDate).split("T")[0]
             : "",
-        billingType: profile.billingType || "particular",
         gender: profile.gender ?? "",
         documentNumber: profile.documentNumber ?? "",
         city: profile.city ?? "",

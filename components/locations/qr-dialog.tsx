@@ -10,16 +10,11 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getLocationQr } from "@/app/actions/locations";
+import { getGeneralQr } from "@/app/actions/locations";
 import { toast } from "sonner";
 import { Download, Loader2, QrCode } from "lucide-react";
 
-interface QrDialogProps {
-    locationId: string;
-    locationName: string;
-}
-
-export function QrDialog({ locationId, locationName }: QrDialogProps) {
+export function QrDialog() {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<{ url: string; dataUrl: string } | null>(null);
@@ -29,7 +24,7 @@ export function QrDialog({ locationId, locationName }: QrDialogProps) {
         if (next && !data) {
             setLoading(true);
             try {
-                const result = await getLocationQr(locationId);
+                const result = await getGeneralQr();
                 setData({ url: result.url, dataUrl: result.dataUrl });
             } catch (error) {
                 toast.error(error instanceof Error ? error.message : "Error al generar el QR");
@@ -43,7 +38,7 @@ export function QrDialog({ locationId, locationName }: QrDialogProps) {
         if (!data) return;
         const link = document.createElement("a");
         link.href = data.dataUrl;
-        link.download = `qr-${locationName.toLowerCase().replace(/\s+/g, "-")}.png`;
+        link.download = "qr-reserva-turnos.png";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -54,15 +49,15 @@ export function QrDialog({ locationId, locationName }: QrDialogProps) {
             <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                     <QrCode className="h-3.5 w-3.5 mr-1.5" />
-                    QR
+                    Ver QR general
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-sm">
                 <DialogHeader>
-                    <DialogTitle>QR de reserva</DialogTitle>
+                    <DialogTitle>QR general de reserva</DialogTitle>
                     <DialogDescription>
-                        Pegá este código en {locationName}. Quien lo escanee entra al chat de reserva
-                        con la sede ya elegida.
+                        Pegá este código en tus sedes. Quien lo escanee entra al chat de reserva
+                        y elige la sucursal.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -77,7 +72,7 @@ export function QrDialog({ locationId, locationName }: QrDialogProps) {
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={data.dataUrl}
-                                alt={`QR de reserva de ${locationName}`}
+                                alt="QR general de reserva de turnos"
                                 className="h-56 w-56 rounded-lg border"
                             />
                             <p className="text-xs text-muted-foreground break-all text-center">

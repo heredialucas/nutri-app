@@ -1,8 +1,8 @@
 import QRCode from "qrcode";
 
 /**
- * Genera un QR (data URL PNG) para un texto dado. Usado para las
- * entradas de reserva por sede: `${APP_URL}/ingresar?loc=<id>`.
+ * Genera un QR (data URL PNG) para un texto dado. Usado para la
+ * entrada general de reserva: `${APP_URL}/ingresar`.
  */
 export async function generateQrDataUrl(text: string): Promise<string> {
     return QRCode.toDataURL(text, {
@@ -20,6 +20,6 @@ export function getAppBaseUrl(): string {
     ).replace(/\/$/, "");
 }
 
-export function buildIntakeUrl(locationId: string): string {
-    return `${getAppBaseUrl()}/ingresar?loc=${locationId}`;
+export function buildIntakeUrl(): string {
+    return `${getAppBaseUrl()}/ingresar`;
 }

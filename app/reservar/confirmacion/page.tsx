@@ -64,7 +64,6 @@ function ConfirmacionContent() {
           phone: data.phone || undefined,
           birthDate: data.birthDate || undefined,
           goal: data.goal || undefined,
-          billingType: data.billingType || "particular",
           type: data.type,
           locationId: data.type === "IN_PERSON" ? data.locationId : undefined,
           date: data.date,
@@ -151,10 +150,10 @@ function ConfirmacionContent() {
           <Loader2 size={48} strokeWidth={1.5} className="text-[#1a1a1a] animate-spin" />
         </div>
         <h1 className="text-2xl font-bold text-[#1a1a1a] mb-2 m-0">
-          Confirmando tu turno...
+          Reservando tu turno...
         </h1>
         <p className="text-sm text-[#666] m-0">
-          Estamos procesando tu reserva.
+          Estamos registrando tu reserva.
         </p>
       </div>
     );
@@ -167,7 +166,7 @@ function ConfirmacionContent() {
           <AlertCircle size={48} strokeWidth={1.5} className="text-red-500" />
         </div>
         <h1 className="text-2xl font-bold text-[#1a1a1a] mb-2 m-0">
-          No se pudo confirmar
+          No se pudo reservar
         </h1>
         <p className="text-sm text-[#666] mb-8 m-0 max-w-md mx-auto">
           {errorMsg}
@@ -208,10 +207,10 @@ function ConfirmacionContent() {
       </h1>
       <p className="text-sm text-[#666] mb-8 m-0 max-w-md mx-auto">
         {isLoggedIn
-          ? "Tu turno fue registrado correctamente. Ya podés gestionarlo desde tu panel."
+          ? "Tu turno quedó reservado. Mauro lo va a confirmar y te contactaremos por WhatsApp al número que dejaste."
           : needsActivation
-            ? "Tu turno fue registrado. Creá tu contraseña para entrar y gestionarlo."
-            : "Tu turno fue registrado correctamente. Iniciá sesión con tu DNI para gestionarlo."}
+            ? "Tu turno quedó reservado. Creá tu contraseña para gestionarlo; Mauro lo confirmará y te contactaremos por WhatsApp."
+            : "Tu turno quedó reservado. Iniciá sesión con tu DNI para gestionarlo; Mauro lo confirmará y te contactaremos por WhatsApp."}
       </p>
 
       <div className="w-full max-w-md mx-auto flex flex-col gap-3 p-6 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white text-left mb-8">
@@ -244,7 +243,7 @@ function ConfirmacionContent() {
         <div className="w-full h-px bg-[rgba(0,0,0,0.06)]" />
         <div className="flex items-center justify-between gap-4">
           <span className="text-xs text-[#999] uppercase tracking-[0.05em] shrink-0">Estado</span>
-          <span className="text-sm font-medium text-[#eab308] text-right">Pendiente de confirmación</span>
+          <span className="text-sm font-medium text-[#eab308] text-right">Pendiente de confirmación por el profesional</span>
         </div>
       </div>
 

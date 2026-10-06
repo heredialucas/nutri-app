@@ -8,7 +8,6 @@ export interface LoggedPatient {
     email: string;
     phone: string;
     birthDate: string;
-    billingType: string;
     dni: string;
 }
 
@@ -24,7 +23,6 @@ export interface BookingData {
     phone: string;
     birthDate: string;
     goal: string;
-    billingType: string;
     date: string;
     time: string;
 }
@@ -58,7 +56,6 @@ function buildInitialData(loggedPatient: LoggedPatient | null): BookingData {
             phone: loggedPatient.phone,
             birthDate: loggedPatient.birthDate,
             goal: "",
-            billingType: loggedPatient.billingType,
             date: todayString(),
             time: "",
         };
@@ -75,7 +72,6 @@ function buildInitialData(loggedPatient: LoggedPatient | null): BookingData {
         phone: "",
         birthDate: "",
         goal: "",
-        billingType: "particular",
         date: "",
         time: "",
     };

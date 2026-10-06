@@ -197,7 +197,6 @@ export async function updateMyProfile(data: {
     email?: string;
     phone?: string;
     birthDate?: string;
-    billingType?: string;
     gender?: string;
     documentNumber?: string;
     city?: string;
@@ -233,7 +232,6 @@ export async function updateMyProfile(data: {
     }
     if (data.phone !== undefined) updateData.phone = data.phone.trim() || null;
     if (data.birthDate !== undefined) updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null;
-    if (data.billingType !== undefined) updateData.billingType = data.billingType;
     if (data.gender !== undefined) updateData.gender = data.gender.trim() || null;
     if (data.documentNumber !== undefined) {
         const dni = normalizeDni(data.documentNumber);

@@ -15,7 +15,6 @@ export async function getCurrentPatientData() {
             email: true,
             phone: true,
             birthDate: true,
-            billingType: true,
             documentNumber: true,
         },
     });
@@ -30,7 +29,6 @@ export async function getCurrentPatientData() {
         birthDate: patient.birthDate
             ? patient.birthDate.toISOString().split("T")[0]
             : "",
-        billingType: patient.billingType,
         dni: patient.documentNumber || "",
     };
 }

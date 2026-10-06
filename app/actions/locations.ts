@@ -50,14 +50,12 @@ export async function deleteLocation(id: string) {
     return { success: true };
 }
 
-export async function getLocationQr(id: string) {
+export async function getGeneralQr() {
     await requireManage();
-    const location = await locationService.getById(id);
-    if (!location) throw new Error("Sede no encontrada");
 
     const { buildIntakeUrl, generateQrDataUrl } = await import("@/lib/qr");
-    const url = buildIntakeUrl(location.id);
+    const url = buildIntakeUrl();
     const dataUrl = await generateQrDataUrl(url);
 
-    return { url, dataUrl, name: location.name };
+    return { url, dataUrl };
 }

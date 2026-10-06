@@ -14,7 +14,7 @@ const baseSteps = [
   { href: "/reservar/sede", label: "Sede", inPersonOnly: true },
   { href: "/reservar/horario", label: "Horario" },
   { href: "/reservar/datos", label: "Datos" },
-  { href: "/reservar/confirmacion", label: "Confirmar" },
+  { href: "/reservar/confirmacion", label: "Reservar" },
 ];
 
 function BookingSteps() {

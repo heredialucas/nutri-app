@@ -30,6 +30,55 @@ export async function sendWhatsAppMessage(
     }
 }
 
+/**
+ * Envía un WhatsApp inmediato al usuario (sin deduplicar por día), para
+ * eventos que pueden repetirse varias veces al día (turnos reservados,
+ * cancelados, etc.). Solo funciona si el usuario configuró CallMeBot.
+ */
+export async function sendDirectNotification(
+    userId: string,
+    type: string,
+    message: string,
+): Promise<{ sent: boolean; reason: string }> {
+    const settings = await whatsappSettingsService.getRaw(userId);
+
+    if (!settings) {
+        return { sent: false, reason: "WhatsApp no configurado" };
+    }
+
+    if (!settings.enabled) {
+        return { sent: false, reason: "WhatsApp deshabilitado" };
+    }
+
+    try {
+        await sendWhatsAppMessage(settings.phone, settings.apiKey, message);
+
+        await whatsappSettingsService.logNotification({
+            userId,
+            type,
+            recipient: settings.phone,
+            message,
+            status: "SENT",
+        });
+
+        return { sent: true, reason: "Enviado" };
+    } catch (error) {
+        const errorMsg =
+            error instanceof Error ? error.message : "Error desconocido";
+
+        await whatsappSettingsService.logNotification({
+            userId,
+            type,
+            recipient: settings.phone,
+            message,
+            status: "FAILED",
+            error: errorMsg,
+        });
+
+        return { sent: false, reason: errorMsg };
+    }
+}
+
 export async function sendNotification(
     userId: string,
     type: string,

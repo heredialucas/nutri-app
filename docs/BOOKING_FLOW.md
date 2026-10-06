@@ -2,9 +2,13 @@
 
 ## Visión general
 
-La reserva de turnos es un proceso público (sin login). El paciente solo necesita
-**DNI + nombre y apellido** para reservar; el resto de los datos son opcionales y
-se pueden completar después desde el portal del paciente.
+La reserva de turnos es un proceso público (sin login). El paciente necesita
+**DNI + nombre y apellido + celular** para reservar; el resto de los datos son
+opcionales y se pueden completar después desde el portal del paciente.
+
+El celular es obligatorio para poder volver a contactar al paciente (por WhatsApp)
+si pierde acceso a la plataforma. El **tipo de cobertura (particular / obra social)
+no se pregunta al paciente**: queda bajo control del profesional desde el dashboard.
 
 El **DNI es el identificador de login**. Al reservar, el sistema aprovisiona una
 cuenta de paciente automáticamente y deja la sesión iniciada, eliminando la fricción
@@ -13,7 +17,7 @@ de crear cuenta.
 Hay dos puertas de entrada:
 
 1. **Flujo guiado** `/reservar` (elegir tipo, sede, horario y datos).
-2. **Chat por QR** `/ingresar?loc=<idSede>` (pensado para gimnasios/socios).
+2. **Chat por QR general** `/ingresar` (pensado para gimnasios/socios).
 
 ## Rutas
 
@@ -22,9 +26,9 @@ Hay dos puertas de entrada:
 | `/reservar` | Selección de tipo de turno (presencial u online) |
 | `/reservar/sede` | Selección de sede (solo turnos presenciales) |
 | `/reservar/horario` | Selección de fecha y horario disponible |
-| `/reservar/datos` | Datos mínimos: DNI, nombre y apellido (el resto es opcional) |
-| `/reservar/confirmacion` | Resumen y confirmación de la reserva |
-| `/ingresar?loc=<idSede>` | Chat guiado de intake (entrada por QR) |
+| `/reservar/datos` | Datos mínimos: DNI, nombre, apellido y celular (el resto es opcional) |
+| `/reservar/confirmacion` | Resumen y reserva del turno |
+| `/ingresar` | Chat guiado de intake (entrada por QR general) |
 
 ## Flujo paso a paso
 
@@ -54,38 +58,40 @@ Formulario con:
 - **DNI (obligatorio)**
 - **Nombre (obligatorio)**
 - **Apellido (obligatorio)**
+- **Celular (obligatorio)**
 
-Dentro de "Agregar más datos (opcional)": email, teléfono, fecha de nacimiento y
+Dentro de "Agregar más datos (opcional)": email, fecha de nacimiento y
 motivo de consulta. Si el paciente tiene sesión iniciada y sus datos ya están
 completos, este paso se saltea automáticamente.
 
-### 5. Confirmación (`/reservar/confirmacion`)
+### 5. Reserva (`/reservar/confirmacion`)
 
-Resumen y confirmación. Al confirmar:
+Resumen y reserva. Al reservar:
 
-1. Se busca la ficha `Patient` por DNI; si no existe, se crea con los datos mínimos.
-2. Se crea el `Appointment` con estado `PENDING`.
-3. Se **aprovisiona la cuenta de paciente** (User con `dni`) si no existía y se inicia
-   sesión automáticamente.
-4. Se envía email de confirmación al paciente (solo si cargó email) y aviso al
-   consultorio.
+1. Se busca la ficha `Patient` por DNI; si no existe, se crea con los datos mínimos
+   (`billingType` queda en `particular` por defecto; el profesional lo ajusta luego).
+2. Se crea el `Appointment` con estado `PENDING` (el paciente **reserva**, no confirma:
+   la confirmación la hace el profesional desde el dashboard).
+3. Se **aprovisiona la cuenta de paciente** (User con `dni`) si no existía, sin iniciar
+   sesión: el paciente debe crear su contraseña (activación).
+4. Se envía email de aviso al paciente (solo si cargó email) y aviso al consultorio.
+   El paciente es contactado por **WhatsApp** al celular indicado.
 
 ## Entrada por QR (gimnasios)
 
-Cada sede tiene un QR descargable desde `/dashboard/configuracion/sedes` que apunta a
-`/ingresar?loc=<idSede>`.
+Hay un **único QR general** descargable desde `/dashboard/configuracion/sedes` que
+apunta a `/ingresar`. Se puede pegar en todas las sedes.
 
 El chat guiado pide, en orden:
-1. **DNI** (consulta el padrón externo por DNI — hoy sin conectar, ver
+1. **Sucursal** (el paciente elige dónde quiere el turno; siempre presencial).
+2. **DNI** (consulta el padrón externo por DNI — hoy sin conectar, ver
    `services/member-lookup-service.ts`; si devuelve datos, se prellenan).
-2. Si el DNI ya tiene un **turno activo**, avisa y ofrece **cambiarlo** (reprogramar)
+3. Si el DNI ya tiene un **turno activo**, avisa y ofrece **cambiarlo** (reprogramar)
    o **mantenerlo**. Un DNI solo puede tener un turno activo a la vez.
-3. **Nombre y apellido** (si no vinieron del padrón), en dos campos.
-4. **Fecha y horario** (slots reales, con la regla de 45 min de la primera consulta).
-5. **Confirmación**.
-
-Como el QR identifica la sede, la modalidad viene preseleccionada como presencial en
-esa sede. Sin `?loc=`, el chat permite elegir modalidad y sede.
+4. **Nombre y apellido** (si no vinieron del padrón), en dos campos.
+5. **Celular** (obligatorio, para contacto por WhatsApp).
+6. **Fecha y horario** (slots reales, con la regla de 45 min de la primera consulta).
+7. **Reserva**.
 
 ## Cuenta y activación
 
@@ -94,14 +100,14 @@ esa sede. Sin `?loc=`, el chat permite elegir modalidad y sede.
 - `Patient.documentNumber` (DNI) es **único** y se guarda normalizado (solo dígitos).
 - Al reservar se aprovisiona la cuenta (`mustSetPassword=true`) pero **no se inicia
   sesión**: el paciente debe crear su contraseña.
-- **Activación** (`/auth/sign-up`):
+- **Registro / activación** (`/auth/sign-up`):
   - **DNI nuevo**: nombre + contraseña, sin email.
-  - **DNI ya existente sin activar**: se verifica identidad con un **código por email**
-    (al email de la ficha; si no hay, se pide uno) y luego se crea la contraseña.
+  - **DNI con ficha o cuenta sin activar** (por ejemplo, creada al reservar): se
+    precargan los datos y se crea la contraseña directamente, sin código por email.
   - **Cuenta ya activa**: se indica iniciar sesión.
 - Post-reserva se emite una cookie `activation_token` (JWT 24 h) que permite crear la
   contraseña sin email para la cuenta recién creada en esa misma reserva.
-- Códigos de email en `email_verification_codes` (hash sha256, 10 min, máx. 5 intentos).
+- Acción `registerOrActivateAccount` (`app/actions/activation.ts`) cubre los tres casos.
 
 ## Tipos de turno
 
@@ -127,7 +133,9 @@ esa sede. Sin `?loc=`, el chat permite elegir modalidad y sede.
 - Los turnos presenciales requieren elegir una sede activa.
 - No se permiten solapamientos de turnos para el mismo profesional.
 - La primera consulta dura 45 minutos; el resto usa la `slotDuration` del bloque.
-- El DNI es obligatorio y único; el email es opcional.
+- El DNI es obligatorio y único; el celular es obligatorio; el email es opcional.
+- El tipo de cobertura (`billingType`) no lo elige el paciente: es interno del
+  profesional.
 - **Un DNI puede tener un solo turno activo** (`PENDING`/`CONFIRMED`/`RESCHEDULED`).
   Si intenta reservar otro, el sistema avisa y solo permite reemplazar el anterior
   cuando el paciente lo confirma (`replaceExisting`).
@@ -135,7 +143,8 @@ esa sede. Sin `?loc=`, el chat permite elegir modalidad y sede.
 ## Gestión de sedes
 
 Desde `/dashboard/configuracion/sedes` (solo administradores) se puede crear, editar,
-activar/desactivar y eliminar sedes, y **descargar el QR de reserva** de cada una.
+activar/desactivar y eliminar sedes, y **descargar el QR general de reserva** (uno solo
+para todas las sedes; el paciente elige la sucursal en el chat).
 
 ## Gestión desde el dashboard profesional
 

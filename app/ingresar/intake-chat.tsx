@@ -11,7 +11,6 @@ import {
     Loader2,
     MapPin,
     Send,
-    Video,
 } from "lucide-react";
 import {
     createPublicBooking,
@@ -37,10 +36,10 @@ interface PendingAppointment {
 }
 
 type Step =
-    | "modality"
     | "location"
     | "dni"
     | "name"
+    | "phone"
     | "existing"
     | "slots"
     | "confirm"
@@ -52,29 +51,26 @@ interface Msg {
     text: string;
 }
 
-interface IntakeChatProps {
-    location: PublicLocation | null;
-}
-
 function todayString() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export default function IntakeChat({ location }: IntakeChatProps) {
+export default function IntakeChat() {
     const router = useRouter();
     const idRef = useRef(0);
     const startedRef = useRef(false);
     const bottomRef = useRef<HTMLDivElement | null>(null);
 
     const [messages, setMessages] = useState<Msg[]>([]);
-    const [step, setStep] = useState<Step>("modality");
+    const [step, setStep] = useState<Step>("location");
     const [input, setInput] = useState("");
     const [error, setError] = useState<string | null>(null);
 
     const [dni, setDni] = useState("");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
+    const [phone, setPhone] = useState("");
     const [member, setMember] = useState<{
         firstName?: string;
         lastName?: string;
@@ -83,10 +79,9 @@ export default function IntakeChat({ location }: IntakeChatProps) {
         birthDate?: string;
     }>({});
 
-    const [mode, setMode] = useState<"ONLINE" | "IN_PERSON" | null>(null);
-    const [locationId, setLocationId] = useState<string>(location?.id ?? "");
-    const [locationName, setLocationName] = useState<string>(location?.name ?? "");
-    const [locationAddress, setLocationAddress] = useState<string>(location?.address ?? "");
+    const [locationId, setLocationId] = useState("");
+    const [locationName, setLocationName] = useState("");
+    const [locationAddress, setLocationAddress] = useState("");
 
     const [locations, setLocations] = useState<PublicLocation[]>([]);
     const [loadingLocations, setLoadingLocations] = useState(false);
@@ -114,21 +109,34 @@ export default function IntakeChat({ location }: IntakeChatProps) {
     const pushBot = (text: string) => push("bot", text);
     const pushUser = (text: string) => push("user", text);
 
+    const loadLocations = () => {
+        setLoadingLocations(true);
+        setError(null);
+        getPublicLocations()
+            .then((list) => {
+                setLocations(list);
+                if (list.length === 0) {
+                    pushBot(
+                        "Todavía no hay sucursales disponibles. Escribinos por WhatsApp para coordinar tu turno.",
+                    );
+                } else {
+                    pushBot("¿En qué sucursal querés atenderte?");
+                }
+                setStep("location");
+            })
+            .catch(() => {
+                setError("No pudimos cargar las sucursales.");
+                setStep("location");
+            })
+            .finally(() => setLoadingLocations(false));
+    };
+
     // Arranque de la conversación
     useEffect(() => {
         if (startedRef.current) return;
         startedRef.current = true;
-        if (location) {
-            setMode("IN_PERSON");
-            pushBot(
-                `¡Hola! Soy el asistente de Mauro Acosta. Estás reservando en ${location.name}.`,
-            );
-            pushBot("¿Cuál es tu DNI?");
-            setStep("dni");
-        } else {
-            pushBot("¡Hola! Soy el asistente de Mauro Acosta. ¿Cómo querés atenderte?");
-            setStep("modality");
-        }
+        pushBot("¡Hola! Soy el asistente de Mauro Acosta. Vamos a reservar tu turno.");
+        loadLocations();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -141,21 +149,23 @@ export default function IntakeChat({ location }: IntakeChatProps) {
         setStep("dni");
     };
 
+    const goToPhone = () => {
+        pushBot(
+            "¿Cuál es tu número de celular? Lo usamos para contactarte por WhatsApp si necesitamos avisarte algo.",
+        );
+        setStep("phone");
+    };
+
     const startSlots = () => {
         pushBot("Perfecto. Elegí el día y el horario que mejor te quede.");
         setStep("slots");
     };
 
     const continueAfterDni = () => {
-        if (!mode) {
-            pushBot("¿Cómo querés atenderte?");
-            setStep("modality");
-            return;
-        }
         if (member.firstName && member.lastName) {
             setFirstName(member.firstName);
             setLastName(member.lastName);
-            startSlots();
+            goToPhone();
             return;
         }
         pushBot("¿Cuál es tu nombre y apellido?");
@@ -185,6 +195,7 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                 });
                 if (found.firstName) setFirstName(found.firstName);
                 if (found.lastName) setLastName(found.lastName);
+                if (found.phone) setPhone(found.phone);
                 if (found.firstName && found.lastName) {
                     pushBot(`Te encontré en el padrón: ${found.firstName} ${found.lastName}.`);
                 }
@@ -221,6 +232,18 @@ export default function IntakeChat({ location }: IntakeChatProps) {
         }
         setError(null);
         pushUser(`${f} ${l}`);
+        goToPhone();
+    };
+
+    const submitPhone = () => {
+        const value = phone.trim();
+        if (!value || value.replace(/\D/g, "").length < 6) {
+            setError("Ingresá un número de celular válido.");
+            return;
+        }
+        setError(null);
+        pushUser(value);
+        setPhone(value);
         startSlots();
     };
 
@@ -244,12 +267,7 @@ export default function IntakeChat({ location }: IntakeChatProps) {
         setSlotsError(null);
         setSelectedTime(null);
 
-        getPublicAvailableSlots(
-            selectedDate,
-            mode === "IN_PERSON" ? locationId : null,
-            dni,
-            member.email,
-        )
+        getPublicAvailableSlots(selectedDate, locationId, dni, member.email)
             .then((result) => {
                 if (!active) return;
                 setSlots(result);
@@ -267,17 +285,16 @@ export default function IntakeChat({ location }: IntakeChatProps) {
         return () => {
             active = false;
         };
-    }, [step, selectedDate, mode, locationId, dni, member.email]);
+    }, [step, selectedDate, locationId, dni, member.email]);
 
     const confirmSlot = () => {
         if (!selectedTime) return;
         pushUser(`${selectedDate} · ${selectedTime} hs`);
-        pushBot("Revisá los datos y confirmá tu turno.");
+        pushBot("Revisá los datos y reservá tu turno.");
         setStep("confirm");
     };
 
     const submitBooking = async () => {
-        if (!mode) return;
         setSubmitting(true);
         setError(null);
         try {
@@ -286,10 +303,10 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                 lastName,
                 dni,
                 email: member.email,
-                phone: member.phone,
+                phone,
                 birthDate: member.birthDate,
-                type: mode,
-                locationId: mode === "IN_PERSON" ? locationId : undefined,
+                type: "IN_PERSON",
+                locationId,
                 date: selectedDate,
                 time: selectedTime!,
                 replaceExisting,
@@ -301,43 +318,17 @@ export default function IntakeChat({ location }: IntakeChatProps) {
             setDoneKind("booked");
             pushBot(
                 replaceExisting
-                    ? "¡Listo! Tu turno quedó actualizado. Te esperamos."
-                    : "¡Listo! Tu turno quedó registrado. Te esperamos.",
+                    ? "¡Listo! Tu turno quedó reservado. Mauro lo confirmará y te contactaremos por WhatsApp. Te esperamos."
+                    : "¡Listo! Tu turno quedó reservado. Mauro lo confirmará y te contactaremos por WhatsApp. Te esperamos.",
             );
             setStep("done");
         } catch (err) {
             const msg =
-                err instanceof Error ? err.message : "No pudimos confirmar el turno.";
+                err instanceof Error ? err.message : "No pudimos reservar el turno.";
             setError(msg);
-            pushBot(`No pude confirmar: ${msg}`);
+            pushBot(`No pude reservar: ${msg}`);
         } finally {
             setSubmitting(false);
-        }
-    };
-
-    const chooseModality = (value: "ONLINE" | "IN_PERSON") => {
-        setMode(value);
-        pushUser(value === "IN_PERSON" ? "Presencial" : "Online");
-        if (value === "ONLINE") {
-            goToDni();
-        } else {
-            setLoadingLocations(true);
-            getPublicLocations()
-                .then((list) => {
-                    setLocations(list);
-                    if (list.length === 0) {
-                        pushBot("Todavía no hay sedes disponibles. Probá con la modalidad online.");
-                        setStep("modality");
-                        setMode(null);
-                    } else {
-                        pushBot("¿En qué sede querés atenderte?");
-                        setStep("location");
-                    }
-                })
-                .catch(() => {
-                    setError("No pudimos cargar las sedes.");
-                })
-                .finally(() => setLoadingLocations(false));
         }
     };
 
@@ -354,11 +345,11 @@ export default function IntakeChat({ location }: IntakeChatProps) {
         setDni("");
         setFirstName("");
         setLastName("");
+        setPhone("");
         setMember({});
-        setMode(location ? "IN_PERSON" : null);
-        setLocationId(location?.id ?? "");
-        setLocationName(location?.name ?? "");
-        setLocationAddress(location?.address ?? "");
+        setLocationId("");
+        setLocationName("");
+        setLocationAddress("");
         setPendingAppointment(null);
         setReplaceExisting(false);
         setSelectedDate(todayString());
@@ -367,14 +358,7 @@ export default function IntakeChat({ location }: IntakeChatProps) {
         setResult(null);
         setError(null);
         setDoneKind("booked");
-        if (location) {
-            pushBot(`Estás reservando en ${location.name}.`);
-            pushBot("¿Cuál es tu DNI?");
-            setStep("dni");
-        } else {
-            pushBot("¿Cómo querés atenderte?");
-            setStep("modality");
-        }
+        loadLocations();
     };
 
     const minDate = todayString();
@@ -403,9 +387,7 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                             className="h-8 w-auto"
                         />
                     </Link>
-                    <span className="text-xs text-[#999]">
-                        {location ? location.name : "Reserva de turnos"}
-                    </span>
+                    <span className="text-xs text-[#999]">Reserva de turnos</span>
                 </div>
             </header>
 
@@ -424,11 +406,11 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                         </div>
                     ))}
 
-                    {location && step !== "done" && (
+                    {locationName && step !== "done" && (
                         <div className="self-start flex items-start gap-1.5 text-xs text-[#999] px-1">
                             <MapPin size={12} className="mt-0.5 shrink-0" />
                             <span>
-                                {location.name} — {location.address}
+                                {locationName} — {locationAddress}
                             </span>
                         </div>
                     )}
@@ -440,42 +422,27 @@ export default function IntakeChat({ location }: IntakeChatProps) {
 
                 {/* Área de interacción según el paso */}
                 <div className="border-t border-[rgba(0,0,0,0.06)] pt-4">
-                    {step === "modality" && (
-                        <div className="grid grid-cols-2 gap-3">
-                            <button
-                                onClick={() => chooseModality("IN_PERSON")}
-                                disabled={loadingLocations}
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[rgba(0,0,0,0.1)] bg-white hover:border-[#1a1a1a] transition-colors cursor-pointer disabled:opacity-60"
-                            >
-                                <Building2 size={20} strokeWidth={1.5} />
-                                <span className="text-sm font-medium">Presencial</span>
-                            </button>
-                            <button
-                                onClick={() => chooseModality("ONLINE")}
-                                disabled={loadingLocations}
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[rgba(0,0,0,0.1)] bg-white hover:border-[#1a1a1a] transition-colors cursor-pointer disabled:opacity-60"
-                            >
-                                <Video size={20} strokeWidth={1.5} />
-                                <span className="text-sm font-medium">Online</span>
-                            </button>
-                        </div>
-                    )}
-
                     {step === "location" && (
                         <div className="flex flex-col gap-2">
-                            {locations.map((loc) => (
-                                <button
-                                    key={loc.id}
-                                    onClick={() => chooseLocation(loc)}
-                                    className="flex items-center gap-3 p-4 rounded-xl border border-[rgba(0,0,0,0.1)] bg-white text-left hover:border-[#1a1a1a] transition-colors cursor-pointer"
-                                >
-                                    <Building2 size={18} strokeWidth={1.5} className="shrink-0" />
-                                    <span>
-                                        <span className="block text-sm font-medium text-[#1a1a1a]">{loc.name}</span>
-                                        <span className="block text-xs text-[#666]">{loc.address}</span>
-                                    </span>
-                                </button>
-                            ))}
+                            {loadingLocations ? (
+                                <div className="flex items-center gap-2 text-sm text-[#999] py-4">
+                                    <Loader2 size={16} className="animate-spin" /> Buscando sucursales...
+                                </div>
+                            ) : (
+                                locations.map((loc) => (
+                                    <button
+                                        key={loc.id}
+                                        onClick={() => chooseLocation(loc)}
+                                        className="flex items-center gap-3 p-4 rounded-xl border border-[rgba(0,0,0,0.1)] bg-white text-left hover:border-[#1a1a1a] transition-colors cursor-pointer"
+                                    >
+                                        <Building2 size={18} strokeWidth={1.5} className="shrink-0" />
+                                        <span>
+                                            <span className="block text-sm font-medium text-[#1a1a1a]">{loc.name}</span>
+                                            <span className="block text-xs text-[#666]">{loc.address}</span>
+                                        </span>
+                                    </button>
+                                ))
+                            )}
                         </div>
                     )}
 
@@ -535,6 +502,34 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                                 className="h-11 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold hover:bg-[#333] transition-colors cursor-pointer"
                             >
                                 Continuar
+                            </button>
+                        </form>
+                    )}
+
+                    {step === "phone" && (
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                submitPhone();
+                            }}
+                            className="flex items-center gap-2"
+                        >
+                            <input
+                                autoFocus
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                type="tel"
+                                inputMode="tel"
+                                autoComplete="tel"
+                                placeholder="Tu celular, con código de área"
+                                className="h-11 flex-1 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+                            />
+                            <button
+                                type="submit"
+                                className="h-11 w-11 shrink-0 rounded-lg bg-[#1a1a1a] text-white flex items-center justify-center hover:bg-[#333] transition-colors cursor-pointer"
+                                aria-label="Enviar"
+                            >
+                                <Send size={16} />
                             </button>
                         </form>
                     )}
@@ -629,11 +624,9 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                             <div className="rounded-xl border border-[rgba(0,0,0,0.06)] bg-white p-4 text-sm flex flex-col gap-2">
                                 <Row label="Nombre" value={`${firstName} ${lastName}`} />
                                 <Row label="DNI" value={dni} />
-                                <Row
-                                    label="Modalidad"
-                                    value={mode === "ONLINE" ? "Online" : "Presencial"}
-                                />
-                                {mode === "IN_PERSON" && locationName && (
+                                <Row label="Celular" value={phone} />
+                                <Row label="Modalidad" value="Presencial" />
+                                {locationName && (
                                     <Row label="Sede" value={`${locationName} — ${locationAddress}`} />
                                 )}
                                 <Row label="Fecha" value={selectedDate} />
@@ -651,10 +644,10 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                             >
                                 {submitting && <Loader2 size={16} className="animate-spin" />}
                                 {submitting
-                                    ? "Confirmando..."
+                                    ? "Reservando..."
                                     : replaceExisting
-                                      ? "Confirmar cambio"
-                                      : "Confirmar turno"}
+                                      ? "Reservar cambio"
+                                      : "Reservar turno"}
                             </button>
                         </div>
                     )}

@@ -17,7 +17,8 @@ export default function DatosPage() {
     loggedPatient &&
     isComplete(data.dni) &&
     isComplete(data.firstName, "Sin nombre") &&
-    isComplete(data.lastName, "Sin apellido")
+    isComplete(data.lastName, "Sin apellido") &&
+    isComplete(data.phone)
   );
 
   const nextHref = "/reservar/confirmacion";
@@ -37,6 +38,7 @@ export default function DatosPage() {
     birthDate: data.birthDate,
     goal: data.goal,
   });
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -44,7 +46,12 @@ export default function DatosPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setStep2({ ...form, billingType: data.billingType || "particular" });
+    if (!form.phone.trim() || form.phone.replace(/\D/g, "").length < 6) {
+      setFormError("Ingresá un número de celular válido.");
+      return;
+    }
+    setFormError(null);
+    setStep2({ ...form });
     if (loggedPatient) {
       updateMyProfile({
         firstName: form.firstName,
@@ -72,8 +79,8 @@ export default function DatosPage() {
         Casi listo
       </h1>
       <p className="text-sm text-[#666] mb-8 m-0">
-        Solo necesitamos tu DNI y tu nombre. El resto podés completarlo más
-        adelante desde tu panel.
+        Necesitamos tu DNI, tu nombre y tu celular. El resto podés completarlo
+        más adelante desde tu panel.
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -125,6 +132,27 @@ export default function DatosPage() {
           </div>
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="phone" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
+            Celular *
+          </label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            required
+            value={form.phone}
+            onChange={handleChange}
+            placeholder="Ej: 381 670-9189"
+            className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+          />
+          <p className="text-xs text-[#999] m-0">
+            Lo usamos para contactarte por WhatsApp si necesitamos avisarte algo.
+          </p>
+        </div>
+
         <details className="rounded-lg border border-[rgba(0,0,0,0.08)] bg-white px-4 py-3">
           <summary className="text-sm font-medium text-[#1a1a1a] cursor-pointer">
             Agregar más datos (opcional)
@@ -139,20 +167,6 @@ export default function DatosPage() {
                 name="email"
                 type="email"
                 value={form.email}
-                onChange={handleChange}
-                className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="phone" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
-                Teléfono
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={form.phone}
                 onChange={handleChange}
                 className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
               />
@@ -188,6 +202,8 @@ export default function DatosPage() {
             </div>
           </div>
         </details>
+
+        {formError && <p className="text-sm text-red-500 m-0">{formError}</p>}
 
         <div className="flex gap-3 mt-4">
           <Link

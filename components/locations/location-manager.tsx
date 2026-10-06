@@ -85,6 +85,19 @@ export function LocationManager({ locations }: { locations: LocationItem[] }) {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
+                    <CardTitle className="text-base">QR general de reserva</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-sm text-muted-foreground m-0">
+                        Un único QR para todas las sedes. Quien lo escanee elige la sucursal
+                        dentro del chat de reserva.
+                    </p>
+                    <QrDialog />
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
                     <CardTitle className="text-base">
                         {editingId ? "Editar sede" : "Agregar sede"}
                     </CardTitle>
@@ -151,7 +164,6 @@ export function LocationManager({ locations }: { locations: LocationItem[] }) {
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
-                                    <QrDialog locationId={location.id} locationName={location.name} />
                                     <Button
                                         variant="outline"
                                         size="sm"

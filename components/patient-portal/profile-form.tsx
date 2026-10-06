@@ -11,7 +11,6 @@ interface ProfileData {
     email: string;
     phone: string;
     birthDate: string;
-    billingType: string;
     gender: string;
     documentNumber: string;
     city: string;
@@ -41,7 +40,6 @@ export function ProfileForm({ profile }: { profile: Partial<ProfileData> }) {
         email: profile.email || "",
         phone: profile.phone || "",
         birthDate: toDateInput(profile.birthDate),
-        billingType: profile.billingType || "particular",
         gender: profile.gender || "",
         documentNumber: profile.documentNumber || "",
         city: profile.city || "",
@@ -75,7 +73,6 @@ export function ProfileForm({ profile }: { profile: Partial<ProfileData> }) {
                 email: form.email,
                 phone: form.phone,
                 birthDate: form.birthDate || undefined,
-                billingType: form.billingType,
                 gender: form.gender || undefined,
                 documentNumber: form.documentNumber || undefined,
                 city: form.city || undefined,
@@ -208,19 +205,18 @@ export function ProfileForm({ profile }: { profile: Partial<ProfileData> }) {
                     </select>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label htmlFor="billingType" className={labelClass}>
-                        Particular / Socio EP
+                    <label htmlFor="healthInsurance" className={labelClass}>
+                        Obra social (nombre)
                     </label>
-                    <select
-                        id="billingType"
-                        name="billingType"
-                        value={form.billingType}
+                    <input
+                        id="healthInsurance"
+                        name="healthInsurance"
+                        type="text"
+                        placeholder="Ej: OSDE, IOMA..."
+                        value={form.healthInsurance}
                         onChange={handleChange}
                         className={inputClass}
-                    >
-                        <option value="particular">Particular</option>
-                        <option value="socio_ep">Socio EP</option>
-                    </select>
+                    />
                 </div>
             </div>
 
@@ -253,34 +249,18 @@ export function ProfileForm({ profile }: { profile: Partial<ProfileData> }) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                    <label htmlFor="address" className={labelClass}>
-                        Dirección
-                    </label>
-                    <input
-                        id="address"
-                        name="address"
-                        type="text"
-                        value={form.address}
-                        onChange={handleChange}
-                        className={inputClass}
-                    />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                    <label htmlFor="healthInsurance" className={labelClass}>
-                        Obra social (nombre)
-                    </label>
-                    <input
-                        id="healthInsurance"
-                        name="healthInsurance"
-                        type="text"
-                        placeholder="Ej: OSDE, IOMA..."
-                        value={form.healthInsurance}
-                        onChange={handleChange}
-                        className={inputClass}
-                    />
-                </div>
+            <div className="flex flex-col gap-1.5">
+                <label htmlFor="address" className={labelClass}>
+                    Dirección
+                </label>
+                <input
+                    id="address"
+                    name="address"
+                    type="text"
+                    value={form.address}
+                    onChange={handleChange}
+                    className={inputClass}
+                />
             </div>
 
             {status === "success" && (

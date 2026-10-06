@@ -210,6 +210,17 @@ WhatsApp habilitado enviando los recordatorios correspondientes del día.
 - El envío usa Resend (`RESEND_API_KEY` + `RESEND_FROM_EMAIL`) y nunca interrumpe
   el flujo de negocio si falla.
 - La recuperación de contraseña también usa Resend.
+- El dominio del `from` debe estar verificado en Resend (SPF + DKIM). Si los
+  emails llegan a Spam/Promociones, marcarlos como "No es spam".
+
+### Aviso por WhatsApp al profesional
+
+- Además del email, cada evento de turno intenta enviar un WhatsApp inmediato al
+  profesional (`sendDirectNotification`). Requiere que el profesional tenga
+  configurado CallMeBot en `/dashboard/configuracion/whatsapp` (teléfono + API key).
+- CallMeBot solo puede enviar al número que activó el bot con su API key, por lo
+  que **no se puede notificar automáticamente a números de pacientes**: el
+  contacto con el paciente es manual (WhatsApp del profesional).
 
 ## Comandos útiles
 

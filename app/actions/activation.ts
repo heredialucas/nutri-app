@@ -265,9 +265,14 @@ export async function activateAccount(data: {
 }
 
 /**
- * Registro directo de un DNI nuevo (sin email, sin verificación).
+ * Registro / activación directa por DNI + contraseña (sin email ni código).
+ *
+ * Cubre los tres casos:
+ *  - DNI nuevo: crea cuenta de paciente.
+ *  - DNI con ficha pero sin cuenta activada: crea/actualiza la cuenta y la activa.
+ *  - Cuenta ya activa: rechaza y sugiere iniciar sesión.
  */
-export async function registerNewAccount(data: {
+export async function registerOrActivateAccount(data: {
     dni: string;
     firstName: string;
     lastName: string;
@@ -282,45 +287,65 @@ export async function registerNewAccount(data: {
     }
 
     const { patient, user } = await findByDni(dni);
-    if (user || patient) {
-        return { error: "Ese DNI ya está registrado. Iniciá sesión o activá tu cuenta." };
+    if (user && !user.mustSetPassword) {
+        return { error: "Esa cuenta ya está activa. Iniciá sesión con tu DNI." };
     }
 
     const firstName = data.firstName.trim();
     const lastName = data.lastName.trim();
     const hashed = await bcrypt.hash(data.password, 10);
 
-    const user2 = await prisma.user.create({
-        data: {
-            dni,
-            password: hashed,
-            mustSetPassword: false,
-            firstName,
-            lastName,
-            fullName: `${firstName} ${lastName}`,
-        },
-    });
+    const account = user
+        ? await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                  password: hashed,
+                  mustSetPassword: false,
+                  firstName: user.firstName || firstName,
+                  lastName: user.lastName || lastName,
+                  fullName: user.fullName || `${firstName} ${lastName}`,
+              },
+          })
+        : await prisma.user.create({
+              data: {
+                  dni,
+                  password: hashed,
+                  mustSetPassword: false,
+                  firstName,
+                  lastName,
+                  fullName: `${firstName} ${lastName}`,
+              },
+          });
 
     const patientRole = await prisma.role.findUnique({ where: { name: "PATIENT" } });
     if (patientRole) {
         await prisma.userRole.upsert({
-            where: { userId_roleId: { userId: user2.id, roleId: patientRole.id } },
+            where: { userId_roleId: { userId: account.id, roleId: patientRole.id } },
             update: {},
-            create: { userId: user2.id, roleId: patientRole.id },
+            create: { userId: account.id, roleId: patientRole.id },
         });
     }
 
-    await prisma.patient.create({
-        data: {
-            userId: user2.id,
-            firstName,
-            lastName,
-            documentNumber: dni,
-            billingType: "particular",
-        },
-    });
+    if (patient) {
+        if (!patient.userId || patient.deletedAt) {
+            await prisma.patient.update({
+                where: { id: patient.id },
+                data: { userId: account.id, deletedAt: null },
+            });
+        }
+    } else {
+        await prisma.patient.create({
+            data: {
+                userId: account.id,
+                firstName,
+                lastName,
+                documentNumber: dni,
+                billingType: "particular",
+            },
+        });
+    }
 
-    await setSession(user2.id);
+    await setSession(account.id);
 
     return { success: true, redirectTo: "/paciente/dashboard" };
 }
