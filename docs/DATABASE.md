@@ -13,7 +13,8 @@ Usuario del sistema (profesionales, asistentes, recepción y pacientes vinculado
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | id | UUID | Identificador único |
-| email | String | Email único |
+| email | String? | Email único (opcional) |
+| dni | String? | DNI único, identificador de login del paciente |
 | password | String | Hash bcrypt |
 | fullName | String? | Nombre completo |
 | firstName / lastName | String? | Nombre y apellido |
@@ -37,7 +38,7 @@ Registro principal de cada paciente.
 | firstName / lastName | String | Nombre y apellido |
 | email / phone | String? | Datos de contacto |
 | birthDate | DateTime? | Fecha de nacimiento |
-| documentNumber | String? | DNI u otro documento |
+| documentNumber | String? | DNI único (normalizado, solo dígitos) |
 | address / city | String? | Ubicación |
 | billingType | String | Tipo de facturación |
 | status | String | ACTIVE / INACTIVE / ARCHIVED |

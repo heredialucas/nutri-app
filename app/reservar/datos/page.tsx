@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { needsLocation, useBooking } from "@/components/booking/booking-context";
+import { useBooking } from "@/components/booking/booking-context";
 import { updateMyProfile } from "@/app/actions/patient-portal";
 import { useState, useEffect } from "react";
 
@@ -15,13 +15,12 @@ export default function DatosPage() {
 
   const requiredComplete = !!(
     loggedPatient &&
+    isComplete(data.dni) &&
     isComplete(data.firstName, "Sin nombre") &&
-    isComplete(data.lastName, "Sin apellido") &&
-    isComplete(data.email) &&
-    isComplete(data.phone)
+    isComplete(data.lastName, "Sin apellido")
   );
 
-  const nextHref = needsLocation(data) ? "/reservar/sede" : "/reservar/horario";
+  const nextHref = "/reservar/confirmacion";
 
   useEffect(() => {
     if (requiredComplete) {
@@ -32,28 +31,28 @@ export default function DatosPage() {
   const [form, setForm] = useState({
     firstName: data.firstName,
     lastName: data.lastName,
+    dni: data.dni,
     email: data.email,
     phone: data.phone,
     birthDate: data.birthDate,
     goal: data.goal,
-    billingType: data.billingType,
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setStep2(form);
+    setStep2({ ...form, billingType: data.billingType || "particular" });
     if (loggedPatient) {
       updateMyProfile({
         firstName: form.firstName,
         lastName: form.lastName,
-        email: form.email,
-        phone: form.phone,
-        birthDate: form.birthDate,
-        billingType: form.billingType,
+        documentNumber: form.dni,
+        email: form.email || undefined,
+        phone: form.phone || undefined,
+        birthDate: form.birthDate || undefined,
       }).catch(() => {});
     }
     router.push(nextHref);
@@ -62,7 +61,7 @@ export default function DatosPage() {
   if (requiredComplete) {
     return (
       <div className="text-center py-12 text-sm text-[#999]">
-        Redirigiendo a selección de horario...
+        Redirigiendo a la confirmación...
       </div>
     );
   }
@@ -70,15 +69,31 @@ export default function DatosPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-[#1a1a1a] mb-2 m-0">
-        Tus datos
+        Casi listo
       </h1>
       <p className="text-sm text-[#666] mb-8 m-0">
-        {loggedPatient
-          ? "Faltan algunos datos para continuar. Completalos y quedará guardado."
-          : "Completá tus datos para continuar con la reserva."}
+        Solo necesitamos tu DNI y tu nombre. El resto podés completarlo más
+        adelante desde tu panel.
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="dni" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
+            DNI *
+          </label>
+          <input
+            id="dni"
+            name="dni"
+            type="text"
+            inputMode="numeric"
+            required
+            value={form.dni}
+            onChange={handleChange}
+            placeholder="Sin puntos"
+            className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+          />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="firstName" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
@@ -110,84 +125,73 @@ export default function DatosPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="email" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
-            Email *
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            value={form.email}
-            onChange={handleChange}
-            className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
-          />
-        </div>
+        <details className="rounded-lg border border-[rgba(0,0,0,0.08)] bg-white px-4 py-3">
+          <summary className="text-sm font-medium text-[#1a1a1a] cursor-pointer">
+            Agregar más datos (opcional)
+          </summary>
+          <div className="flex flex-col gap-4 mt-4">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="email" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+              />
+            </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="phone" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
-            Teléfono *
-          </label>
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            required
-            value={form.phone}
-            onChange={handleChange}
-            className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
-          />
-        </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="phone" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
+                Teléfono
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={form.phone}
+                onChange={handleChange}
+                className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+              />
+            </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="birthDate" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
-            Fecha de nacimiento
-          </label>
-          <input
-            id="birthDate"
-            name="birthDate"
-            type="date"
-            value={form.birthDate}
-            onChange={handleChange}
-            className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
-          />
-        </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="birthDate" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
+                Fecha de nacimiento
+              </label>
+              <input
+                id="birthDate"
+                name="birthDate"
+                type="date"
+                value={form.birthDate}
+                onChange={handleChange}
+                className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+              />
+            </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="goal" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
-            ¿Qué estás buscando?
-          </label>
-          <textarea
-            id="goal"
-            name="goal"
-            rows={3}
-            placeholder="Ej: bajar de peso, mejorar hábitos alimentarios, control médico..."
-            value={form.goal}
-            onChange={handleChange}
-            className="px-4 py-3 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] resize-none"
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="billingType" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
-            Particular / Socio EP
-          </label>
-          <select
-            id="billingType"
-            name="billingType"
-            value={form.billingType}
-            onChange={handleChange}
-            className="h-11 px-4 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
-          >
-            <option value="particular">Particular</option>
-            <option value="socio_ep">Socio EP</option>
-          </select>
-        </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="goal" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
+                ¿Qué estás buscando?
+              </label>
+              <textarea
+                id="goal"
+                name="goal"
+                rows={3}
+                placeholder="Ej: bajar de peso, mejorar hábitos alimentarios, control médico..."
+                value={form.goal}
+                onChange={handleChange}
+                className="px-4 py-3 w-full rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] resize-none"
+              />
+            </div>
+          </div>
+        </details>
 
         <div className="flex gap-3 mt-4">
           <Link
-            href={data.type === "IN_PERSON" ? "/reservar/sede" : "/reservar"}
+            href="/reservar/horario"
             className="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] no-underline transition-colors hover:bg-[rgba(0,0,0,0.02)]"
           >
             Volver

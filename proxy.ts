@@ -8,8 +8,13 @@ export async function proxy(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
 
   // Rutas públicas que nunca deben ser interceptadas
-  const publicRoutes = ["/", "/reservar", "/auth/login", "/auth/sign-up", "/auth/forgot-password", "/auth/update-password"];
-  const isPublicRoute = publicRoutes.some((route) => pathname === route || pathname.startsWith("/reservar"));
+  const publicRoutes = ["/", "/reservar", "/ingresar", "/auth/login", "/auth/sign-up", "/auth/forgot-password", "/auth/update-password"];
+  const isPublicRoute = publicRoutes.some(
+    (route) =>
+      pathname === route ||
+      pathname.startsWith("/reservar") ||
+      pathname.startsWith("/ingresar"),
+  );
 
   // Check for session token
   const sessionToken = request.cookies.get("session_token");

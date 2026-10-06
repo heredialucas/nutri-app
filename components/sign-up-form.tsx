@@ -21,11 +21,12 @@ function SignUpFormInner() {
   const preEmail = searchParams.get("email") || "";
   const preFirstName = searchParams.get("firstName") || "";
   const preLastName = searchParams.get("lastName") || "";
+  const preDni = searchParams.get("dni") || "";
 
+  const [dni, setDni] = useState(preDni);
   const [email, setEmail] = useState(preEmail);
   const [firstName, setFirstName] = useState(preFirstName);
   const [lastName, setLastName] = useState(preLastName);
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +46,8 @@ function SignUpFormInner() {
 
     try {
       const result = await registerAction({
+        dni,
         email,
-        username,
         password,
         firstName,
         lastName,
@@ -67,14 +68,24 @@ function SignUpFormInner() {
         <CardHeader>
           <CardTitle className="text-2xl">Crear cuenta</CardTitle>
           <CardDescription>
-            {preEmail
-              ? "Completá tu contraseña para activar tu cuenta"
-              : "Registrate para gestionar tus turnos"}
+            Solo tu DNI y tu nombre. El resto lo completás cuando quieras.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp}>
             <div className="flex flex-col gap-6">
+              <div className="grid gap-2">
+                <Label htmlFor="dni">DNI</Label>
+                <Input
+                  id="dni"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Sin puntos"
+                  required
+                  value={dni}
+                  onChange={(e) => setDni(e.target.value)}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="firstName">Nombre</Label>
@@ -98,24 +109,13 @@ function SignUpFormInner() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="email">Correo electrónico</Label>
+                <Label htmlFor="email">Correo electrónico (opcional)</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="ejemplo@correo.com"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="username">Usuario (opcional)</Label>
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="nombreusuario"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
               <div className="grid gap-2">

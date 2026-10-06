@@ -55,7 +55,7 @@ export function LoginForm({
         <CardHeader>
           <CardTitle className="text-2xl">Iniciar sesión</CardTitle>
           <CardDescription>
-            Ingresa tu correo o usuario para iniciar sesión
+            Ingresá con tu DNI, correo o usuario
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -67,11 +67,11 @@ export function LoginForm({
           <form onSubmit={handleLogin}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="identifier">Correo o Usuario</Label>
+                <Label htmlFor="identifier">DNI, correo o usuario</Label>
                 <Input
                   id="identifier"
                   type="text"
-                  placeholder="usuario@ejemplo.com o nombreusuario"
+                  placeholder="DNI, usuario@ejemplo.com o nombreusuario"
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}

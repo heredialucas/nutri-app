@@ -3,8 +3,10 @@
 import prisma from "@/lib/prisma";
 import { serializePrisma } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { fromZonedTime } from "date-fns-tz";
 import { getCurrentUser, isPatientUser } from "@/lib/auth";
+import { normalizeDni, isValidDni } from "@/lib/dni";
 import {
     DEFAULT_SLOT_DURATION,
     FIRST_CONSULTATION_DURATION_MINUTES,
@@ -18,7 +20,16 @@ async function getDefaultProfessionalId(): Promise<string> {
     return professionalService.getDefaultProfessionalId();
 }
 
-async function resolveIsFirstAppointment(email?: string | null): Promise<boolean> {
+async function findPatientByDni(dni: string) {
+    const normalized = normalizeDni(dni);
+    if (!normalized) return null;
+    return prisma.patient.findUnique({ where: { documentNumber: normalized } });
+}
+
+async function resolveIsFirstAppointment(
+    dni?: string | null,
+    email?: string | null,
+): Promise<boolean> {
     const { appointmentService } = await import("@/services/appointment-service");
 
     let patientId: string | null = null;
@@ -28,6 +39,11 @@ async function resolveIsFirstAppointment(email?: string | null): Promise<boolean
         const { patientService } = await import("@/services/patient-service");
         const patient = await patientService.getByUserId(user.id);
         patientId = patient?.id ?? null;
+    }
+
+    if (!patientId && dni) {
+        const existing = await findPatientByDni(dni);
+        patientId = existing?.id ?? null;
     }
 
     if (!patientId && email?.trim()) {
@@ -49,7 +65,17 @@ export async function getPublicLocations() {
     return locationService.listActive();
 }
 
-export async function getPublicAvailableSlots(date: string, locationId?: string | null, email?: string | null) {
+export async function lookupMemberByDni(dni: string) {
+    const { memberLookupService } = await import("@/services/member-lookup-service");
+    return memberLookupService.lookupByDni(dni);
+}
+
+export async function getPublicAvailableSlots(
+    date: string,
+    locationId?: string | null,
+    dni?: string | null,
+    email?: string | null,
+) {
     const professionalId = await getDefaultProfessionalId();
     const { availabilityService } = await import("@/services/availability-service");
     // date string is the Argentina-local date the user picked (e.g. "2026-08-27")
@@ -59,7 +85,7 @@ export async function getPublicAvailableSlots(date: string, locationId?: string 
     const utcDate = fromZonedTime(localNoon, AR_TZ);
 
     // Primera consulta: reservar 45 min completos. El resto usa la duración del bloque.
-    const isFirstAppointment = await resolveIsFirstAppointment(email);
+    const isFirstAppointment = await resolveIsFirstAppointment(dni, email);
     const opts = isFirstAppointment
         ? { duration: FIRST_CONSULTATION_DURATION_MINUTES }
         : undefined;
@@ -76,20 +102,21 @@ export async function getPublicAvailableSlots(date: string, locationId?: string 
 export async function createPublicBooking(data: {
     firstName: string;
     lastName: string;
-    email: string;
-    phone: string;
-    birthDate?: string;
-    goal?: string;
-    billingType: string;
+    dni: string;
     type: "ONLINE" | "IN_PERSON";
     locationId?: string;
     date: string;
     time: string;
+    email?: string;
+    phone?: string;
+    birthDate?: string;
+    goal?: string;
+    billingType?: string;
 }) {
+    const dni = normalizeDni(data.dni);
     if (!data.firstName?.trim()) throw new Error("El nombre es obligatorio");
     if (!data.lastName?.trim()) throw new Error("El apellido es obligatorio");
-    if (!data.email?.trim()) throw new Error("El email es obligatorio");
-    if (!data.phone?.trim()) throw new Error("El teléfono es obligatorio");
+    if (!isValidDni(dni)) throw new Error("Ingresá un DNI válido (7 u 8 dígitos)");
     if (!data.date) throw new Error("La fecha es obligatoria");
     if (!data.time) throw new Error("El horario es obligatorio");
 
@@ -119,33 +146,48 @@ export async function createPublicBooking(data: {
         throw new Error("Ese día no está disponible. Elegí otra fecha.");
     }
 
-    // Find or create patient
-    let patient = await prisma.patient.findFirst({
-        where: {
-            email: data.email.trim(),
-            deletedAt: null,
-        },
-    });
+    const email = data.email?.trim() || undefined;
+    const phone = data.phone?.trim() || undefined;
+
+    // Buscar la ficha del paciente por DNI (identificador principal)
+    let patient = await findPatientByDni(dni);
+
+    if (!patient && email) {
+        // Compatibilidad con fichas viejas sin DNI cargado
+        const byEmail = await prisma.patient.findFirst({
+            where: { email, deletedAt: null },
+        });
+        if (byEmail && !byEmail.documentNumber) {
+            patient = await prisma.patient.update({
+                where: { id: byEmail.id },
+                data: { documentNumber: dni },
+            });
+        }
+    }
 
     if (patient) {
-        // Backfill: si el paciente existente no tiene teléfono, guardar el aportado en la reserva
-        if (!patient.phone && data.phone?.trim()) {
-            const phone = data.phone.trim();
-            await prisma.patient.update({
-                where: { id: patient.id },
-                data: { phone },
-            });
-            patient.phone = phone;
-        }
+        // Reactivar ficha archivada y completar solo datos que falten
+        await prisma.patient.update({
+            where: { id: patient.id },
+            data: {
+                deletedAt: null,
+                phone: patient.phone || phone,
+                email: patient.email || email,
+                birthDate:
+                    patient.birthDate ||
+                    (data.birthDate ? new Date(data.birthDate) : undefined),
+            },
+        });
     } else {
         patient = await prisma.patient.create({
             data: {
                 firstName: data.firstName.trim(),
                 lastName: data.lastName.trim(),
-                email: data.email.trim(),
-                phone: data.phone.trim(),
+                documentNumber: dni,
+                email,
+                phone,
                 birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
-                billingType: data.billingType,
+                billingType: data.billingType || "particular",
                 notes: data.goal?.trim() || undefined,
             },
         });
@@ -167,46 +209,101 @@ export async function createPublicBooking(data: {
     const startAt = startAtCheck;
     const endAt = new Date(startAt.getTime() + duration * 60 * 1000);
 
-    // Check for conflicts
-    const conflict = await prisma.appointment.findFirst({
+    const appointmentInclude = {
+        patient: { select: { id: true, firstName: true, lastName: true } },
+        professional: { select: { id: true, fullName: true } },
+    } as const;
+
+    // Idempotencia: si el paciente ya tiene un turno en ese mismo horario,
+    // devolverlo en lugar de crear un duplicado (reintentos del flujo).
+    let appointment = await prisma.appointment.findFirst({
         where: {
-            professionalId,
+            patientId: patient.id,
+            startAt,
             status: { notIn: ["CANCELLED"] },
-            startAt: { lt: endAt },
-            endAt: { gt: startAt },
         },
+        include: appointmentInclude,
     });
 
-    if (conflict) {
-        throw new Error("Ese horario ya fue ocupado. Elegí otro.");
+    const isNewAppointment = !appointment;
+
+    if (!appointment) {
+        // Check for conflicts
+        const conflict = await prisma.appointment.findFirst({
+            where: {
+                professionalId,
+                status: { notIn: ["CANCELLED"] },
+                startAt: { lt: endAt },
+                endAt: { gt: startAt },
+            },
+        });
+
+        if (conflict) {
+            throw new Error("Ese horario ya fue ocupado. Elegí otro.");
+        }
+
+        appointment = await prisma.appointment.create({
+            data: {
+                patientId: patient.id,
+                professionalId,
+                type: data.type,
+                status: "PENDING",
+                startAt,
+                endAt,
+                locationId: sede?.id,
+                location: sede ? `${sede.name} — ${sede.address}` : undefined,
+                notes: data.goal?.trim() || undefined,
+            },
+            include: appointmentInclude,
+        });
+
+        revalidatePath("/dashboard/turnos");
     }
 
-    // Create appointment
-    const appointment = await prisma.appointment.create({
-        data: {
-            patientId: patient.id,
-            professionalId,
-            type: data.type,
-            status: "PENDING",
-            startAt,
-            endAt,
-            locationId: sede?.id,
-            location: sede ? `${sede.name} — ${sede.address}` : undefined,
-            notes: data.goal?.trim() || undefined,
-        },
-        include: {
-            patient: { select: { id: true, firstName: true, lastName: true } },
-            professional: { select: { id: true, fullName: true } },
-        },
-    });
+    // Aprovisionar cuenta de paciente por DNI (login sin fricción)
+    const { patientAccountService } = await import(
+        "@/services/patient-account-service"
+    );
+    let accountCreated = false;
+    try {
+        const { user, created } = await patientAccountService.provisionByDni(dni);
+        accountCreated = created;
 
-    revalidatePath("/dashboard/turnos");
+        if (!patient.userId) {
+            await prisma.patient.update({
+                where: { id: patient.id },
+                data: { userId: user.id },
+            });
+        }
 
-    const { notificationService } = await import("@/services/notification-service");
-    await notificationService.notifyAppointmentEvent(appointment.id, "CREATED");
+        if (created) {
+            const { authService } = await import("@/services/auth-service");
+            const token = await authService.issueToken(user);
+            const cookieStore = await cookies();
+            cookieStore.set("session_token", token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                maxAge: 60 * 60 * 24 * 7,
+                path: "/",
+            });
+        }
+    } catch (error) {
+        console.error(
+            "[public-booking] No se pudo aprovisionar la cuenta:",
+            error instanceof Error ? error.message : error,
+        );
+    }
+
+    // Solo notificar cuando el turno es realmente nuevo (evita emails duplicados)
+    if (isNewAppointment) {
+        const { notificationService } = await import("@/services/notification-service");
+        await notificationService.notifyAppointmentEvent(appointment.id, "CREATED");
+        await notificationService.notifyPatientBooking(appointment.id);
+    }
 
     return {
         appointment: serializePrisma(appointment),
         patient: serializePrisma(patient),
+        accountCreated,
     };
 }

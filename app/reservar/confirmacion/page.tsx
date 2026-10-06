@@ -23,12 +23,14 @@ interface ConfirmedBooking {
   firstName: string;
   lastName: string;
   email: string;
+  dni: string;
+  accountCreated: boolean;
   locationName?: string;
   locationAddress?: string;
 }
 
 function ConfirmacionContent() {
-  const { data, loggedPatient, reset } = useBooking();
+  const { data, loggedPatient } = useBooking();
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
@@ -53,14 +55,15 @@ function ConfirmacionContent() {
 
     async function book() {
       try {
-        await createPublicBooking({
+        const result = await createPublicBooking({
           firstName: data.firstName,
           lastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
+          dni: data.dni,
+          email: data.email || undefined,
+          phone: data.phone || undefined,
           birthDate: data.birthDate || undefined,
           goal: data.goal || undefined,
-          billingType: data.billingType,
+          billingType: data.billingType || "particular",
           type: data.type,
           locationId: data.type === "IN_PERSON" ? data.locationId : undefined,
           date: data.date,
@@ -73,6 +76,8 @@ function ConfirmacionContent() {
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
+          dni: data.dni,
+          accountCreated: !!result?.accountCreated,
           locationName: data.locationName || undefined,
           locationAddress: data.locationAddress || undefined,
         });
@@ -86,6 +91,12 @@ function ConfirmacionContent() {
     book();
   }, [data, status, needsSede]);
 
+  const hasPanelAccess = isLoggedIn || !!confirmedBooking?.accountCreated;
+
+  const goToPanel = () => {
+    router.push(hasPanelAccess ? "/paciente/dashboard" : "/auth/login");
+  };
+
   useEffect(() => {
     if (status !== "success" || !confirmedBooking) return;
 
@@ -93,46 +104,22 @@ function ConfirmacionContent() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          reset();
-          if (isLoggedIn) {
-            router.push("/paciente/dashboard");
-          } else {
-            const params = new URLSearchParams({
-              firstName: confirmedBooking.firstName,
-              lastName: confirmedBooking.lastName,
-              email: confirmedBooking.email,
-            });
-            router.push(`/auth/sign-up?${params.toString()}`);
-          }
+          goToPanel();
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [status, confirmedBooking, isLoggedIn, router, reset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, confirmedBooking, router]);
 
   const handlePrimaryAction = () => {
-    reset();
-    if (isLoggedIn) {
-      router.push("/paciente/dashboard");
-    } else if (confirmedBooking) {
-      const params = new URLSearchParams({
-        firstName: confirmedBooking.firstName,
-        lastName: confirmedBooking.lastName,
-        email: confirmedBooking.email,
-      });
-      router.push(`/auth/sign-up?${params.toString()}`);
-    }
+    goToPanel();
   };
 
   const handleGoHome = () => {
-    reset();
-    if (isLoggedIn) {
-      router.push("/paciente/dashboard");
-    } else {
-      router.push("/");
-    }
+    router.push("/");
   };
 
   if (status === "loading") {
@@ -171,10 +158,10 @@ function ConfirmacionContent() {
             Elegir otro horario
           </Link>
           <Link
-            href={isLoggedIn ? "/paciente/dashboard" : "/"}
+            href="/"
             className="inline-flex items-center justify-center h-11 px-8 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] no-underline transition-colors hover:bg-[rgba(0,0,0,0.02)]"
           >
-            {isLoggedIn ? "Volver a mi panel" : "Volver al inicio"}
+            Volver al inicio
           </Link>
         </div>
       </div>
@@ -198,9 +185,9 @@ function ConfirmacionContent() {
         Turno reservado
       </h1>
       <p className="text-sm text-[#666] mb-8 m-0 max-w-md mx-auto">
-        {isLoggedIn
-          ? "Tu turno fue registrado correctamente."
-          : "Tu turno fue registrado correctamente. Creá tu cuenta para gestionar tus turnos y ver tu historial."}
+        {hasPanelAccess
+          ? "Tu turno fue registrado correctamente. Ya podés gestionarlo desde tu panel."
+          : "Tu turno fue registrado correctamente. Iniciá sesión con tu DNI para gestionarlo."}
       </p>
 
       <div className="w-full max-w-md mx-auto flex flex-col gap-3 p-6 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white text-left mb-8">
@@ -242,13 +229,15 @@ function ConfirmacionContent() {
           onClick={handlePrimaryAction}
           className="inline-flex items-center justify-center h-11 px-8 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold transition-colors hover:bg-[#333] cursor-pointer"
         >
-          {isLoggedIn ? "Ir a mi panel" : `Crear mi cuenta (${countdown}s)`}
+          {hasPanelAccess
+            ? `Ir a mi panel (${countdown}s)`
+            : `Iniciar sesión (${countdown}s)`}
         </button>
         <button
           onClick={handleGoHome}
           className="inline-flex items-center justify-center h-11 px-8 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] transition-colors hover:bg-[rgba(0,0,0,0.02)] cursor-pointer"
         >
-          {isLoggedIn ? "Volver a mi panel" : "Volver al inicio"}
+          Volver al inicio
         </button>
       </div>
     </div>

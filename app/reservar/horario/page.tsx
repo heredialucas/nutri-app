@@ -8,7 +8,7 @@ import { getPublicAvailableSlots } from "@/app/actions/public-booking";
 import { CalendarDays, Loader2 } from "lucide-react";
 
 function HorarioForm() {
-  const { data, setStep3, loggedPatient } = useBooking();
+  const { data, setStep3 } = useBooking();
   const router = useRouter();
   const locationId = data.type === "IN_PERSON" ? data.locationId : null;
   const [selected, setSelected] = useState<string | null>(data.time || null);
@@ -33,7 +33,12 @@ function HorarioForm() {
       setLoading(true);
       setError(null);
       try {
-        const result = await getPublicAvailableSlots(selectedDate, locationId, data.email);
+        const result = await getPublicAvailableSlots(
+          selectedDate,
+          locationId,
+          data.dni,
+          data.email,
+        );
         setSlots(result);
         if (result.length === 0) {
           setError("No hay horarios disponibles para esa fecha. Elegí otro día.");
@@ -45,12 +50,12 @@ function HorarioForm() {
       }
     }
     loadSlots();
-  }, [selectedDate, locationId, data.email]);
+  }, [selectedDate, locationId, data.dni, data.email]);
 
   const handleContinue = () => {
     if (!selected) return;
     setStep3(selectedDate, selected);
-    router.push("/reservar/confirmacion");
+    router.push("/reservar/datos");
   };
 
   const minDate = (() => {
@@ -135,13 +140,7 @@ function HorarioForm() {
 
       <div className="flex gap-3">
         <Link
-          href={
-            data.type === "IN_PERSON"
-              ? "/reservar/sede"
-              : loggedPatient
-              ? "/paciente/dashboard"
-              : "/reservar/datos"
-          }
+          href={data.type === "IN_PERSON" ? "/reservar/sede" : "/reservar"}
           className="inline-flex items-center justify-center h-11 px-6 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] no-underline transition-colors hover:bg-[rgba(0,0,0,0.02)]"
         >
           Volver

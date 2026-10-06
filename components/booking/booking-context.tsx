@@ -9,6 +9,7 @@ export interface LoggedPatient {
     phone: string;
     birthDate: string;
     billingType: string;
+    dni: string;
 }
 
 export interface BookingData {
@@ -18,6 +19,7 @@ export interface BookingData {
     locationAddress: string;
     firstName: string;
     lastName: string;
+    dni: string;
     email: string;
     phone: string;
     birthDate: string;
@@ -51,6 +53,7 @@ function buildInitialData(loggedPatient: LoggedPatient | null): BookingData {
             locationAddress: "",
             firstName: loggedPatient.firstName,
             lastName: loggedPatient.lastName,
+            dni: loggedPatient.dni,
             email: loggedPatient.email,
             phone: loggedPatient.phone,
             birthDate: loggedPatient.birthDate,
@@ -67,6 +70,7 @@ function buildInitialData(loggedPatient: LoggedPatient | null): BookingData {
         locationAddress: "",
         firstName: "",
         lastName: "",
+        dni: "",
         email: "",
         phone: "",
         birthDate: "",

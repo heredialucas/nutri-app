@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { createHash, randomBytes } from "node:crypto";
 import { sendEmail } from "@/lib/email";
+import { normalizeDni } from "@/lib/dni";
 
 const SECRET_KEY = new TextEncoder().encode(
     process.env.JWT_SECRET || "default-secret-change-me-in-prod"
@@ -11,25 +12,50 @@ const SECRET_KEY = new TextEncoder().encode(
 const ALG = "HS256";
 
 export const authService = {
-    async register(email: string, password: string, username?: string): Promise<any> {
-        const existingEmail = await prisma.user.findUnique({ where: { email } });
-        if (existingEmail) {
-            throw new Error("El email ya está registrado");
+    async register(data: {
+        email?: string | null;
+        password: string;
+        username?: string | null;
+        dni?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+    }): Promise<any> {
+        const email = data.email?.trim() || null;
+        const username = data.username?.trim() || null;
+        const dni = data.dni ? normalizeDni(data.dni) : null;
+
+        if (!email && !dni) {
+            throw new Error("Se requiere un email o un DNI");
+        }
+
+        if (email) {
+            const existingEmail = await prisma.user.findUnique({ where: { email } });
+            if (existingEmail) throw new Error("El email ya está registrado");
+        }
+
+        if (dni) {
+            const existingDni = await prisma.user.findUnique({ where: { dni } });
+            if (existingDni) throw new Error("El DNI ya está registrado");
         }
 
         if (username) {
             const existingUsername = await prisma.user.findUnique({ where: { username } });
-            if (existingUsername) {
-                throw new Error("El nombre de usuario ya está en uso");
-            }
+            if (existingUsername) throw new Error("El nombre de usuario ya está en uso");
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(data.password, 10);
         const user = await prisma.user.create({
             data: {
                 email,
+                dni,
                 username,
                 password: hashedPassword,
+                firstName: data.firstName?.trim() || undefined,
+                lastName: data.lastName?.trim() || undefined,
+                fullName:
+                    data.firstName && data.lastName
+                        ? `${data.firstName.trim()} ${data.lastName.trim()}`
+                        : undefined,
             },
         });
 
@@ -37,11 +63,15 @@ export const authService = {
     },
 
     async login(identifier: string, password: string): Promise<{ user: any; token: string }> {
+        const trimmed = identifier.trim();
+        const digits = normalizeDni(trimmed);
+
         const user = await prisma.user.findFirst({
             where: {
                 OR: [
-                    { email: identifier },
-                    { username: identifier }
+                    { email: trimmed },
+                    { username: trimmed },
+                    ...(digits ? [{ dni: digits }] : []),
                 ]
             }
         });
@@ -60,13 +90,28 @@ export const authService = {
             throw new Error("Tu cuenta ha sido desactivada. Contactá a tu nutricionista.");
         }
 
-        const token = await new SignJWT({ userId: user.id, email: user.email, username: user.username })
+        const token = await this.issueToken(user);
+
+        return { user, token };
+    },
+
+    /**
+     * Genera un token de sesión para un usuario ya validado.
+     */
+    async issueToken(user: {
+        id: string;
+        email: string | null;
+        username?: string | null;
+    }): Promise<string> {
+        return new SignJWT({
+            userId: user.id,
+            email: user.email,
+            username: user.username ?? null,
+        })
             .setProtectedHeader({ alg: ALG })
             .setIssuedAt()
             .setExpirationTime("7d")
             .sign(SECRET_KEY);
-
-        return { user, token };
     },
 
     async verifySession(token: string) {
@@ -83,7 +128,7 @@ export const authService = {
     async requestPasswordReset(email: string): Promise<void> {
         const normalizedEmail = email.trim().toLowerCase();
         const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-        if (!user) {
+        if (!user || !user.email) {
             return;
         }
 

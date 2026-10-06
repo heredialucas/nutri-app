@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { notifyAdmin } from "@/lib/email";
+import { notifyAdmin, sendEmail } from "@/lib/email";
 import { formatInTimeZone } from "date-fns-tz";
 
 const AR_TZ = "America/Argentina/Buenos_Aires";
@@ -108,6 +108,61 @@ export const notificationService = {
         } catch (error) {
             console.error(
                 "[notification] Error notificando turno:",
+                error instanceof Error ? error.message : error,
+            );
+            return false;
+        }
+    },
+
+    /**
+     * Envía la confirmación de reserva al paciente. Solo se envía si el
+     * paciente tiene un email cargado. Nunca lanza.
+     */
+    async notifyPatientBooking(appointmentId: string): Promise<boolean> {
+        try {
+            const appointment = await prisma.appointment.findUnique({
+                where: { id: appointmentId },
+                include: {
+                    patient: {
+                        select: { firstName: true, email: true },
+                    },
+                    professional: { select: { fullName: true } },
+                    sede: { select: { name: true, address: true } },
+                },
+            });
+
+            if (!appointment?.patient.email) return false;
+
+            const typeStr =
+                appointment.type === "ONLINE" ? "Online" : "Presencial";
+            const locationStr =
+                appointment.type === "ONLINE"
+                    ? appointment.meetingUrl || "Te enviaremos el link de la videollamada."
+                    : appointment.sede
+                      ? `${appointment.sede.name} — ${appointment.sede.address}`
+                      : appointment.location || "A confirmar";
+
+            const body = `<p style="margin:0 0 16px;font-size:15px">Hola ${escapeHtml(
+                appointment.patient.firstName,
+            )}, tu turno quedó registrado. Te esperamos.</p>
+<table style="border-collapse:collapse;width:100%">
+  ${row("Fecha", formatDate(appointment.startAt))}
+  ${row("Hora", `${formatTime(appointment.startAt)} – ${formatTime(appointment.endAt)} hs`)}
+  ${row("Tipo", typeStr)}
+  ${row("Sede / Link", locationStr)}
+  ${row("Profesional", appointment.professional.fullName)}
+  ${row("Estado", "Pendiente de confirmación")}
+</table>
+<p style="margin-top:16px;font-size:13px;color:#64748b">Podés gestionar tus turnos desde tu portal de paciente.</p>`;
+
+            return await sendEmail({
+                to: appointment.patient.email,
+                subject: `Turno registrado · ${formatDate(appointment.startAt)} ${formatTime(appointment.startAt)} hs`,
+                html: wrapHtml("Turno registrado", body),
+            });
+        } catch (error) {
+            console.error(
+                "[notification] Error notificando turno al paciente:",
                 error instanceof Error ? error.message : error,
             );
             return false;

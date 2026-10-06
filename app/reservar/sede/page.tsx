@@ -12,30 +12,19 @@ interface PublicLocation {
   address: string;
 }
 
-const isComplete = (v: string, placeholder?: string) =>
-  !!v && v.trim() !== "" && v.trim() !== placeholder;
-
 export default function SedePage() {
-  const { data, setLocation, loggedPatient } = useBooking();
+  const { data, setLocation } = useBooking();
   const router = useRouter();
   const [locations, setLocations] = useState<PublicLocation[]>([]);
   const [selected, setSelected] = useState<string>(data.locationId || "");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const patientDataComplete = !!(
-    loggedPatient &&
-    isComplete(data.firstName, "Sin nombre") &&
-    isComplete(data.lastName, "Sin apellido") &&
-    isComplete(data.email) &&
-    isComplete(data.phone)
-  );
-
   useEffect(() => {
     if (data.type === "ONLINE") {
-      router.replace(patientDataComplete ? "/reservar/horario" : "/reservar/datos");
+      router.replace("/reservar/horario");
     }
-  }, [data.type, patientDataComplete, router]);
+  }, [data.type, router]);
 
   useEffect(() => {
     async function load() {
@@ -56,7 +45,7 @@ export default function SedePage() {
 
   const continueWith = (locationId: string, name: string, address: string) => {
     setLocation(locationId, name, address);
-    router.push(patientDataComplete ? "/reservar/horario" : "/reservar/datos");
+    router.push("/reservar/horario");
   };
 
   const handleContinue = () => {

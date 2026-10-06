@@ -14,6 +14,7 @@ import {
 } from "@/app/actions/locations";
 import { toast } from "sonner";
 import { MapPin, Plus, Pencil, Trash2, X } from "lucide-react";
+import { QrDialog } from "@/components/locations/qr-dialog";
 
 interface LocationItem {
     id: string;
@@ -150,6 +151,7 @@ export function LocationManager({ locations }: { locations: LocationItem[] }) {
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
+                                    <QrDialog locationId={location.id} locationName={location.name} />
                                     <Button
                                         variant="outline"
                                         size="sm"

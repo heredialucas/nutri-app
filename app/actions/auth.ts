@@ -4,6 +4,7 @@ import { authService } from "@/services/auth-service";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
+import { normalizeDni } from "@/lib/dni";
 
 export async function loginAction(formData: FormData) {
     const identifier = formData.get("identifier") as string;
@@ -44,32 +45,36 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function registerAction(data: {
-    email: string;
+    email?: string;
     password: string;
     username?: string;
     firstName?: string;
     lastName?: string;
+    dni?: string;
 }) {
-    const { email, password, username, firstName, lastName } = data;
+    const email = data.email?.trim() || "";
+    const password = data.password;
+    const username = data.username?.trim() || undefined;
+    const firstName = data.firstName?.trim() || "";
+    const lastName = data.lastName?.trim() || "";
+    const dni = data.dni ? normalizeDni(data.dni) : "";
 
-    if (!email || !password) {
-        return { error: "Faltan datos" };
+    if (!password) {
+        return { error: "Falta la contraseña" };
+    }
+    if (!email && !dni) {
+        return { error: "Ingresá tu DNI o tu email" };
     }
 
     try {
-        const user = await authService.register(email, password, username);
-
-        // Update user with firstName/lastName if provided
-        if (firstName || lastName) {
-            await prisma.user.update({
-                where: { id: user.id },
-                data: {
-                    firstName: firstName || undefined,
-                    lastName: lastName || undefined,
-                    fullName: firstName && lastName ? `${firstName} ${lastName}` : undefined,
-                },
-            });
-        }
+        const user = await authService.register({
+            email: email || null,
+            password,
+            username,
+            dni: dni || null,
+            firstName: firstName || null,
+            lastName: lastName || null,
+        });
 
         // Assign PATIENT role
         const patientRole = await prisma.role.findUnique({ where: { name: "PATIENT" } });
@@ -81,31 +86,37 @@ export async function registerAction(data: {
             });
         }
 
-        // Create Patient record linked to User
-        const existingPatient = await prisma.patient.findFirst({
-            where: { email: email.trim(), deletedAt: null },
-        });
+        // Buscar ficha de paciente existente por DNI o email
+        const existingPatient = dni
+            ? await prisma.patient.findUnique({ where: { documentNumber: dni } })
+            : email
+              ? await prisma.patient.findFirst({ where: { email, deletedAt: null } })
+              : null;
 
         if (existingPatient) {
-            // Link existing patient to this user
             await prisma.patient.update({
                 where: { id: existingPatient.id },
-                data: { userId: user.id },
+                data: {
+                    userId: user.id,
+                    deletedAt: null,
+                    email: existingPatient.email || email || null,
+                },
             });
         } else {
             await prisma.patient.create({
                 data: {
                     userId: user.id,
-                    firstName: (firstName || "").trim() || "Sin nombre",
-                    lastName: (lastName || "").trim() || "Sin apellido",
-                    email: email.trim(),
+                    firstName: firstName || "Sin nombre",
+                    lastName: lastName || "Sin apellido",
+                    email: email || undefined,
+                    documentNumber: dni || undefined,
                     billingType: "particular",
                 },
             });
         }
 
         // Auto-login
-        const { token } = await authService.login(email, password);
+        const { token } = await authService.login(email || dni, password);
 
         const cookieStore = await cookies();
         cookieStore.set("session_token", token, {

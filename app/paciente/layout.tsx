@@ -30,7 +30,7 @@ export default async function PacienteLayout({
         <div className="min-h-screen bg-[#fafaf8] flex">
             <ReminderTrigger />
             {patient && <PatientChatDrawer />}
-            <PatientNav userName={user.firstName || user.email} />
+            <PatientNav userName={user.firstName || user.email || user.dni || "Paciente"} />
 
             <div className="flex-1 flex flex-col min-w-0">
                 <header className="border-b border-[rgba(0,0,0,0.06)] bg-white sticky top-0 z-20">
@@ -44,10 +44,10 @@ export default async function PacienteLayout({
                             className="md:hidden h-7 w-auto shrink-0"
                         />
                         <div className="flex items-center gap-1.5 md:ml-auto ml-auto">
-                            <LogoutButton userName={user.firstName || user.email} />
+                            <LogoutButton userName={user.firstName || user.email || user.dni || "Paciente"} />
                             {/* Menu al final */}
                             <div className="md:hidden">
-                                <PatientMobileMenu userName={user.firstName || user.email} />
+                                <PatientMobileMenu userName={user.firstName || user.email || user.dni || "Paciente"} />
                             </div>
                         </div>
                     </div>

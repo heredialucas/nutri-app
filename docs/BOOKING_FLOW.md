@@ -2,7 +2,18 @@
 
 ## Visión general
 
-La reserva de turnos es un proceso público (sin login) que permite a nuevos pacientes agendar una primera consulta con Mauro Acosta. El flujo consta de 4 pasos para turnos online y 5 para turnos presenciales (se agrega la elección de sede).
+La reserva de turnos es un proceso público (sin login). El paciente solo necesita
+**DNI + nombre y apellido** para reservar; el resto de los datos son opcionales y
+se pueden completar después desde el portal del paciente.
+
+El **DNI es el identificador de login**. Al reservar, el sistema aprovisiona una
+cuenta de paciente automáticamente y deja la sesión iniciada, eliminando la fricción
+de crear cuenta.
+
+Hay dos puertas de entrada:
+
+1. **Flujo guiado** `/reservar` (elegir tipo, sede, horario y datos).
+2. **Chat por QR** `/ingresar?loc=<idSede>` (pensado para gimnasios/socios).
 
 ## Rutas
 
@@ -10,60 +21,83 @@ La reserva de turnos es un proceso público (sin login) que permite a nuevos pac
 |------|-------------|
 | `/reservar` | Selección de tipo de turno (presencial u online) |
 | `/reservar/sede` | Selección de sede (solo turnos presenciales) |
-| `/reservar/datos` | Formulario con datos personales del paciente |
 | `/reservar/horario` | Selección de fecha y horario disponible |
+| `/reservar/datos` | Datos mínimos: DNI, nombre y apellido (el resto es opcional) |
 | `/reservar/confirmacion` | Resumen y confirmación de la reserva |
+| `/ingresar?loc=<idSede>` | Chat guiado de intake (entrada por QR) |
 
 ## Flujo paso a paso
 
 ### 1. Tipo de turno (`/reservar`)
 
 El paciente elige entre:
-- **Presencial**: consulta en el consultorio. Continúa a la selección de sede.
-- **Online**: consulta por videollamada. Salta directo a los datos personales.
+- **Presencial**: continúa a la selección de sede.
+- **Online**: salta directo a la selección de horario.
 
 ### 2. Sede (`/reservar/sede`)
 
 Solo para turnos presenciales:
 - Se listan las sedes activas administradas desde `/dashboard/configuracion/sedes`.
-- Cada sede muestra nombre y dirección.
-- La sede elegida determina la disponibilidad horaria que se ofrece en el paso de horario.
+- La sede elegida determina la disponibilidad horaria del paso siguiente.
 
-### 3. Datos personales (`/reservar/datos`)
-
-Formulario con:
-- Nombre y apellido
-- Email
-- Teléfono
-- Fecha de nacimiento (opcional)
-- Observaciones (opcional)
-
-### 4. Selección de horario (`/reservar/horario`)
+### 3. Selección de horario (`/reservar/horario`)
 
 - Se muestra un calendario con los días disponibles.
-- La disponibilidad se obtiene de la tabla `availability` del profesional, filtrando por la sede elegida (o por modalidad online).
-- Se muestran los slots disponibles según la `slotDuration` configurada.
-- Se filtran horarios ocupados (turnos existentes con status `PENDING` o `CONFIRMED`).
+- La disponibilidad se obtiene de la tabla `availability`, filtrando por sede (o por
+  modalidad online).
+- **La primera consulta de un paciente dura 45 minutos** y reserva ese bloque completo.
+- La primera consulta se detecta por DNI (o por el paciente con sesión iniciada).
+
+### 4. Datos mínimos (`/reservar/datos`)
+
+Formulario con:
+- **DNI (obligatorio)**
+- **Nombre (obligatorio)**
+- **Apellido (obligatorio)**
+
+Dentro de "Agregar más datos (opcional)": email, teléfono, fecha de nacimiento y
+motivo de consulta. Si el paciente tiene sesión iniciada y sus datos ya están
+completos, este paso se saltea automáticamente.
 
 ### 5. Confirmación (`/reservar/confirmacion`)
 
-Resumen con:
-- Tipo de turno
-- Sede (solo presencial)
-- Datos del paciente
-- Fecha y horario seleccionado
-- Botón de confirmación
+Resumen y confirmación. Al confirmar:
 
-Al confirmar:
-1. Se crea un registro en `Patient` (si es nuevo) o se usa uno existente.
-2. Se crea un `Appointment` con status `PENDING`.
-3. Se muestra confirmación con opción de volver al inicio.
+1. Se busca la ficha `Patient` por DNI; si no existe, se crea con los datos mínimos.
+2. Se crea el `Appointment` con estado `PENDING`.
+3. Se **aprovisiona la cuenta de paciente** (User con `dni`) si no existía y se inicia
+   sesión automáticamente.
+4. Se envía email de confirmación al paciente (solo si cargó email) y aviso al
+   consultorio.
+
+## Entrada por QR (gimnasios)
+
+Cada sede tiene un QR descargable desde `/dashboard/configuracion/sedes` que apunta a
+`/ingresar?loc=<idSede>`.
+
+El chat guiado pide, en orden:
+1. **DNI** (consulta el padrón externo por DNI — hoy sin conectar, ver
+   `services/member-lookup-service.ts`; si devuelve datos, se prellenan).
+2. **Nombre y apellido** (si no vinieron del padrón).
+3. **Fecha y horario** (slots reales, con la regla de 45 min de la primera consulta).
+4. **Confirmación**.
+
+Como el QR identifica la sede, la modalidad viene preseleccionada como presencial en
+esa sede. Sin `?loc=`, el chat permite elegir modalidad y sede.
+
+## Cuenta y login
+
+- **Identificador de login**: DNI, email o usuario (`authService.login`).
+- `User.email` es opcional; `User.dni` es único.
+- `Patient.documentNumber` (DNI) es **único** y se guarda normalizado (solo dígitos).
+- La cuenta se crea con contraseña aleatoria y sesión automática; el paciente puede
+  definir su contraseña o cargar un email luego.
 
 ## Tipos de turno
 
 | Tipo | Enum | Descripción |
 |------|------|-------------|
-| Presencial | `IN_PERSON` | Consulta en el consultorio |
+| Presencial | `IN_PERSON` | Consulta en el consultorio/sede |
 | Online | `ONLINE` | Consulta por videollamada |
 
 ## Estados del turno
@@ -81,37 +115,23 @@ Al confirmar:
 
 - No se permiten turnos en horarios pasados.
 - Los turnos presenciales requieren elegir una sede activa.
-- La disponibilidad se configura por separado para cada sede y para la modalidad online.
-- No se permiten solapamientos de turnos para el mismo profesional (aunque sean en sedes distintas).
-- **La primera consulta de un paciente dura 45 minutos** (anamnesis, antropometría y evaluación completa). Se considera primera consulta cuando el paciente no tiene turnos en estado `PENDING`, `CONFIRMED`, `COMPLETED` o `RESCHEDULED` (los cancelados y las ausencias no cuentan).
-- La primera consulta reserva 45 minutos completos: la grilla de horarios solo ofrece turnos donde entren los 45 min sin superponerse con otro turno.
-- El resto de los turnos usan la `slotDuration` configurada en el bloque de disponibilidad.
-- Se valida la disponibilidad horaria configurada.
-- Los turnos online pueden incluir un link de videollamada.
+- No se permiten solapamientos de turnos para el mismo profesional.
+- La primera consulta dura 45 minutos; el resto usa la `slotDuration` del bloque.
+- El DNI es obligatorio y único; el email es opcional.
 
 ## Gestión de sedes
 
-Desde `/dashboard/configuracion/sedes` (solo administradores) se puede:
-- Crear, editar y eliminar sedes (nombre y dirección).
-- Activar o desactivar sedes (las inactivas no se ofrecen al reservar).
-- Una sede no se puede eliminar si tiene turnos o disponibilidad asociada.
+Desde `/dashboard/configuracion/sedes` (solo administradores) se puede crear, editar,
+activar/desactivar y eliminar sedes, y **descargar el QR de reserva** de cada una.
 
 ## Gestión desde el dashboard profesional
 
-El profesional de todos los turnos es siempre **Mauro Acosta** (el admin del sitio). Por el momento no se delega la agenda a otros actores ni se permite elegir otro profesional al crear o reprogramar un turno.
-
-Desde `/dashboard/turnos` el profesional puede:
-- Ver la lista de turnos del mes con filtro por estado.
-- Ver el calendario mensual (con acceso directo al alta de turno por día).
-- Crear turnos manualmente (duración precargada en 45 min si es la primera consulta).
-- Crear un paciente nuevo desde el mismo alta con un formulario mínimo (nombre, apellido, teléfono y email); el resto de los datos se completa después desde su ficha.
-- Ver el detalle de cada turno.
-- Confirmar, reprogramar, cancelar (con motivo), marcar como completado o ausente.
-- Configurar, editar, activar/desactivar y eliminar bloques de disponibilidad horaria.
+El profesional de todos los turnos es siempre **Mauro Acosta** (el admin del sitio).
+Desde `/dashboard/turnos` se puede ver la agenda, crear turnos manualmente, completar,
+reprogramar, cancelar y configurar disponibilidad.
 
 ## Gestión desde el portal del paciente
 
-Desde `/paciente/dashboard/turnos` el paciente puede:
-- Ver sus próximos turnos.
-- Solicitar cancelación (con motivo).
-- Solicitar reprogramación.
+Desde `/paciente/dashboard/turnos` el paciente puede ver sus próximos turnos, solicitar
+cancelación (con motivo) y reprogramación. El resto de sus datos puede completarlos en
+`/paciente/dashboard/perfil`.

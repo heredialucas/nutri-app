@@ -12,8 +12,8 @@ import type { LoggedPatient } from "@/components/booking/booking-context";
 const baseSteps = [
   { href: "/reservar", label: "Tipo" },
   { href: "/reservar/sede", label: "Sede", inPersonOnly: true },
-  { href: "/reservar/datos", label: "Datos" },
   { href: "/reservar/horario", label: "Horario" },
+  { href: "/reservar/datos", label: "Datos" },
   { href: "/reservar/confirmacion", label: "Confirmar" },
 ];
 

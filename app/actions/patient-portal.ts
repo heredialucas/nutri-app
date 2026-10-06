@@ -10,6 +10,7 @@ import { recipeService } from "@/services/recipe-service";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serializePrisma } from "@/lib/utils";
+import { normalizeDni, isValidDni } from "@/lib/dni";
 import type { AnamnesisInput } from "@/app/actions/anamnesis";
 
 async function requirePatient() {
@@ -219,19 +220,35 @@ export async function updateMyProfile(data: {
     }
     if (data.email !== undefined) {
         const email = data.email.trim();
-        if (!email) throw new Error("El email es obligatorio");
-        const conflict = await prisma.patient.findFirst({
-            where: { email, id: { not: patient.id }, deletedAt: null },
-            select: { id: true },
-        });
-        if (conflict) throw new Error("Ese email ya está en uso por otro paciente");
-        updateData.email = email;
+        if (!email) {
+            updateData.email = null;
+        } else {
+            const conflict = await prisma.patient.findFirst({
+                where: { email, id: { not: patient.id }, deletedAt: null },
+                select: { id: true },
+            });
+            if (conflict) throw new Error("Ese email ya está en uso por otro paciente");
+            updateData.email = email;
+        }
     }
     if (data.phone !== undefined) updateData.phone = data.phone.trim() || null;
     if (data.birthDate !== undefined) updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null;
     if (data.billingType !== undefined) updateData.billingType = data.billingType;
     if (data.gender !== undefined) updateData.gender = data.gender.trim() || null;
-    if (data.documentNumber !== undefined) updateData.documentNumber = data.documentNumber.trim() || null;
+    if (data.documentNumber !== undefined) {
+        const dni = normalizeDni(data.documentNumber);
+        if (!dni) {
+            updateData.documentNumber = null;
+        } else {
+            if (!isValidDni(dni)) throw new Error("Ingresá un DNI válido (7 u 8 dígitos)");
+            const conflict = await prisma.patient.findFirst({
+                where: { documentNumber: dni, id: { not: patient.id } },
+                select: { id: true },
+            });
+            if (conflict) throw new Error("Ese DNI ya está registrado en otro paciente");
+            updateData.documentNumber = dni;
+        }
+    }
     if (data.city !== undefined) updateData.city = data.city.trim() || null;
     if (data.address !== undefined) updateData.address = data.address.trim() || null;
     if (data.occupation !== undefined) updateData.occupation = data.occupation.trim() || null;

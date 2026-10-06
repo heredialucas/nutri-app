@@ -40,7 +40,7 @@ export default function ReservarPage() {
 
   const handleSelect = (type: "ONLINE" | "IN_PERSON") => {
     setStep1(type);
-    router.push(type === "IN_PERSON" ? "/reservar/sede" : "/reservar/datos");
+    router.push(type === "IN_PERSON" ? "/reservar/sede" : "/reservar/horario");
   };
 
   return (

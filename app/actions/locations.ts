@@ -49,3 +49,15 @@ export async function deleteLocation(id: string) {
     revalidateLocations();
     return { success: true };
 }
+
+export async function getLocationQr(id: string) {
+    await requireManage();
+    const location = await locationService.getById(id);
+    if (!location) throw new Error("Sede no encontrada");
+
+    const { buildIntakeUrl, generateQrDataUrl } = await import("@/lib/qr");
+    const url = buildIntakeUrl(location.id);
+    const dataUrl = await generateQrDataUrl(url);
+
+    return { url, dataUrl, name: location.name };
+}

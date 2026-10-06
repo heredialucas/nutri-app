@@ -81,7 +81,7 @@ export default async function AntropometriaModulePage() {
 
   return (
     <IsakModule
-      userName={user.fullName || user.email}
+      userName={user.fullName || user.email || user.dni || "Usuario"}
       evaluations={evaluations}
       patients={patientsData}
     />

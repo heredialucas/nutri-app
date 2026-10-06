@@ -60,7 +60,7 @@ export interface LocationOption {
 export interface ProfessionalOption {
     id: string;
     fullName: string | null;
-    email: string;
+    email: string | null;
 }
 
 interface AppointmentSlot {

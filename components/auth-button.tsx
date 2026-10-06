@@ -8,8 +8,8 @@ export async function AuthButton() {
 
   return user ? (
     <UserNav user={{ 
-      username: user.username || user.firstName || user.email.split('@')[0], 
-      email: user.email 
+      username: user.username || user.firstName || (user.email || user.dni || "usuario").split('@')[0], 
+      email: user.email ?? undefined 
     }} />
   ) : (
     <div className="flex gap-2">
