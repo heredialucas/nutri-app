@@ -17,6 +17,7 @@ model User {
   password  String
   fullName  String?
   isActive  Boolean    @default(true)
+  mustSetPassword Boolean @default(false) @map("must_set_password")
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   firstName String?
@@ -24,6 +25,7 @@ model User {
   username  String?    @unique
   userRoles UserRole[]
   passwordResetTokens PasswordResetToken[]
+  emailVerificationCodes EmailVerificationCode[]
 
   // WhatsApp settings
   whatsappSetting WhatsAppSetting?
@@ -59,6 +61,22 @@ model PasswordResetToken {
 
   @@index([userId, expiresAt])
   @@map("password_reset_tokens")
+}
+
+model EmailVerificationCode {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String
+  userId     String?  @db.Uuid
+  codeHash   String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email, createdAt])
+  @@map("email_verification_codes")
 }
 
 model Role {

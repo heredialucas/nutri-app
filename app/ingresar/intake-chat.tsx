@@ -101,7 +101,10 @@ export default function IntakeChat({ location }: IntakeChatProps) {
     const [slotsError, setSlotsError] = useState<string | null>(null);
 
     const [submitting, setSubmitting] = useState(false);
-    const [result, setResult] = useState<{ accountCreated: boolean } | null>(null);
+    const [result, setResult] = useState<{
+        accountCreated: boolean;
+        mustSetPassword: boolean;
+    } | null>(null);
     const [doneKind, setDoneKind] = useState<"booked" | "kept">("booked");
 
     const push = (role: Msg["role"], text: string) => {
@@ -291,7 +294,10 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                 time: selectedTime!,
                 replaceExisting,
             });
-            setResult({ accountCreated: !!res?.accountCreated });
+            setResult({
+                accountCreated: !!res?.accountCreated,
+                mustSetPassword: res?.mustSetPassword ?? true,
+            });
             setDoneKind("booked");
             pushBot(
                 replaceExisting
@@ -372,6 +378,16 @@ export default function IntakeChat({ location }: IntakeChatProps) {
     };
 
     const minDate = todayString();
+
+    const activationHref = `/auth/sign-up?${new URLSearchParams({
+        dni,
+        firstName,
+        lastName,
+    }).toString()}`;
+    const bookedHref = result?.mustSetPassword ? activationHref : "/auth/login";
+    const bookedLabel = result?.mustSetPassword
+        ? "Crear mi contraseña"
+        : "Iniciar sesión";
 
     return (
         <div className="min-h-screen bg-[#fafaf8] flex flex-col">
@@ -658,16 +674,12 @@ export default function IntakeChat({ location }: IntakeChatProps) {
                             <button
                                 onClick={() =>
                                     router.push(
-                                        doneKind === "booked" && !result?.accountCreated
-                                            ? "/auth/login"
-                                            : "/paciente/dashboard",
+                                        doneKind === "kept" ? "/paciente/dashboard" : bookedHref,
                                     )
                                 }
                                 className="h-11 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold hover:bg-[#333] transition-colors cursor-pointer"
                             >
-                                {doneKind === "booked" && !result?.accountCreated
-                                    ? "Iniciar sesión"
-                                    : "Ir a mi panel"}
+                                {doneKind === "kept" ? "Ir a mi panel" : bookedLabel}
                             </button>
                             <button
                                 onClick={resetAll}

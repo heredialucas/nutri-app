@@ -25,6 +25,7 @@ interface ConfirmedBooking {
   email: string;
   dni: string;
   accountCreated: boolean;
+  mustSetPassword: boolean;
   locationName?: string;
   locationAddress?: string;
 }
@@ -78,6 +79,7 @@ function ConfirmacionContent() {
           email: data.email,
           dni: data.dni,
           accountCreated: !!result?.accountCreated,
+          mustSetPassword: result?.mustSetPassword ?? true,
           locationName: data.locationName || undefined,
           locationAddress: data.locationAddress || undefined,
         });
@@ -91,10 +93,30 @@ function ConfirmacionContent() {
     book();
   }, [data, status, needsSede]);
 
-  const hasPanelAccess = isLoggedIn || !!confirmedBooking?.accountCreated;
+  const needsActivation = !isLoggedIn && !!confirmedBooking?.mustSetPassword;
 
-  const goToPanel = () => {
-    router.push(hasPanelAccess ? "/paciente/dashboard" : "/auth/login");
+  const activationHref = confirmedBooking
+    ? `/auth/sign-up?${new URLSearchParams({
+        dni: confirmedBooking.dni,
+        firstName: confirmedBooking.firstName,
+        lastName: confirmedBooking.lastName,
+      }).toString()}`
+    : "/auth/sign-up";
+
+  const primaryHref = isLoggedIn
+    ? "/paciente/dashboard"
+    : needsActivation
+      ? activationHref
+      : "/auth/login";
+
+  const primaryLabel = isLoggedIn
+    ? "Ir a mi panel"
+    : needsActivation
+      ? "Crear mi contraseña"
+      : "Iniciar sesión";
+
+  const goToPrimary = () => {
+    router.push(primaryHref);
   };
 
   useEffect(() => {
@@ -104,7 +126,7 @@ function ConfirmacionContent() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          goToPanel();
+          goToPrimary();
           return 0;
         }
         return prev - 1;
@@ -115,7 +137,7 @@ function ConfirmacionContent() {
   }, [status, confirmedBooking, router]);
 
   const handlePrimaryAction = () => {
-    goToPanel();
+    goToPrimary();
   };
 
   const handleGoHome = () => {
@@ -185,9 +207,11 @@ function ConfirmacionContent() {
         Turno reservado
       </h1>
       <p className="text-sm text-[#666] mb-8 m-0 max-w-md mx-auto">
-        {hasPanelAccess
+        {isLoggedIn
           ? "Tu turno fue registrado correctamente. Ya podés gestionarlo desde tu panel."
-          : "Tu turno fue registrado correctamente. Iniciá sesión con tu DNI para gestionarlo."}
+          : needsActivation
+            ? "Tu turno fue registrado. Creá tu contraseña para entrar y gestionarlo."
+            : "Tu turno fue registrado correctamente. Iniciá sesión con tu DNI para gestionarlo."}
       </p>
 
       <div className="w-full max-w-md mx-auto flex flex-col gap-3 p-6 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white text-left mb-8">
@@ -229,9 +253,7 @@ function ConfirmacionContent() {
           onClick={handlePrimaryAction}
           className="inline-flex items-center justify-center h-11 px-8 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold transition-colors hover:bg-[#333] cursor-pointer"
         >
-          {hasPanelAccess
-            ? `Ir a mi panel (${countdown}s)`
-            : `Iniciar sesión (${countdown}s)`}
+          {`${primaryLabel} (${countdown}s)`}
         </button>
         <button
           onClick={handleGoHome}

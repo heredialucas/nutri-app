@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getMyProfile } from "@/app/actions/patient-portal";
 import { ProfileForm } from "@/components/patient-portal/profile-form";
 
@@ -38,6 +39,21 @@ export default async function PerfilPage() {
 
             <div className="p-6 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white">
                 <ProfileForm profile={initial} />
+            </div>
+
+            <div className="mt-6 p-6 rounded-xl border border-[rgba(0,0,0,0.06)] bg-white flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-sm font-medium text-[#1a1a1a] m-0">Contraseña</p>
+                    <p className="text-xs text-[#666] m-0">
+                        Cambiá la contraseña con la que ingresás (tu DNI).
+                    </p>
+                </div>
+                <Link
+                    href="/auth/update-password"
+                    className="inline-flex items-center justify-center h-10 px-5 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#1a1a1a] no-underline transition-colors hover:bg-[rgba(0,0,0,0.02)]"
+                >
+                    Cambiar contraseña
+                </Link>
             </div>
         </div>
     );

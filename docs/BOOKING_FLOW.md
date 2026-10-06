@@ -87,13 +87,21 @@ El chat guiado pide, en orden:
 Como el QR identifica la sede, la modalidad viene preseleccionada como presencial en
 esa sede. Sin `?loc=`, el chat permite elegir modalidad y sede.
 
-## Cuenta y login
+## Cuenta y activación
 
 - **Identificador de login**: DNI, email o usuario (`authService.login`).
 - `User.email` es opcional; `User.dni` es único.
 - `Patient.documentNumber` (DNI) es **único** y se guarda normalizado (solo dígitos).
-- La cuenta se crea con contraseña aleatoria y sesión automática; el paciente puede
-  definir su contraseña o cargar un email luego.
+- Al reservar se aprovisiona la cuenta (`mustSetPassword=true`) pero **no se inicia
+  sesión**: el paciente debe crear su contraseña.
+- **Activación** (`/auth/sign-up`):
+  - **DNI nuevo**: nombre + contraseña, sin email.
+  - **DNI ya existente sin activar**: se verifica identidad con un **código por email**
+    (al email de la ficha; si no hay, se pide uno) y luego se crea la contraseña.
+  - **Cuenta ya activa**: se indica iniciar sesión.
+- Post-reserva se emite una cookie `activation_token` (JWT 24 h) que permite crear la
+  contraseña sin email para la cuenta recién creada en esa misma reserva.
+- Códigos de email en `email_verification_codes` (hash sha256, 10 min, máx. 5 intentos).
 
 ## Tipos de turno
 

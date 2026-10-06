@@ -21,7 +21,12 @@ export const patientAccountService = {
      * `created` indica si la cuenta se creó recién (para auto-login seguro).
      */
     async provisionByDni(dni: string): Promise<{
-        user: { id: string; email: string | null; username: string | null };
+        user: {
+            id: string;
+            email: string | null;
+            username: string | null;
+            mustSetPassword: boolean;
+        };
         created: boolean;
     }> {
         const normalized = normalizeDni(dni);
@@ -36,6 +41,7 @@ export const patientAccountService = {
                     id: existing.id,
                     email: existing.email,
                     username: existing.username,
+                    mustSetPassword: existing.mustSetPassword,
                 },
                 created: false,
             };
@@ -43,7 +49,7 @@ export const patientAccountService = {
 
         const password = await bcrypt.hash(randomBytes(18).toString("hex"), 10);
         const user = await prisma.user.create({
-            data: { dni: normalized, password },
+            data: { dni: normalized, password, mustSetPassword: true },
         });
 
         const patientRole = await prisma.role.findUnique({
@@ -64,6 +70,7 @@ export const patientAccountService = {
                 id: user.id,
                 email: user.email,
                 username: user.username,
+                mustSetPassword: true,
             },
             created: true,
         };

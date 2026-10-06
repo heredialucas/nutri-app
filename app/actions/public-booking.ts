@@ -345,14 +345,17 @@ export async function createPublicBooking(data: {
         revalidatePath("/dashboard/turnos");
     }
 
-    // Aprovisionar cuenta de paciente por DNI (login sin fricción)
+    // Aprovisionar cuenta de paciente por DNI. No se inicia sesión acá: el
+    // paciente debe crear su contraseña (activación) para poder entrar.
     const { patientAccountService } = await import(
         "@/services/patient-account-service"
     );
     let accountCreated = false;
+    let mustSetPassword = true;
     try {
         const { user, created } = await patientAccountService.provisionByDni(dni);
         accountCreated = created;
+        mustSetPassword = user.mustSetPassword;
 
         if (!patient.userId) {
             await prisma.patient.update({
@@ -361,14 +364,19 @@ export async function createPublicBooking(data: {
             });
         }
 
+        // Cuenta recién creada en esta reserva: habilitar activación sin email.
         if (created) {
             const { authService } = await import("@/services/auth-service");
-            const token = await authService.issueToken(user);
+            const token = await authService.issueActivationToken({
+                dni,
+                email: email ?? null,
+            });
             const cookieStore = await cookies();
-            cookieStore.set("session_token", token, {
+            cookieStore.set("activation_token", token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
-                maxAge: 60 * 60 * 24 * 7,
+                sameSite: "lax",
+                maxAge: 60 * 60 * 24,
                 path: "/",
             });
         }
@@ -390,5 +398,6 @@ export async function createPublicBooking(data: {
         appointment: serializePrisma(appointment),
         patient: serializePrisma(patient),
         accountCreated,
+        mustSetPassword,
     };
 }

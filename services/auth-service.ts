@@ -125,6 +125,45 @@ export const authService = {
         }
     },
 
+    /**
+     * Token de corta vida que autoriza a crear la contraseña de una cuenta
+     * (activación). Se emite tras reservar (cuenta nueva) o tras verificar
+     * el código por email (cuenta existente sin activar).
+     */
+    async issueActivationToken(data: {
+        dni: string;
+        email?: string | null;
+    }): Promise<string> {
+        return new SignJWT({
+            purpose: "activate",
+            dni: data.dni,
+            email: data.email ?? null,
+        })
+            .setProtectedHeader({ alg: ALG })
+            .setIssuedAt()
+            .setExpirationTime("24h")
+            .sign(SECRET_KEY);
+    },
+
+    async verifyActivationToken(
+        token: string,
+    ): Promise<{ dni: string; email: string | null } | null> {
+        try {
+            const { payload } = await jwtVerify(token, SECRET_KEY, {
+                algorithms: [ALG],
+            });
+            if (payload.purpose !== "activate" || typeof payload.dni !== "string") {
+                return null;
+            }
+            return {
+                dni: payload.dni,
+                email: typeof payload.email === "string" ? payload.email : null,
+            };
+        } catch {
+            return null;
+        }
+    },
+
     async requestPasswordReset(email: string): Promise<void> {
         const normalizedEmail = email.trim().toLowerCase();
         const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });

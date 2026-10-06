@@ -30,7 +30,9 @@ export function UpdatePasswordForm({ token, className, ...props }: React.Compone
       const result = await updatePasswordAction(password, token);
       if (result?.error) throw new Error(result.error);
 
-      router.replace(token ? "/auth/login?reset=success" : "/dashboard");
+      router.replace(
+        result?.redirectTo ?? (token ? "/auth/login?reset=success" : "/dashboard"),
+      );
       router.refresh();
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "Ocurrió un error");
