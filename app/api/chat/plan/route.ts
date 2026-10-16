@@ -112,7 +112,8 @@ export async function POST(req: NextRequest) {
                     model: MODEL,
                     messages: openaiMessages,
                     tools,
-                    tool_choice: { type: "function", function: { name: "apply_plan_update" } },
+                    // Permite que el asistente pida aclaraciones sin aplicar un cambio inseguro.
+                    tool_choice: "auto",
                     max_completion_tokens: 16384,
                     stream: true,
                 });
@@ -217,8 +218,10 @@ export async function POST(req: NextRequest) {
                         } else {
                             patchError = "La IA no devolvió cambios aplicables. No se modificó el plan.";
                         }
-                    } catch {
-                        patchError = "No se pudo interpretar la actualización. No se aplicó ningún cambio.";
+                    } catch (error) {
+                        patchError = error instanceof Error
+                            ? error.message
+                            : "No se pudo interpretar la actualización. No se aplicó ningún cambio.";
                     }
                 }
             }
