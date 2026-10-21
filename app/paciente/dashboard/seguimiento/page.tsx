@@ -4,6 +4,7 @@ import { patientService } from "@/services/patient-service";
 import { followupService } from "@/services/followup-service";
 import { ClipboardCheck, TrendingUp, Scale, Zap, Brain, AlertCircle } from "lucide-react";
 import { FollowUpForm } from "@/components/patient-portal/followup-form";
+import { getArgentinaWeekStartDate } from "@/lib/argentina-time";
 
 const adherenceLabels: Record<string, string> = {
     excellent: "Excelente",
@@ -29,11 +30,7 @@ export default async function SeguimientoPage() {
     const followUps = await followupService.getByPatient(patient.id);
 
     // Check if already submitted this week
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-    monday.setHours(0, 0, 0, 0);
+    const monday = getArgentinaWeekStartDate();
 
     const thisWeek = followUps.find(
         (f: any) => new Date(f.weekStart).getTime() === monday.getTime()

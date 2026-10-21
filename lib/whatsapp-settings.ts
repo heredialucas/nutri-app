@@ -5,6 +5,10 @@ import {
     randomBytes,
     scryptSync,
 } from "node:crypto";
+import {
+    getArgentinaDateKey,
+    getArgentinaDayRange,
+} from "@/lib/argentina-time";
 
 const ENCRYPTION_KEY = process.env.WHATSAPP_ENCRYPTION_KEY;
 const ALGORITHM = "aes-256-gcm";
@@ -201,15 +205,16 @@ export const whatsappSettingsService = {
         userId: string,
         type: string,
     ): Promise<boolean> {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const { startAt, endAt } = getArgentinaDayRange(
+            getArgentinaDateKey(),
+        );
 
         const log = await prisma.notificationLog.findFirst({
             where: {
                 userId,
                 type,
                 status: "SENT",
-                sentAt: { gte: today },
+                sentAt: { gte: startAt, lt: endAt },
             },
         });
 

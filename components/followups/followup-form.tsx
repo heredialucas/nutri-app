@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { ClipboardList, Save } from "lucide-react";
 import { AdherenceField } from "./adherence-field";
+import { getArgentinaWeekStartDate } from "@/lib/argentina-time";
 
 interface FollowUpFormProps {
     patientId: string;
@@ -24,11 +25,7 @@ export function FollowUpForm({ patientId, followUp, onSuccess, embedded = false 
     const [loading, setLoading] = useState(false);
 
     const getDefaultWeekStart = () => {
-        const now = new Date();
-        const dayOfWeek = now.getDay();
-        const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-        const monday = new Date(now.setDate(diff));
-        return monday.toISOString().split("T")[0];
+        return getArgentinaWeekStartDate().toISOString().slice(0, 10);
     };
 
     const [form, setForm] = useState({

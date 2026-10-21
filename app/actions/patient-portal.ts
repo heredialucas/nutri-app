@@ -9,6 +9,7 @@ import { shoppingListService } from "@/services/shopping-list-service";
 import { recipeService } from "@/services/recipe-service";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getArgentinaWeekStartDate } from "@/lib/argentina-time";
 import { serializePrisma } from "@/lib/utils";
 import { normalizeDni, isValidDni } from "@/lib/dni";
 import type { AnamnesisInput } from "@/app/actions/anamnesis";
@@ -117,12 +118,8 @@ export async function submitFollowUp(data: {
 }) {
     const { patient } = await requirePatient();
 
-    // Get current week start (Monday)
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-    monday.setHours(0, 0, 0, 0);
+    // `weekStart` es una fecha civil argentina normalizada a medianoche UTC.
+    const monday = getArgentinaWeekStartDate();
 
     // Check if already submitted this week
     const existing = await prisma.followUp.findFirst({

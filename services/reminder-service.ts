@@ -5,8 +5,17 @@ import {
 } from "@/lib/whatsapp-sender";
 import { whatsappSettingsService } from "@/lib/whatsapp-settings";
 import { formatInTimeZone } from "date-fns-tz";
-
-const AR_TZ = "America/Argentina/Buenos_Aires";
+import { es } from "date-fns/locale";
+import {
+    addCalendarDays,
+    AR_TZ,
+    formatArgentinaWeekday,
+    getArgentinaDateKey,
+    getArgentinaDayOfYear,
+    getArgentinaDayRange,
+    getArgentinaIsoWeekday,
+    getArgentinaWeekStartDate,
+} from "@/lib/argentina-time";
 
 const NUTRITION_TIPS = [
     "Hoy te recomiendo incluir una porción de verduras de hoja verde en tu almuerzo. Espinaca, acelga o rúcula son excelentes opciones.",
@@ -186,7 +195,7 @@ export const reminderService = {
         }
 
         const now = new Date();
-        const dayOrder = now.getDay() === 0 ? 7 : now.getDay();
+        const dayOrder = getArgentinaIsoWeekday(now);
 
         const todayPlan = activePlan.days.find(
             (d) => d.dayOrder === dayOrder,
@@ -196,17 +205,7 @@ export const reminderService = {
             return { sent: false, reason: "Sin plan para hoy" };
         }
 
-        const dayNames = [
-            "Lunes",
-            "Martes",
-            "Miércoles",
-            "Jueves",
-            "Viernes",
-            "Sábado",
-            "Domingo",
-        ];
-
-        let message = `🍽️ *Tu plan de hoy — ${dayNames[dayOrder - 1]}*\n`;
+        let message = `🍽️ *Tu plan de hoy — ${formatArgentinaWeekday(now)}*\n`;
         message += `📋 ${activePlan.title}\n\n`;
 
         for (const meal of todayPlan.meals) {
@@ -227,19 +226,9 @@ export const reminderService = {
     },
 
     async buildDailySummaryMessage(patientId: string): Promise<string> {
-        const dayNames = [
-            "Lunes",
-            "Martes",
-            "Miércoles",
-            "Jueves",
-            "Viernes",
-            "Sábado",
-            "Domingo",
-        ];
-
         const now = new Date();
-        const dayOrder = now.getDay() === 0 ? 7 : now.getDay();
-        const dayName = dayNames[dayOrder - 1];
+        const dayOrder = getArgentinaIsoWeekday(now);
+        const dayName = formatArgentinaWeekday(now);
 
         // 1) Comidas de hoy del plan activo
         const activePlan = await prisma.nutritionPlan.findFirst({
@@ -283,11 +272,7 @@ export const reminderService = {
         }
 
         // 2) Tip del día
-        const dayOfYear = Math.floor(
-            (now.getTime() -
-                new Date(now.getFullYear(), 0, 0).getTime()) /
-                86400000,
-        );
+        const dayOfYear = getArgentinaDayOfYear(now);
         const tip = NUTRITION_TIPS[dayOfYear % NUTRITION_TIPS.length];
         message += `💡 *Tip del día*\n${tip}\n\n`;
 
@@ -324,9 +309,11 @@ export const reminderService = {
         });
 
         if (nextAppointment) {
-            const dateStr = nextAppointment.startAt.toLocaleDateString(
-                "es-AR",
-                { weekday: "long", day: "numeric", month: "long" },
+            const dateStr = formatInTimeZone(
+                nextAppointment.startAt,
+                AR_TZ,
+                "EEEE d 'de' MMMM",
+                { locale: es },
             );
             const timeStr = formatInTimeZone(
                 nextAppointment.startAt,
@@ -345,9 +332,7 @@ export const reminderService = {
             }
         }
 
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay() + 1);
-        startOfWeek.setHours(0, 0, 0, 0);
+        const startOfWeek = getArgentinaWeekStartDate(now);
 
         const existingFollowup = await prisma.followUp.findFirst({
             where: { patientId, weekStart: startOfWeek },
@@ -508,11 +493,7 @@ export const reminderService = {
         userId: string,
     ): Promise<{ sent: boolean; reason: string }> {
         const today = new Date();
-        const dayOfYear = Math.floor(
-            (today.getTime() -
-                new Date(today.getFullYear(), 0, 0).getTime()) /
-                86400000,
-        );
+        const dayOfYear = getArgentinaDayOfYear(today);
         const tipIndex = dayOfYear % NUTRITION_TIPS.length;
         const tip = NUTRITION_TIPS[tipIndex];
 
@@ -526,15 +507,13 @@ export const reminderService = {
         patientId: string,
     ): Promise<{ sent: boolean; reason: string }> {
         const now = new Date();
-        const dayOfWeek = now.getDay();
+        const dayOfWeek = getArgentinaIsoWeekday(now);
 
         if (dayOfWeek !== 1) {
             return { sent: false, reason: "Solo se envía los lunes" };
         }
 
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay() + 1);
-        startOfWeek.setHours(0, 0, 0, 0);
+        const startOfWeek = getArgentinaWeekStartDate(now);
 
         const existingFollowup = await prisma.followUp.findFirst({
             where: {
@@ -569,16 +548,15 @@ export const reminderService = {
         professionalId: string,
     ): Promise<{ sent: boolean; reason: string }> {
         const now = new Date();
-        const startOfDay = new Date(now);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(now);
-        endOfDay.setHours(23, 59, 59, 999);
+        const { startAt, endAt } = getArgentinaDayRange(
+            getArgentinaDateKey(now),
+        );
 
         const appointments = await prisma.appointment.findMany({
             where: {
                 professionalId,
                 status: { in: ["PENDING", "CONFIRMED"] },
-                startAt: { gte: startOfDay, lte: endOfDay },
+                startAt: { gte: startAt, lt: endAt },
             },
             include: {
                 patient: {
@@ -613,18 +591,15 @@ export const reminderService = {
     async sendTomorrowAppointments(
         professionalId: string,
     ): Promise<{ sent: boolean; reason: string }> {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const startOfDay = new Date(tomorrow);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(tomorrow);
-        endOfDay.setHours(23, 59, 59, 999);
+        const now = new Date();
+        const tomorrowKey = addCalendarDays(getArgentinaDateKey(now), 1);
+        const { startAt, endAt } = getArgentinaDayRange(tomorrowKey);
 
         const appointments = await prisma.appointment.findMany({
             where: {
                 professionalId,
                 status: { in: ["PENDING", "CONFIRMED"] },
-                startAt: { gte: startOfDay, lte: endOfDay },
+                startAt: { gte: startAt, lt: endAt },
             },
             include: {
                 patient: {
@@ -638,16 +613,7 @@ export const reminderService = {
             return { sent: false, reason: "Sin turnos mañana" };
         }
 
-        const dayNames = [
-            "Domingo",
-            "Lunes",
-            "Martes",
-            "Miércoles",
-            "Jueves",
-            "Viernes",
-            "Sábado",
-        ];
-        const dayName = dayNames[tomorrow.getDay()];
+        const dayName = formatArgentinaWeekday(startAt);
 
         let message = `📅 *Turnos de mañana — ${dayName}*\n\n`;
 
@@ -671,9 +637,7 @@ export const reminderService = {
         professionalId: string,
     ): Promise<{ sent: boolean; reason: string }> {
         const now = new Date();
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay() + 1);
-        startOfWeek.setHours(0, 0, 0, 0);
+        const startOfWeek = getArgentinaWeekStartDate(now);
 
         const activePatients = await prisma.patient.findMany({
             where: { status: "ACTIVE" },

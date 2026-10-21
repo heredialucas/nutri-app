@@ -1,8 +1,7 @@
 import prisma from "@/lib/prisma";
 import { notifyAdmin, sendEmail } from "@/lib/email";
 import { formatInTimeZone } from "date-fns-tz";
-
-const AR_TZ = "America/Argentina/Buenos_Aires";
+import { AR_TZ } from "@/lib/argentina-time";
 
 export type AppointmentEvent = "CREATED" | "RESCHEDULED" | "CANCELLED";
 
