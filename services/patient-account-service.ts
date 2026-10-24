@@ -9,6 +9,22 @@ import { normalizeDni } from "@/lib/dni";
  * contraseña aleatoria y el paciente la define más adelante dentro
  * de la app (o la recupera cuando cargue un email).
  */
+/**
+ * Determina si una cuenta de usuario todavía no configuró su contraseña
+ * (incluyendo cuentas aprovisionadas antes de la migración `must_set_password`
+ * que tienen contraseña aleatoria pero sin nombre ni email).
+ */
+export function isUnactivatedUser(user: {
+    mustSetPassword: boolean;
+    firstName?: string | null;
+    fullName?: string | null;
+    email?: string | null;
+} | null | undefined): boolean {
+    if (!user) return true;
+    if (user.mustSetPassword) return true;
+    return !user.firstName && !user.fullName && !user.email;
+}
+
 export const patientAccountService = {
     async findByDni(dni: string | null | undefined) {
         const normalized = normalizeDni(dni);
@@ -18,7 +34,7 @@ export const patientAccountService = {
 
     /**
      * Devuelve el User asociado al DNI, creándolo si no existe.
-     * `created` indica si la cuenta se creó recién (para auto-login seguro).
+     * `created` indica si la cuenta se creó recién (para emitir token de activación).
      */
     async provisionByDni(dni: string): Promise<{
         user: {
@@ -36,12 +52,19 @@ export const patientAccountService = {
             where: { dni: normalized },
         });
         if (existing) {
+            const needsPassword = isUnactivatedUser(existing);
+            if (needsPassword && !existing.mustSetPassword) {
+                await prisma.user.update({
+                    where: { id: existing.id },
+                    data: { mustSetPassword: true },
+                });
+            }
             return {
                 user: {
                     id: existing.id,
                     email: existing.email,
                     username: existing.username,
-                    mustSetPassword: existing.mustSetPassword,
+                    mustSetPassword: needsPassword,
                 },
                 created: false,
             };

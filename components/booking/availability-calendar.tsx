@@ -9,7 +9,7 @@ import { getPublicMonthAvailability } from "@/app/actions/public-booking";
 import { cn } from "@/lib/utils";
 
 interface AvailabilityCalendarProps {
-    locationId: string;
+    locationId: string | null;
     dni?: string;
     email?: string;
     selectedDate: string;
@@ -34,12 +34,14 @@ export default function AvailabilityCalendar({
     onSelectDate,
     className,
 }: AvailabilityCalendarProps) {
-    const [month, setMonth] = useState<Date>(() => parseDateOnly(selectedDate));
+    const [month, setMonth] = useState<Date>(() =>
+        selectedDate ? parseDateOnly(selectedDate) : new Date(),
+    );
     const [availableDays, setAvailableDays] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (!locationId) {
+        if (locationId === "") {
             setAvailableDays(new Set());
             return;
         }
@@ -54,7 +56,12 @@ export default function AvailabilityCalendar({
             email,
         })
             .then((days) => {
-                if (active) setAvailableDays(new Set(days));
+                if (!active) return;
+                const nextSet = new Set(days);
+                setAvailableDays(nextSet);
+                if (days.length > 0 && (!selectedDate || !nextSet.has(selectedDate))) {
+                    onSelectDate(days[0]);
+                }
             })
             .catch(() => {
                 if (active) setAvailableDays(new Set());
@@ -66,6 +73,7 @@ export default function AvailabilityCalendar({
         return () => {
             active = false;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [month, locationId, dni, email]);
 
     const today = useMemo(() => {

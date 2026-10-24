@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { normalizeDni, isValidDni } from "@/lib/dni";
 import { authService } from "@/services/auth-service";
 import { verificationService } from "@/services/verification-service";
+import { isUnactivatedUser } from "@/services/patient-account-service";
 
 const ACTIVATION_COOKIE = "activation_token";
 const SESSION_COOKIE = "session_token";
@@ -61,12 +62,13 @@ export async function lookupAccountByDni(dni: string) {
     }
 
     const email = user?.email || patient?.email || null;
+    const unactivated = isUnactivatedUser(user);
 
     return {
         found: true as const,
         hasUser: !!user,
-        mustSetPassword: user ? user.mustSetPassword : true,
-        alreadyActive: !!user && !user.mustSetPassword,
+        mustSetPassword: unactivated,
+        alreadyActive: !!user && !unactivated,
         firstName: patient?.firstName || user?.firstName || "",
         lastName: patient?.lastName || user?.lastName || "",
         hasEmail: !!email,
@@ -108,7 +110,7 @@ export async function requestActivationCode(dni: string, email?: string) {
     if (!patient && !user) {
         return { error: "No encontramos ese DNI. Reservá un turno primero." };
     }
-    if (user && !user.mustSetPassword) {
+    if (user && !isUnactivatedUser(user)) {
         return { error: "Esa cuenta ya está activa. Iniciá sesión." };
     }
 
@@ -287,7 +289,7 @@ export async function registerOrActivateAccount(data: {
     }
 
     const { patient, user } = await findByDni(dni);
-    if (user && !user.mustSetPassword) {
+    if (user && !isUnactivatedUser(user)) {
         return { error: "Esa cuenta ya está activa. Iniciá sesión con tu DNI." };
     }
 
@@ -346,6 +348,7 @@ export async function registerOrActivateAccount(data: {
     }
 
     await setSession(account.id);
+    (await cookies()).delete(ACTIVATION_COOKIE);
 
     return { success: true, redirectTo: "/paciente/dashboard" };
 }

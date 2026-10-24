@@ -53,8 +53,9 @@ export async function deleteLocation(id: string) {
 export async function getGeneralQr() {
     await requireManage();
 
+    const { headers } = await import("next/headers");
     const { buildIntakeUrl, generateQrDataUrl } = await import("@/lib/qr");
-    const url = buildIntakeUrl();
+    const url = buildIntakeUrl(await headers());
     const dataUrl = await generateQrDataUrl(url);
 
     return { url, dataUrl };

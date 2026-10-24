@@ -4,10 +4,28 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useBooking } from "@/components/booking/booking-context";
 import { updateMyProfile } from "@/app/actions/patient-portal";
-import { useState, useEffect } from "react";
+import {
+  getActiveAppointmentByDni,
+  lookupMemberByDni,
+} from "@/app/actions/public-booking";
+import { isValidDni, normalizeDni } from "@/lib/dni";
+import { useState, useEffect, useRef } from "react";
 
 const isComplete = (v: string, placeholder?: string) =>
   !!v && v.trim() !== "" && v.trim() !== placeholder;
+
+interface ActiveAppointmentInfo {
+  id: string;
+  dateLabel: string;
+  timeLabel: string;
+  typeLabel: string;
+  locationLabel: string | null;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  mustSetPassword: boolean;
+  isLoggedIn: boolean;
+}
 
 export default function DatosPage() {
   const { data, setStep2, loggedPatient } = useBooking();
@@ -39,9 +57,70 @@ export default function DatosPage() {
     goal: data.goal,
   });
   const [formError, setFormError] = useState<string | null>(null);
+  const [activeAppointment, setActiveAppointment] =
+    useState<ActiveAppointmentInfo | null>(null);
+  const lastLookedUpDni = useRef<string>("");
+
+  useEffect(() => {
+    const normalized = normalizeDni(form.dni);
+    if (!isValidDni(normalized)) {
+      setActiveAppointment(null);
+      return;
+    }
+    if (lastLookedUpDni.current === normalized) return;
+
+    const timer = setTimeout(async () => {
+      lastLookedUpDni.current = normalized;
+      try {
+        const [found, pending] = await Promise.all([
+          lookupMemberByDni(normalized),
+          getActiveAppointmentByDni(normalized),
+        ]);
+        if (found) {
+          setForm((prev) => ({
+            ...prev,
+            firstName: prev.firstName || found.firstName || "",
+            lastName: prev.lastName || found.lastName || "",
+            phone: prev.phone || found.phone || "",
+            email: prev.email || found.email || "",
+            birthDate: prev.birthDate || found.birthDate || "",
+          }));
+        }
+        setActiveAppointment(pending);
+      } catch {
+        // silencioso
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [form.dni]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleKeepExisting = () => {
+    if (!activeAppointment) return;
+    const normalized = normalizeDni(form.dni);
+    if (activeAppointment.isLoggedIn || loggedPatient) {
+      router.push("/paciente/dashboard");
+      return;
+    }
+    if (activeAppointment.mustSetPassword) {
+      const params = new URLSearchParams({
+        dni: normalized,
+        firstName: form.firstName || activeAppointment.firstName,
+        lastName: form.lastName || activeAppointment.lastName,
+      });
+      router.push(`/auth/sign-up?${params.toString()}`);
+      return;
+    }
+    router.push(
+      `/auth/login?${new URLSearchParams({
+        dni: normalized,
+        callbackUrl: "/paciente/dashboard",
+      }).toString()}`,
+    );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -51,7 +130,7 @@ export default function DatosPage() {
       return;
     }
     setFormError(null);
-    setStep2({ ...form });
+    setStep2({ ...form, replaceExisting: !!activeAppointment });
     if (loggedPatient) {
       updateMyProfile({
         firstName: form.firstName,
@@ -203,6 +282,25 @@ export default function DatosPage() {
           </div>
         </details>
 
+        {activeAppointment && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex flex-col gap-2">
+            <p className="text-sm font-medium text-amber-900 m-0">
+              Ya tenés un turno reservado para el {activeAppointment.dateLabel} a las{" "}
+              {activeAppointment.timeLabel} hs ({activeAppointment.typeLabel}).
+            </p>
+            <p className="text-xs text-amber-800 m-0">
+              Si continuás con esta reserva, reemplazaremos tu turno anterior por el nuevo horario elegido.
+            </p>
+            <button
+              type="button"
+              onClick={handleKeepExisting}
+              className="self-start text-xs font-semibold text-amber-900 underline underline-offset-4 cursor-pointer mt-1"
+            >
+              No quiero cambiarlo: mantener mi turno actual e ir a mi panel
+            </button>
+          </div>
+        )}
+
         {formError && <p className="text-sm text-red-500 m-0">{formError}</p>}
 
         <div className="flex gap-3 mt-4">
@@ -216,7 +314,7 @@ export default function DatosPage() {
             type="submit"
             className="inline-flex items-center justify-center h-11 px-8 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold transition-colors hover:bg-[#333] flex-1 cursor-pointer"
           >
-            Continuar
+            {activeAppointment ? "Reemplazar turno y continuar" : "Continuar"}
           </button>
         </div>
       </form>

@@ -133,12 +133,57 @@ export const patientService = {
     },
 
     async getByUserId(userId: string) {
-        return prisma.patient.findFirst({
+        const direct = await prisma.patient.findFirst({
             where: {
                 userId,
                 deletedAt: null,
             },
             include: patientInclude,
         });
+        if (direct) return direct;
+
+        // Auto-vincular ficha existente por DNI o email si la cuenta no estaba conectada
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                dni: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+            },
+        });
+        if (!user) return null;
+
+        if (user.dni) {
+            const byDni = await prisma.patient.findUnique({
+                where: { documentNumber: user.dni },
+            });
+            if (byDni) {
+                return prisma.patient.update({
+                    where: { id: byDni.id },
+                    data: { userId: user.id, deletedAt: null },
+                    include: patientInclude,
+                });
+            }
+        }
+
+        if (user.email) {
+            const byEmail = await prisma.patient.findFirst({
+                where: { email: user.email, userId: null, deletedAt: null },
+            });
+            if (byEmail) {
+                return prisma.patient.update({
+                    where: { id: byEmail.id },
+                    data: {
+                        userId: user.id,
+                        documentNumber: byEmail.documentNumber || user.dni || undefined,
+                    },
+                    include: patientInclude,
+                });
+            }
+        }
+
+        return null;
     },
 };

@@ -3,14 +3,18 @@ import { getCurrentUser, isPatientUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ reset?: string }> }) {
-  const { reset } = await searchParams;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset?: string; dni?: string; callbackUrl?: string }>;
+}) {
+  const { reset, dni, callbackUrl } = await searchParams;
   const user = await getCurrentUser();
   if (user) {
     if (isPatientUser(user)) {
       redirect("/paciente/dashboard");
     }
-    redirect("/dashboard/users");
+    redirect("/dashboard");
   }
 
   return (
@@ -28,7 +32,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ r
             Volver al inicio
           </Link>
         </div>
-         <LoginForm resetSuccess={reset === "success"} />
+         <LoginForm
+           resetSuccess={reset === "success"}
+           initialIdentifier={dni || ""}
+           callbackUrl={callbackUrl}
+         />
       </div>
     </div>
   );

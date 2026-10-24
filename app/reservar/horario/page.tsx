@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { needsLocation, useBooking } from "@/components/booking/booking-context";
 import { getPublicAvailableSlots } from "@/app/actions/public-booking";
+import AvailabilityCalendar from "@/components/booking/availability-calendar";
 import { CalendarDays, Loader2 } from "lucide-react";
 
 function HorarioForm() {
@@ -29,6 +30,8 @@ function HorarioForm() {
   }, [data, router]);
 
   useEffect(() => {
+    if (needsLocation(data)) return;
+    let active = true;
     async function loadSlots() {
       setLoading(true);
       setError(null);
@@ -39,18 +42,22 @@ function HorarioForm() {
           data.dni,
           data.email,
         );
+        if (!active) return;
         setSlots(result);
         if (result.length === 0) {
-          setError("No hay horarios disponibles para esa fecha. Elegí otro día.");
+          setError("No hay horarios disponibles para esa fecha. Elegí otro día en el calendario.");
         }
       } catch {
-        setError("Error al cargar horarios. Intentá de nuevo.");
+        if (active) setError("Error al cargar horarios. Intentá de nuevo.");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
     loadSlots();
-  }, [selectedDate, locationId, data.dni, data.email]);
+    return () => {
+      active = false;
+    };
+  }, [selectedDate, locationId, data.dni, data.email, data]);
 
   const handleContinue = () => {
     if (!selected) return;
@@ -58,18 +65,13 @@ function HorarioForm() {
     router.push("/reservar/datos");
   };
 
-  const minDate = (() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  })();
-
   return (
     <div>
       <h1 className="text-2xl font-bold text-[#1a1a1a] mb-2 m-0">
         Elegí fecha y horario
       </h1>
       <p className="text-sm text-[#666] mb-6 m-0">
-        Seleccioná el día y luego el horario que mejor te quede.
+        Seleccioná un día disponible en el calendario y luego el horario que mejor te quede.
       </p>
 
       {data.type === "IN_PERSON" && data.locationName && (
@@ -83,23 +85,19 @@ function HorarioForm() {
       )}
 
       <div className="flex flex-col gap-1.5 mb-6">
-        <label htmlFor="date" className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em]">
-          Fecha del turno
+        <label className="text-xs font-medium text-[#1a1a1a] uppercase tracking-[0.05em] flex items-center gap-1.5">
+          <CalendarDays size={14} /> Fecha del turno
         </label>
-        <div className="relative">
-          <CalendarDays size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#999]" />
-          <input
-            id="date"
-            type="date"
-            min={minDate}
-            value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setSelected(null);
-            }}
-            className="h-11 pl-10 pr-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a] w-full max-w-[320px]"
-          />
-        </div>
+        <AvailabilityCalendar
+          locationId={locationId}
+          dni={data.dni || undefined}
+          email={data.email || undefined}
+          selectedDate={selectedDate}
+          onSelectDate={(nextDate) => {
+            setSelectedDate(nextDate);
+            setSelected(null);
+          }}
+        />
       </div>
 
       {loading ? (

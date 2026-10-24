@@ -18,10 +18,16 @@ import { useState } from "react";
 
 export function LoginForm({
   resetSuccess = false,
+  initialIdentifier = "",
+  callbackUrl,
   className,
   ...props
-}: React.ComponentPropsWithoutRef<"div"> & { resetSuccess?: boolean }) {
-  const [identifier, setIdentifier] = useState("");
+}: React.ComponentPropsWithoutRef<"div"> & {
+  resetSuccess?: boolean;
+  initialIdentifier?: string;
+  callbackUrl?: string;
+}) {
+  const [identifier, setIdentifier] = useState(initialIdentifier);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,9 +41,16 @@ export function LoginForm({
     const formData = new FormData();
     formData.append("identifier", identifier);
     formData.append("password", password);
+    if (callbackUrl) {
+      formData.append("callbackUrl", callbackUrl);
+    }
 
     try {
       const result = await loginAction(formData);
+      if (result?.needsActivation && result?.redirectTo) {
+        router.push(result.redirectTo);
+        return;
+      }
       if (result?.error) throw new Error(result.error);
 
       router.push(result.redirectTo || "/dashboard");

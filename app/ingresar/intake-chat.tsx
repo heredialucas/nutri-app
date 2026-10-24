@@ -19,6 +19,7 @@ import {
     getPublicLocations,
     lookupMemberByDni,
 } from "@/app/actions/public-booking";
+import { registerOrActivateAccount } from "@/app/actions/activation";
 import { isValidDni, normalizeDni } from "@/lib/dni";
 import AvailabilityCalendar from "@/components/booking/availability-calendar";
 
@@ -34,6 +35,11 @@ interface PendingAppointment {
     timeLabel: string;
     typeLabel: string;
     locationLabel: string | null;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    mustSetPassword: boolean;
+    isLoggedIn: boolean;
 }
 
 type Step =
@@ -103,6 +109,10 @@ export default function IntakeChat() {
     } | null>(null);
     const [doneKind, setDoneKind] = useState<"booked" | "kept">("booked");
 
+    const [password, setPassword] = useState("");
+    const [repeatPassword, setRepeatPassword] = useState("");
+    const [activating, setActivating] = useState(false);
+
     const push = (role: Msg["role"], text: string) => {
         setMessages((prev) => [...prev, { id: idRef.current++, role, text }]);
     };
@@ -162,10 +172,19 @@ export default function IntakeChat() {
         setStep("slots");
     };
 
-    const continueAfterDni = () => {
-        if (member.firstName && member.lastName) {
-            setFirstName(member.firstName);
-            setLastName(member.lastName);
+    const continueAfterDni = (
+        knownFirst = firstName || member.firstName || "",
+        knownLast = lastName || member.lastName || "",
+        knownPhone = phone || member.phone || "",
+    ) => {
+        if (knownFirst && knownLast) {
+            setFirstName(knownFirst);
+            setLastName(knownLast);
+            if (knownPhone && knownPhone.replace(/\D/g, "").length >= 6) {
+                setPhone(knownPhone);
+                startSlots();
+                return;
+            }
             goToPhone();
             return;
         }
@@ -184,6 +203,10 @@ export default function IntakeChat() {
         setDni(value);
         setInput("");
 
+        let knownFirst = "";
+        let knownLast = "";
+        let knownPhone = "";
+
         try {
             const found = await lookupMemberByDni(value);
             if (found) {
@@ -194,11 +217,24 @@ export default function IntakeChat() {
                     phone: found.phone,
                     birthDate: found.birthDate,
                 });
-                if (found.firstName) setFirstName(found.firstName);
-                if (found.lastName) setLastName(found.lastName);
-                if (found.phone) setPhone(found.phone);
+                if (found.firstName) {
+                    setFirstName(found.firstName);
+                    knownFirst = found.firstName;
+                }
+                if (found.lastName) {
+                    setLastName(found.lastName);
+                    knownLast = found.lastName;
+                }
+                if (found.phone) {
+                    setPhone(found.phone);
+                    knownPhone = found.phone;
+                }
                 if (found.firstName && found.lastName) {
-                    pushBot(`Te encontré en el padrón: ${found.firstName} ${found.lastName}.`);
+                    pushBot(
+                        "fromPatientRecord" in found && found.fromPatientRecord
+                            ? `¡Hola de nuevo, ${found.firstName} ${found.lastName}!`
+                            : `Te encontré en el padrón: ${found.firstName} ${found.lastName}.`,
+                    );
                 }
             }
         } catch {
@@ -210,6 +246,9 @@ export default function IntakeChat() {
             const pending = await getActiveAppointmentByDni(value);
             if (pending) {
                 setPendingAppointment(pending);
+                if (pending.firstName && !knownFirst) setFirstName(pending.firstName);
+                if (pending.lastName && !knownLast) setLastName(pending.lastName);
+                if (pending.phone && !knownPhone) setPhone(pending.phone);
                 pushBot(
                     `Ya tenés un turno reservado para el ${pending.dateLabel} a las ${pending.timeLabel} (${pending.typeLabel}).`,
                 );
@@ -221,7 +260,7 @@ export default function IntakeChat() {
             // si falla la consulta, se continúa con la reserva normal
         }
 
-        continueAfterDni();
+        continueAfterDni(knownFirst, knownLast, knownPhone);
     };
 
     const submitName = () => {
@@ -358,19 +397,55 @@ export default function IntakeChat() {
         setSelectedTime(null);
         setResult(null);
         setError(null);
+        setPassword("");
+        setRepeatPassword("");
         setDoneKind("booked");
         loadLocations();
     };
 
-    const activationHref = `/auth/sign-up?${new URLSearchParams({
+    const isAlreadyLoggedIn = !!pendingAppointment?.isLoggedIn;
+    const needsPassword =
+        !isAlreadyLoggedIn &&
+        (doneKind === "kept"
+            ? (pendingAppointment?.mustSetPassword ?? true)
+            : (result?.mustSetPassword ?? true));
+
+    const handleInlineActivation = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (password.length < 8) {
+            setError("La contraseña debe tener al menos 8 caracteres.");
+            return;
+        }
+        if (password !== repeatPassword) {
+            setError("Las contraseñas no coinciden.");
+            return;
+        }
+        setActivating(true);
+        setError(null);
+        try {
+            const res = await registerOrActivateAccount({
+                dni,
+                firstName: firstName.trim() || pendingAppointment?.firstName || "Paciente",
+                lastName: lastName.trim() || pendingAppointment?.lastName || "Nuevo",
+                password,
+            });
+            if (res?.error) {
+                setError(res.error);
+                return;
+            }
+            router.push(res.redirectTo || "/paciente/dashboard");
+            router.refresh();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "No pudimos activar tu cuenta.");
+        } finally {
+            setActivating(false);
+        }
+    };
+
+    const loginWithDniHref = `/auth/login?${new URLSearchParams({
         dni,
-        firstName,
-        lastName,
+        callbackUrl: "/paciente/dashboard",
     }).toString()}`;
-    const bookedHref = result?.mustSetPassword ? activationHref : "/auth/login";
-    const bookedLabel = result?.mustSetPassword
-        ? "Crear mi contraseña"
-        : "Iniciar sesión";
 
     return (
         <div className="min-h-screen bg-[#fafaf8] flex flex-col">
@@ -663,16 +738,60 @@ export default function IntakeChat() {
                                     {pendingAppointment.timeLabel} hs.
                                 </p>
                             )}
-                            <button
-                                onClick={() =>
-                                    router.push(
-                                        doneKind === "kept" ? "/paciente/dashboard" : bookedHref,
-                                    )
-                                }
-                                className="h-11 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold hover:bg-[#333] transition-colors cursor-pointer"
-                            >
-                                {doneKind === "kept" ? "Ir a mi panel" : bookedLabel}
-                            </button>
+
+                            {needsPassword ? (
+                                <form
+                                    onSubmit={handleInlineActivation}
+                                    className="rounded-xl border border-[rgba(0,0,0,0.08)] bg-white p-4 flex flex-col gap-3"
+                                >
+                                    <div>
+                                        <p className="text-sm font-semibold text-[#1a1a1a] m-0 mb-1">
+                                            Creá tu contraseña para entrar a tu panel
+                                        </p>
+                                        <p className="text-xs text-[#666] m-0">
+                                            Vas a ingresar siempre con tu DNI ({dni}) y esta contraseña para ver y gestionar tus turnos.
+                                        </p>
+                                    </div>
+                                    <input
+                                        type="password"
+                                        required
+                                        minLength={8}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="Contraseña (mínimo 8 caracteres)"
+                                        className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+                                    />
+                                    <input
+                                        type="password"
+                                        required
+                                        minLength={8}
+                                        value={repeatPassword}
+                                        onChange={(e) => setRepeatPassword(e.target.value)}
+                                        placeholder="Repetir contraseña"
+                                        className="h-11 px-4 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-base text-[#1a1a1a] outline-none transition-colors focus:border-[#1a1a1a]"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={activating}
+                                        className="h-11 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold hover:bg-[#333] transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+                                    >
+                                        {activating && <Loader2 size={16} className="animate-spin" />}
+                                        {activating ? "Guardando..." : "Guardar contraseña e ir a mi panel"}
+                                    </button>
+                                </form>
+                            ) : (
+                                <button
+                                    onClick={() =>
+                                        router.push(
+                                            isAlreadyLoggedIn ? "/paciente/dashboard" : loginWithDniHref,
+                                        )
+                                    }
+                                    className="h-11 rounded-lg bg-[#1a1a1a] text-white text-sm font-semibold hover:bg-[#333] transition-colors cursor-pointer"
+                                >
+                                    {isAlreadyLoggedIn ? "Ir a mi panel" : "Iniciar sesión e ir a mi panel"}
+                                </button>
+                            )}
+
                             <button
                                 onClick={resetAll}
                                 className="h-11 rounded-lg border border-[rgba(0,0,0,0.1)] text-sm font-medium text-[#666] hover:bg-[rgba(0,0,0,0.02)] transition-colors cursor-pointer"

@@ -25,6 +25,7 @@ export interface BookingData {
     goal: string;
     date: string;
     time: string;
+    replaceExisting?: boolean;
 }
 
 interface BookingContextType {

@@ -13,13 +13,37 @@ export async function generateQrDataUrl(text: string): Promise<string> {
     });
 }
 
-export function getAppBaseUrl(): string {
-    return (
-        process.env.NEXT_PUBLIC_APP_URL ||
-        "http://localhost:3000"
-    ).replace(/\/$/, "");
+export function getAppBaseUrl(headersList?: { get(name: string): string | null }): string {
+    const envUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+    if (envUrl && !envUrl.includes("localhost")) {
+        return envUrl;
+    }
+
+    if (headersList) {
+        const forwardedHost = headersList.get("x-forwarded-host")?.split(",")[0]?.trim();
+        const host = forwardedHost || headersList.get("host")?.trim();
+        if (host && !host.includes("localhost")) {
+            const proto =
+                headersList.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
+            return `${proto}://${host}`;
+        }
+        if (host) {
+            const proto =
+                headersList.get("x-forwarded-proto")?.split(",")[0]?.trim() || "http";
+            return `${proto}://${host}`;
+        }
+    }
+
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+        return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    }
+    if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}`;
+    }
+
+    return envUrl || "http://localhost:3000";
 }
 
-export function buildIntakeUrl(): string {
-    return `${getAppBaseUrl()}/ingresar`;
+export function buildIntakeUrl(headersList?: { get(name: string): string | null }): string {
+    return `${getAppBaseUrl(headersList)}/ingresar`;
 }

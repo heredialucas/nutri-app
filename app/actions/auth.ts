@@ -1,16 +1,40 @@
 "use server";
 
 import { authService } from "@/services/auth-service";
+import { isUnactivatedUser } from "@/services/patient-account-service";
+import { normalizeDni, isValidDni } from "@/lib/dni";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 
 export async function loginAction(formData: FormData) {
-    const identifier = formData.get("identifier") as string;
+    const identifier = (formData.get("identifier") as string)?.trim();
     const password = formData.get("password") as string;
+    const callbackUrl = (formData.get("callbackUrl") as string)?.trim();
 
     if (!identifier || !password) {
         return { error: "Faltan datos" };
+    }
+
+    // Si ingresa con DNI y la cuenta todavía no activó su contraseña, llevarlo a crearla
+    const digits = normalizeDni(identifier);
+    if (isValidDni(digits)) {
+        const [userByDni, patientByDni] = await Promise.all([
+            prisma.user.findUnique({ where: { dni: digits } }),
+            prisma.patient.findUnique({ where: { documentNumber: digits } }),
+        ]);
+
+        if ((userByDni && isUnactivatedUser(userByDni)) || (!userByDni && patientByDni)) {
+            const params = new URLSearchParams({ dni: digits });
+            const firstName = patientByDni?.firstName || userByDni?.firstName || "";
+            const lastName = patientByDni?.lastName || userByDni?.lastName || "";
+            if (firstName) params.set("firstName", firstName);
+            if (lastName) params.set("lastName", lastName);
+            return {
+                needsActivation: true,
+                redirectTo: `/auth/sign-up?${params.toString()}`,
+            };
+        }
     }
 
     try {
@@ -20,6 +44,7 @@ export async function loginAction(formData: FormData) {
         cookieStore.set("session_token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
             maxAge: 60 * 60 * 24 * 7,
             path: "/",
         });
@@ -35,7 +60,12 @@ export async function loginAction(formData: FormData) {
         });
 
         const isPatient = userWithRoles?.userRoles.some((ur) => ur.role.name === "PATIENT");
-        const redirectTo = isPatient ? "/paciente/dashboard" : "/dashboard";
+        const safeCallback =
+            callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+                ? callbackUrl
+                : null;
+        const redirectTo =
+            safeCallback || (isPatient ? "/paciente/dashboard" : "/dashboard");
 
         return { success: true, redirectTo };
     } catch (error) {

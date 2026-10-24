@@ -4,7 +4,7 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Rutas protegidas: dashboard profesional y portal paciente
-  const protectedRoutes = ["/dashboard", "/paciente/dashboard"];
+  const protectedRoutes = ["/dashboard", "/paciente"];
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
 
   // Rutas públicas que nunca deben ser interceptadas
@@ -19,9 +19,10 @@ export async function proxy(request: NextRequest) {
   // Check for session token
   const sessionToken = request.cookies.get("session_token");
 
-  // Protect routes: si no hay token, redirigir a login
-  if (isProtectedRoute && !sessionToken) {
-    const loginUrl = new URL("/auth/login", request.url);
+  // Protect routes: si no hay token, redirigir a login conservando el origen real
+  if (isProtectedRoute && !isPublicRoute && !sessionToken) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/auth/login";
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }

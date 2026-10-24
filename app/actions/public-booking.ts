@@ -67,6 +67,35 @@ export async function getPublicLocations() {
 }
 
 export async function lookupMemberByDni(dni: string) {
+    const normalized = normalizeDni(dni);
+    if (isValidDni(normalized)) {
+        const [patient, user] = await Promise.all([
+            prisma.patient.findUnique({ where: { documentNumber: normalized } }),
+            prisma.user.findUnique({ where: { dni: normalized } }),
+        ]);
+        if (patient || user) {
+            const firstName =
+                patient?.firstName && patient.firstName !== "Sin nombre"
+                    ? patient.firstName
+                    : user?.firstName || undefined;
+            const lastName =
+                patient?.lastName && patient.lastName !== "Sin apellido"
+                    ? patient.lastName
+                    : user?.lastName || undefined;
+            return {
+                dni: normalized,
+                firstName,
+                lastName,
+                email: patient?.email || user?.email || undefined,
+                phone: patient?.phone || undefined,
+                birthDate: patient?.birthDate
+                    ? patient.birthDate.toISOString().split("T")[0]
+                    : undefined,
+                fromPatientRecord: true,
+            };
+        }
+    }
+
     const { memberLookupService } = await import("@/services/member-lookup-service");
     return memberLookupService.lookupByDni(dni);
 }
@@ -74,14 +103,19 @@ export async function lookupMemberByDni(dni: string) {
 const ACTIVE_STATUSES = ["PENDING", "CONFIRMED", "RESCHEDULED"] as const;
 
 /**
- * Devuelve el próximo turno activo (pendiente/confirmado) de un DNI, si existe.
- * Regla de negocio: cada DNI debe tener un solo turno activo a la vez.
+ * Devuelve el próximo turno activo (pendiente/confirmado) de un DNI, si existe,
+ * junto con el estado de la cuenta para saber si el paciente ya tiene sesión
+ * o si debe activar su contraseña antes de ir al panel.
  */
 export async function getActiveAppointmentByDni(dni: string) {
     const normalized = normalizeDni(dni);
     if (!isValidDni(normalized)) return null;
 
-    const patient = await findPatientByDni(normalized);
+    const [patient, userByDni, currentUser] = await Promise.all([
+        findPatientByDni(normalized),
+        prisma.user.findUnique({ where: { dni: normalized } }),
+        getCurrentUser(),
+    ]);
     if (!patient) return null;
 
     const appointment = await prisma.appointment.findFirst({
@@ -98,6 +132,13 @@ export async function getActiveAppointmentByDni(dni: string) {
 
     if (!appointment) return null;
 
+    const { isUnactivatedUser } = await import("@/services/patient-account-service");
+    const mustSetPassword = isUnactivatedUser(userByDni);
+    const isLoggedIn =
+        !!currentUser &&
+        isPatientUser(currentUser) &&
+        (currentUser.id === patient.userId || currentUser.dni === normalized);
+
     return {
         id: appointment.id,
         dateLabel: formatInTimeZone(appointment.startAt, AR_TZ, "EEEE d 'de' MMMM", {
@@ -111,6 +152,11 @@ export async function getActiveAppointmentByDni(dni: string) {
                 : appointment.sede
                   ? `${appointment.sede.name} — ${appointment.sede.address}`
                   : appointment.location,
+        firstName: patient.firstName !== "Sin nombre" ? patient.firstName : "",
+        lastName: patient.lastName !== "Sin apellido" ? patient.lastName : "",
+        phone: patient.phone || "",
+        mustSetPassword,
+        isLoggedIn,
     };
 }
 
@@ -398,8 +444,8 @@ export async function createPublicBooking(data: {
             });
         }
 
-        // Cuenta recién creada en esta reserva: habilitar activación sin email.
-        if (created) {
+        // Si la cuenta aún no tiene contraseña definida, habilitar activación directa.
+        if (mustSetPassword) {
             const { authService } = await import("@/services/auth-service");
             const token = await authService.issueActivationToken({
                 dni,

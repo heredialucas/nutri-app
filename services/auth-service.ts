@@ -178,7 +178,9 @@ export const authService = {
             data: { userId: user.id, tokenHash, expiresAt: new Date(Date.now() + 60 * 60 * 1000) },
         });
 
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const { headers } = await import("next/headers");
+        const { getAppBaseUrl } = await import("@/lib/qr");
+        const appUrl = getAppBaseUrl(await headers());
         const resetUrl = `${appUrl}/auth/update-password?token=${rawToken}`;
 
         const sent = await sendEmail({
