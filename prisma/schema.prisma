@@ -177,6 +177,10 @@ model Patient {
 model PatientAnamnesis {
   id String @id @default(uuid()) @db.Uuid
   patientId String @unique @db.Uuid
+  occupation String?
+  workSchedule String?
+  clinicalHistory String?
+  currentMedications String?
   consultationReason String?
   mainObjective String?
   mealsPerDay String?

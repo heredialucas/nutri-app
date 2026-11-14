@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { serializePrisma } from "@/lib/utils";
 
 export type AnamnesisInput = {
+  occupation?: string; workSchedule?: string; clinicalHistory?: string; currentMedications?: string;
   consultationReason?: string; mainObjective?: string; mealsPerDay?: string; waterIntake?: string;
   breakfast?: string; lunch?: string; snack?: string; dinner?: string; snacksDrinks?: string;
   likedFoods?: string; dislikedFoods?: string; difficultFoods?: string; eatsOut?: boolean; eatsOutFrequency?: string;
@@ -23,7 +24,17 @@ async function requireProfessional() {
 
 export async function getPatientAnamnesis(patientId: string) {
   await requireProfessional();
-  return serializePrisma(await prisma.patientAnamnesis.findUnique({ where: { patientId } }));
+  const [anamnesis, patient] = await Promise.all([
+    prisma.patientAnamnesis.findUnique({ where: { patientId } }),
+    prisma.patient.findUnique({ where: { id: patientId }, select: { occupation: true } }),
+  ]);
+  if (!anamnesis) {
+    return patient?.occupation ? { occupation: patient.occupation } : null;
+  }
+  return serializePrisma({
+    ...anamnesis,
+    occupation: anamnesis.occupation || patient?.occupation || "",
+  });
 }
 
 export async function savePatientAnamnesis(patientId: string, data: AnamnesisInput) {
@@ -34,6 +45,12 @@ export async function savePatientAnamnesis(patientId: string, data: AnamnesisInp
     create: { patientId, ...rest, nextControl: nextControl ? new Date(nextControl) : undefined, completedBy: user.id, completedAt: new Date(), status: "REVIEWED", reviewedAt: new Date() },
     update: { ...rest, nextControl: nextControl ? new Date(nextControl) : null, completedBy: user.id, completedAt: new Date(), status: "REVIEWED", reviewedAt: new Date() },
   });
+  if (typeof rest.occupation === "string" && rest.occupation.trim()) {
+    await prisma.patient.update({
+      where: { id: patientId },
+      data: { occupation: rest.occupation.trim() },
+    });
+  }
   revalidatePath(`/dashboard/pacientes/${patientId}/anamnesis`);
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return serializePrisma(result);

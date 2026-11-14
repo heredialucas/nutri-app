@@ -39,6 +39,7 @@ import { createShoppingList } from "@/app/actions/shopping-lists";
 import { usePlanDraftStore } from "@/stores/plan-draft-store";
 import { PlanChatDrawer } from "@/components/nutrition-plans/plan-chat-drawer";
 import type { GeneratedMealPlan } from "@/lib/ai/meal-plan-generator";
+import { recalculateDaysTotals, STANDARD_MEALS } from "@/lib/calorie-calculator";
 
 interface MacroChipProps {
     label: string;
@@ -131,6 +132,56 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
         });
     };
 
+    const applyDaysUpdate = (days: GeneratedMealPlan["days"]) => {
+        const totals = recalculateDaysTotals(days);
+        setPlan((prev) => {
+            const updated: GeneratedMealPlan = {
+                ...prev,
+                days: totals.days,
+                dailyCalories: totals.dailyCalories,
+                dailyProtein: totals.dailyProtein,
+                dailyCarbs: totals.dailyCarbs,
+                dailyFat: totals.dailyFat,
+            };
+            updateDraftPlan(updated);
+            return updated;
+        });
+    };
+
+    const toggleMealAcrossWeek = (mealLabel: string) => {
+        const normalized = mealLabel.trim().toLowerCase();
+        const existsInWeek = plan.days.some((d) =>
+            d.meals.some((m) => m.label.trim().toLowerCase() === normalized)
+        );
+        if (existsInWeek) {
+            const hasRemaining = plan.days.every(
+                (d) => d.meals.filter((m) => m.label.trim().toLowerCase() !== normalized).length >= 1
+            );
+            if (!hasRemaining) {
+                toast.error("Debe quedar al menos una comida por día");
+                return;
+            }
+            const nextDays = plan.days.map((d) => ({
+                ...d,
+                meals: d.meals
+                    .filter((m) => m.label.trim().toLowerCase() !== normalized)
+                    .map((m, idx) => ({ ...m, mealOrder: idx + 1 })),
+            }));
+            applyDaysUpdate(nextDays);
+            toast.success(`Se quitó "${mealLabel}" de los 7 días y se recalcularon las kcal`);
+        } else {
+            const nextDays = plan.days.map((d) => ({
+                ...d,
+                meals: [
+                    ...d.meals,
+                    { label: mealLabel, mealOrder: d.meals.length + 1, foods: [] },
+                ],
+            }));
+            applyDaysUpdate(nextDays);
+            toast.success(`Se agregó "${mealLabel}" a los 7 días`);
+        }
+    };
+
     const updateFood = (
         dayIndex: number,
         mealIndex: number,
@@ -149,11 +200,7 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
         foods[foodIndex] = next;
         meals[mealIndex] = { ...meals[mealIndex], foods };
         days[dayIndex] = { ...days[dayIndex], meals };
-        setPlan((prev) => {
-            const updated = { ...prev, days };
-            updateDraftPlan(updated);
-            return updated;
-        });
+        applyDaysUpdate(days);
     };
 
     const updateMealNotes = (dayIndex: number, mealIndex: number, value: string) => {
@@ -177,11 +224,7 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
         ];
         meals[mealIndex] = { ...meals[mealIndex], foods };
         days[dayIndex] = { ...days[dayIndex], meals };
-        setPlan((prev) => {
-            const updated = { ...prev, days };
-            updateDraftPlan(updated);
-            return updated;
-        });
+        applyDaysUpdate(days);
     };
 
     const removeFood = (dayIndex: number, mealIndex: number, foodIndex: number) => {
@@ -190,11 +233,7 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
         const foods = meals[mealIndex].foods.filter((_, i) => i !== foodIndex);
         meals[mealIndex] = { ...meals[mealIndex], foods };
         days[dayIndex] = { ...days[dayIndex], meals };
-        setPlan((prev) => {
-            const updated = { ...prev, days };
-            updateDraftPlan(updated);
-            return updated;
-        });
+        applyDaysUpdate(days);
     };
 
     const addMeal = (dayIndex: number) => {
@@ -204,22 +243,14 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
             { label: "", mealOrder: days[dayIndex].meals.length + 1, foods: [] },
         ];
         days[dayIndex] = { ...days[dayIndex], meals };
-        setPlan((prev) => {
-            const updated = { ...prev, days };
-            updateDraftPlan(updated);
-            return updated;
-        });
+        applyDaysUpdate(days);
     };
 
     const removeMeal = (dayIndex: number, mealIndex: number) => {
         const days = [...plan.days];
         const meals = days[dayIndex].meals.filter((_, i) => i !== mealIndex);
         days[dayIndex] = { ...days[dayIndex], meals };
-        setPlan((prev) => {
-            const updated = { ...prev, days };
-            updateDraftPlan(updated);
-            return updated;
-        });
+        applyDaysUpdate(days);
     };
 
     const updateSupplement = (index: number, field: string, value: string) => {
@@ -533,6 +564,46 @@ export function PlanEditor({ plan: initialPlan, patientIds = [], onBack }: PlanE
                                 className="resize-none text-xs leading-relaxed"
                                 placeholder={"Uno por línea. El paciente verá solo los tips de su plan."}
                             />
+                        </div>
+                    </div>
+
+                    {/* Comidas activas en toda la semana (atajo ayuno intermitente) */}
+                    <div className="rounded-xl border bg-muted/30 p-3 space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-xs font-medium flex items-center gap-1.5">
+                                <UtensilsCrossed className="size-3.5 text-emerald-600" />
+                                Comidas activas en los 7 días (tocá para quitar o agregar en toda la semana)
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                                Promedio actual: <strong className="text-foreground">{plan.dailyCalories ?? 0} kcal/día</strong>
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {Array.from(
+                                new Set([
+                                    ...STANDARD_MEALS.map((m) => m.label),
+                                    ...plan.days.flatMap((d) => d.meals.map((m) => m.label).filter(Boolean)),
+                                ])
+                            ).map((label) => {
+                                const active = plan.days.some((d) =>
+                                    d.meals.some((m) => m.label.trim().toLowerCase() === label.trim().toLowerCase())
+                                );
+                                return (
+                                    <Badge
+                                        key={label}
+                                        variant={active ? "default" : "outline"}
+                                        className={`cursor-pointer text-xs py-1 px-2.5 ${
+                                            active
+                                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                                : "text-muted-foreground hover:bg-muted"
+                                        }`}
+                                        onClick={() => toggleMealAcrossWeek(label)}
+                                    >
+                                        {active ? "✓ " : "+ "}
+                                        {label}
+                                    </Badge>
+                                );
+                            })}
                         </div>
                     </div>
                 </CardContent>

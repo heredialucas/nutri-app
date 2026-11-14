@@ -34,7 +34,15 @@ import {
     macroPresetById,
 } from "@/lib/ai/macro-presets";
 import type { GeneratedMealPlan, PlanOptions } from "@/lib/ai/meal-plan-generator";
-import { activityLevels, calculateCalorieTargets, goals } from "@/lib/calorie-calculator";
+import {
+    activityLevels,
+    adjustCaloriesForSelectedMeals,
+    calculateCalorieTargets,
+    goals,
+    MEAL_PROTOCOLS,
+    STANDARD_MEALS,
+    type MealCalorieMode,
+} from "@/lib/calorie-calculator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SUGGESTIONS = [
@@ -168,7 +176,16 @@ export function AIPlanGenerator({
     const primaryPatientId = patientIds[0] || null;
 
     const [calories, setCalories] = useState(2000);
-    const [mealsPerDay, setMealsPerDay] = useState(5);
+    const [selectedMeals, setSelectedMeals] = useState<string[]>([
+        "Desayuno",
+        "Media mañana",
+        "Almuerzo",
+        "Merienda",
+        "Cena",
+    ]);
+    const [customMealInput, setCustomMealInput] = useState("");
+    const [fastingProtocol, setFastingProtocol] = useState("");
+    const [mealCalorieMode, setMealCalorieMode] = useState<MealCalorieMode>("redistribute");
     const [dietaryType, setDietaryType] = useState<string | null>(null);
     const [restrictions, setRestrictions] = useState<string[]>([]);
     const [includeFoods, setIncludeFoods] = useState("");
@@ -185,6 +202,42 @@ export function AIPlanGenerator({
     const [calculatorActivity, setCalculatorActivity] = useState("moderado");
     const [calculatorObjective, setCalculatorObjective] = useState("mantener");
     const calorieCalculation = calculateCalorieTargets({ sex: calculatorSex, age: calculatorAge, weight: calculatorWeight, height: calculatorHeight, activity: calculatorActivity, objective: calculatorObjective });
+
+    const mealCalorieAdjustment = adjustCaloriesForSelectedMeals(calories, selectedMeals, mealCalorieMode);
+    const effectiveCalories = mealCalorieAdjustment.adjustedCalories;
+
+    const toggleMealLabel = (label: string) => {
+        setSelectedMeals((prev) => {
+            if (prev.includes(label)) {
+                if (prev.length <= 1) {
+                    toast.error("El plan debe tener al menos una comida");
+                    return prev;
+                }
+                return prev.filter((item) => item !== label);
+            }
+            return [...prev, label];
+        });
+        setFastingProtocol("");
+    };
+
+    const addCustomMeal = () => {
+        const clean = customMealInput.trim();
+        if (!clean) return;
+        if (!selectedMeals.some((m) => m.toLowerCase() === clean.toLowerCase())) {
+            setSelectedMeals((prev) => [...prev, clean]);
+        }
+        setCustomMealInput("");
+    };
+
+    const applyMealProtocol = (protocolId: string) => {
+        const protocol = MEAL_PROTOCOLS.find((item) => item.id === protocolId);
+        if (!protocol) return;
+        setSelectedMeals([...protocol.meals]);
+        setFastingProtocol(protocol.fasting);
+        if (protocol.fasting) {
+            setMealCalorieMode("discount");
+        }
+    };
 
     const applyCalorieCalculation = () => {
         if (!calorieCalculation) return;
@@ -218,18 +271,23 @@ export function AIPlanGenerator({
         carbTarget: number;
         fatTarget: number;
     } => {
+        const factor = mealCalorieAdjustment.discountFactor;
         if (macroPreset === "custom") {
-            return { proteinTarget: customProtein, carbTarget: customCarbs, fatTarget: customFat };
+            return {
+                proteinTarget: Math.round(customProtein * factor),
+                carbTarget: Math.round(customCarbs * factor),
+                fatTarget: Math.round(customFat * factor),
+            };
         }
         const preset = macroPresetById(macroPreset);
         if (!preset) return { proteinTarget: 0, carbTarget: 0, fatTarget: 0 };
-        return macrosFromRatio(calories, preset.ratio);
+        return macrosFromRatio(effectiveCalories, preset.ratio);
     };
 
     const resolvedMacros = getMacroTargets();
     const macroSummary = (() => {
         if (macroPreset === "custom") {
-            return `P ${customProtein} · HC ${customCarbs} · G ${customFat} g`;
+            return `P ${resolvedMacros.proteinTarget} · HC ${resolvedMacros.carbTarget} · G ${resolvedMacros.fatTarget} g`;
         }
         const preset = macroPresetById(macroPreset);
         return preset ? `${preset.label}: P ${resolvedMacros.proteinTarget} · HC ${resolvedMacros.carbTarget} · G ${resolvedMacros.fatTarget} g` : "";
@@ -243,8 +301,12 @@ export function AIPlanGenerator({
     };
 
     const handleGenerate = async () => {
-        if (calories <= 0) {
+        if (effectiveCalories <= 0) {
             toast.error("Ingresá las calorías diarias");
+            return;
+        }
+        if (selectedMeals.length === 0) {
+            toast.error("Seleccioná al menos una comida");
             return;
         }
 
@@ -258,8 +320,10 @@ export function AIPlanGenerator({
         }
 
         const options: PlanOptions = {
-            calorieTarget: calories,
-            mealsPerDay,
+            calorieTarget: effectiveCalories,
+            mealsPerDay: selectedMeals.length,
+            mealLabels: selectedMeals,
+            fastingProtocol: fastingProtocol || undefined,
             dietaryType: dietaryType ? [dietaryType] : [],
             restrictions,
             includeFoods,
@@ -288,11 +352,19 @@ export function AIPlanGenerator({
             <div className="flex flex-wrap items-center gap-1.5">
                 <Badge variant="secondary" className="text-xs">
                     <Flame className="mr-1 size-2.5 text-orange-500" />
-                    {calories} kcal
+                    {effectiveCalories} kcal
+                    {mealCalorieAdjustment.omittedCalories > 0 && (
+                        <span className="ml-1 text-[10px] text-muted-foreground">(-{mealCalorieAdjustment.omittedCalories})</span>
+                    )}
                 </Badge>
                 <Badge variant="secondary" className="text-xs">
-                    {mealsPerDay} comidas
+                    {selectedMeals.length} comidas ({selectedMeals.join(", ")})
                 </Badge>
+                {fastingProtocol && (
+                    <Badge variant="outline" className="text-xs border-amber-300 text-amber-800 bg-amber-50 dark:bg-amber-950 dark:text-amber-300">
+                        {fastingProtocol}
+                    </Badge>
+                )}
                 {dietaryType && (
                     <Badge variant="secondary" className="text-xs">{dietaryType}</Badge>
                 )}
@@ -373,7 +445,7 @@ export function AIPlanGenerator({
                         <span className="text-xs">esto puede tardar unos segundos</span>
                     </div>
                     {Array.from({ length: 7 }).map((_, i) => (
-                        <DaySkeleton key={i} index={i} meals={mealsPerDay} />
+                        <DaySkeleton key={i} index={i} meals={selectedMeals.length} />
                     ))}
                 </div>
             )}
@@ -426,33 +498,114 @@ export function AIPlanGenerator({
 
                          <Separator />
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Comidas por día</label>
-                            <div className="flex items-center gap-3">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-7"
-                                    onClick={() => setMealsPerDay(Math.max(3, mealsPerDay - 1))}
-                                >
-                                    <Minus className="size-3" />
-                                </Button>
-                                <span className="text-lg font-bold w-6 text-center">{mealsPerDay}</span>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="size-7"
-                                    onClick={() => setMealsPerDay(Math.min(6, mealsPerDay + 1))}
-                                >
-                                    <Plus className="size-3" />
-                                </Button>
-                                <span className="text-xs text-muted-foreground ml-1">
-                                    {mealsPerDay === 3 && "Almuerzo, Merienda, Cena"}
-                                    {mealsPerDay === 4 && "Desayuno, Almuerzo, Merienda, Cena"}
-                                    {mealsPerDay === 5 && "Desayuno, Media mañana, Almuerzo, Merienda, Cena"}
-                                    {mealsPerDay === 6 && "Desayuno, Media mañana, Almuerzo, Merienda, Cena, Colación"}
-                                </span>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-medium">Comidas del día y ayuno intermitente</label>
+                                <span className="text-xs text-muted-foreground">{selectedMeals.length} activas</span>
                             </div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                                {MEAL_PROTOCOLS.map((protocol) => {
+                                    const isMatch =
+                                        protocol.meals.length === selectedMeals.length &&
+                                        protocol.meals.every((m, idx) => selectedMeals[idx] === m);
+                                    return (
+                                        <button
+                                            key={protocol.id}
+                                            type="button"
+                                            onClick={() => applyMealProtocol(protocol.id)}
+                                            className={`text-left rounded-md border px-2 py-1.5 text-xs transition-colors ${
+                                                isMatch
+                                                    ? "border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+                                                    : "hover:bg-muted"
+                                            }`}
+                                        >
+                                            <span className="font-medium block">{protocol.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex flex-wrap gap-1.5">
+                                {Array.from(
+                                    new Set([
+                                        ...STANDARD_MEALS.map((m) => m.label),
+                                        ...selectedMeals,
+                                    ])
+                                ).map((label) => {
+                                    const active = selectedMeals.includes(label);
+                                    return (
+                                        <Badge
+                                            key={label}
+                                            variant={active ? "default" : "outline"}
+                                            className={`cursor-pointer text-xs py-1 px-2.5 ${
+                                                active
+                                                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                                    : "text-muted-foreground hover:bg-muted"
+                                            }`}
+                                            onClick={() => toggleMealLabel(label)}
+                                        >
+                                            {active ? "✓ " : "+ "}
+                                            {label}
+                                        </Badge>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex gap-1.5">
+                                <Input
+                                    value={customMealInput}
+                                    onChange={(e) => setCustomMealInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            addCustomMeal();
+                                        }
+                                    }}
+                                    placeholder="Agregar comida personalizada (ej: Pre-entreno)"
+                                    className="h-8 text-xs"
+                                />
+                                <Button type="button" variant="outline" size="sm" className="h-8 text-xs shrink-0" onClick={addCustomMeal}>
+                                    Agregar
+                                </Button>
+                            </div>
+
+                            {(!selectedMeals.includes("Desayuno") || !selectedMeals.includes("Cena")) && (
+                                <div className="rounded-lg border border-amber-200 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/30 p-3 space-y-2">
+                                    <p className="text-xs font-medium text-amber-900 dark:text-amber-200">
+                                        Cálculo calórico al omitir comidas
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setMealCalorieMode("discount")}
+                                            className={`rounded-md border px-2 py-1.5 text-left text-xs ${
+                                                mealCalorieMode === "discount"
+                                                    ? "border-amber-500 bg-background font-medium"
+                                                    : "border-transparent bg-background/50 text-muted-foreground"
+                                            }`}
+                                        >
+                                            Descontar kcal omitidas
+                                            <span className="block text-[10px] text-muted-foreground">
+                                                Objetivo: {effectiveCalories} kcal
+                                            </span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setMealCalorieMode("redistribute")}
+                                            className={`rounded-md border px-2 py-1.5 text-left text-xs ${
+                                                mealCalorieMode === "redistribute"
+                                                    ? "border-amber-500 bg-background font-medium"
+                                                    : "border-transparent bg-background/50 text-muted-foreground"
+                                            }`}
+                                        >
+                                            Mantener kcal objetivo
+                                            <span className="block text-[10px] text-muted-foreground">
+                                                Repartir {calories} kcal
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <Separator />

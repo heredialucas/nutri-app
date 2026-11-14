@@ -15,8 +15,15 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { PlanChatDrawer } from "./plan-chat-drawer";
 import type { GeneratedMealPlan } from "@/lib/ai/meal-plan-generator";
-import { activityLevels, calculateCalorieTargets, goals } from "@/lib/calorie-calculator";
-import { Calculator } from "lucide-react";
+import {
+    activityLevels,
+    calculateCalorieTargets,
+    goals,
+    recalculateDaysTotals,
+    STANDARD_MEALS,
+} from "@/lib/calorie-calculator";
+import { Badge } from "@/components/ui/badge";
+import { Calculator, UtensilsCrossed } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PatientPicker } from "./patient-picker";
 import {
@@ -225,6 +232,43 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
         );
     };
 
+    const applyDaysWithRecalc = (nextDays: DayCardDay[]) => {
+        const totals = recalculateDaysTotals(nextDays);
+        setDays(totals.days);
+        if (totals.dailyCalories > 0) setCalorieTarget(String(totals.dailyCalories));
+        if (totals.dailyProtein > 0) setProteinTarget(String(Math.round(totals.dailyProtein)));
+        if (totals.dailyCarbs > 0) setCarbTarget(String(Math.round(totals.dailyCarbs)));
+        if (totals.dailyFat > 0) setFatTarget(String(Math.round(totals.dailyFat)));
+    };
+
+    const toggleMealAcrossPlan = (mealLabel: string) => {
+        if (days.length === 0) return;
+        const normalized = mealLabel.trim().toLowerCase();
+        const exists = days.some((d) =>
+            d.meals.some((m) => m.label.trim().toLowerCase() === normalized)
+        );
+        if (exists) {
+            const nextDays = days.map((d) => ({
+                ...d,
+                meals: d.meals
+                    .filter((m) => m.label.trim().toLowerCase() !== normalized)
+                    .map((m, idx) => ({ ...m, mealOrder: idx + 1 })),
+            }));
+            applyDaysWithRecalc(nextDays);
+            toast.success(`Se quitó "${mealLabel}" y se recalcularon las calorías`);
+        } else {
+            const nextDays = days.map((d) => ({
+                ...d,
+                meals: [
+                    ...d.meals,
+                    { label: mealLabel, mealOrder: d.meals.length + 1, foods: [] },
+                ],
+            }));
+            applyDaysWithRecalc(nextDays);
+            toast.success(`Se agregó "${mealLabel}" a los días del plan`);
+        }
+    };
+
     const updateFood = (
         index: number,
         mealIndex: number,
@@ -232,113 +276,108 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
         field: FoodField,
         value: string
     ) => {
-        setDays((prev) =>
-            prev.map((d, i) =>
-                i !== index
-                    ? d
-                    : {
-                          ...d,
-                          meals: d.meals.map((m, mi) =>
-                              mi !== mealIndex
-                                  ? m
-                                  : {
-                                        ...m,
-                                        foods: m.foods.map((f, fi) => {
-                                            if (fi !== foodIndex) return f;
-                                            const numeric = ["calories", "protein", "carbs", "fat"].includes(field);
-                                            return {
-                                                ...f,
-                                                [field]: numeric
-                                                    ? value === ""
-                                                        ? undefined
-                                                        : parseFloat(value) || 0
-                                                    : value,
-                                            };
-                                        }),
-                                    }
-                          ),
-                      }
-            )
+        const nextDays = days.map((d, i) =>
+            i !== index
+                ? d
+                : {
+                      ...d,
+                      meals: d.meals.map((m, mi) =>
+                          mi !== mealIndex
+                              ? m
+                              : {
+                                    ...m,
+                                    foods: m.foods.map((f, fi) => {
+                                        if (fi !== foodIndex) return f;
+                                        const numeric = ["calories", "protein", "carbs", "fat"].includes(field);
+                                        return {
+                                            ...f,
+                                            [field]: numeric
+                                                ? value === ""
+                                                    ? undefined
+                                                    : parseFloat(value) || 0
+                                                : value,
+                                        };
+                                    }),
+                                }
+                      ),
+                  }
         );
+        applyDaysWithRecalc(nextDays);
     };
 
     const addMeal = (index: number) => {
-        setDays((prev) =>
-            prev.map((d, i) =>
-                i !== index
-                    ? d
-                    : {
-                          ...d,
-                          meals: [
-                              ...d.meals,
-                              { label: "", mealOrder: d.meals.length + 1, foods: [] },
-                          ],
-                      }
-            )
+        const nextDays = days.map((d, i) =>
+            i !== index
+                ? d
+                : {
+                      ...d,
+                      meals: [
+                          ...d.meals,
+                          { label: "", mealOrder: d.meals.length + 1, foods: [] },
+                      ],
+                  }
         );
+        applyDaysWithRecalc(nextDays);
     };
 
     const removeMeal = (index: number, mealIndex: number) => {
-        setDays((prev) =>
-            prev.map((d, i) =>
-                i !== index
-                    ? d
-                    : { ...d, meals: d.meals.filter((_, mi) => mi !== mealIndex) }
-            )
+        const nextDays = days.map((d, i) =>
+            i !== index
+                ? d
+                : { ...d, meals: d.meals.filter((_, mi) => mi !== mealIndex) }
         );
+        applyDaysWithRecalc(nextDays);
     };
 
     const addFood = (index: number, mealIndex: number) => {
-        setDays((prev) =>
-            prev.map((d, i) =>
-                i !== index
-                    ? d
-                    : {
-                          ...d,
-                          meals: d.meals.map((m, mi) =>
-                              mi !== mealIndex
-                                  ? m
-                                  : {
-                                        ...m,
-                                        foods: [
-                                            ...m.foods,
-                                            {
-                                                name: "",
-                                                quantity: "",
-                                                unit: "",
-                                                equivalence: "",
-                                                notes: "",
-                                                calories: undefined,
-                                                protein: undefined,
-                                                carbs: undefined,
-                                                fat: undefined,
-                                            },
-                                        ],
-                                    }
-                          ),
-                      }
-            )
+        const nextDays = days.map((d, i) =>
+            i !== index
+                ? d
+                : {
+                      ...d,
+                      meals: d.meals.map((m, mi) =>
+                          mi !== mealIndex
+                              ? m
+                              : {
+                                    ...m,
+                                    foods: [
+                                        ...m.foods,
+                                        {
+                                            name: "",
+                                            quantity: "",
+                                            unit: "",
+                                            equivalence: "",
+                                            notes: "",
+                                            calories: undefined,
+                                            protein: undefined,
+                                            carbs: undefined,
+                                            fat: undefined,
+                                        },
+                                    ],
+                                }
+                      ),
+                  }
         );
+        applyDaysWithRecalc(nextDays);
     };
 
     const removeFood = (index: number, mealIndex: number, foodIndex: number) => {
-        setDays((prev) =>
-            prev.map((d, i) =>
-                i !== index
-                    ? d
-                    : {
-                          ...d,
-                          meals: d.meals.map((m, mi) =>
-                              mi !== mealIndex
-                                  ? m
-                                  : {
-                                        ...m,
-                                        foods: m.foods.filter((_, fi) => fi !== foodIndex),
-                                    }
-                          ),
-                      }
-            )
+        const nextDays = days.map((d, i) =>
+            i !== index
+                ? d
+                : {
+                      ...d,
+                      meals: d.meals.map((m, mi) =>
+                          mi !== mealIndex
+                              ? m
+                              : {
+                                    ...m,
+                                    foods: m.foods.filter((_, fi) => fi !== foodIndex),
+                                }
+                      ),
+                  }
         );
+        applyDaysWithRecalc(nextDays);
     };
 
     const addDay = () => {
@@ -720,6 +759,51 @@ export function PlanForm({ patients, initialPlan }: PlanFormProps) {
                     </div>
                 </CardContent>
             </Card>
+
+            {days.length > 0 && (
+                <Card>
+                    <CardContent className="pt-4 space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-xs font-medium flex items-center gap-1.5">
+                                <UtensilsCrossed className="size-3.5 text-emerald-600" />
+                                Comidas activas en todo el plan (tocá para quitar o agregar en todos los días)
+                            </span>
+                            {calorieTarget && (
+                                <span className="text-xs text-muted-foreground">
+                                    Meta / Promedio: <strong className="text-foreground">{calorieTarget} kcal</strong>
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {Array.from(
+                                new Set([
+                                    ...STANDARD_MEALS.map((m) => m.label),
+                                    ...days.flatMap((d) => d.meals.map((m) => m.label).filter(Boolean)),
+                                ])
+                            ).map((label) => {
+                                const active = days.some((d) =>
+                                    d.meals.some((m) => m.label.trim().toLowerCase() === label.trim().toLowerCase())
+                                );
+                                return (
+                                    <Badge
+                                        key={label}
+                                        variant={active ? "default" : "outline"}
+                                        className={`cursor-pointer text-xs py-1 px-2.5 ${
+                                            active
+                                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                                : "text-muted-foreground hover:bg-muted"
+                                        }`}
+                                        onClick={() => toggleMealAcrossPlan(label)}
+                                    >
+                                        {active ? "✓ " : "+ "}
+                                        {label}
+                                    </Badge>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <PlanDayCards
                 days={days}

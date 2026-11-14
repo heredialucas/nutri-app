@@ -89,10 +89,31 @@ export interface IsakResult {
   fraccionamiento: {
     masaAdiposaKg: number | null;
     masaMuscularKg: number | null;
+    masaOseaKg: number | null;
     otrosTejidosKg: number | null;
     masaAdiposaPct: number | null;
     masaMuscularPct: number | null;
+    masaOseaPct: number | null;
     otrosPct: number | null;
+  };
+  bicompartimental: {
+    masaGrasaKg: number | null;
+    masaGrasaPct: number | null;
+    masaLibreGrasaKg: number | null;
+  };
+  zonas: {
+    adiposo: {
+      superiorPct: number | null;
+      centralPct: number | null;
+      inferiorPct: number | null;
+      predominante: string | null;
+    };
+    muscular: {
+      brazoPct: number | null;
+      musloPct: number | null;
+      piernaPct: number | null;
+      predominante: string | null;
+    };
   };
   distribucion: {
     brazoCorregido: number | null;
@@ -109,6 +130,7 @@ export interface IsakResult {
     piernaCorregida: number | null;
   };
   indiceAdiposoMuscular: { valor: number | null; clasificacion: string; interpretacion: string };
+  indiceMusculoOseo: { valor: number | null; clasificacion: string; interpretacion: string };
   gastoEnergetico: {
     metodo: string;
     nivelActividad: string;
@@ -255,6 +277,37 @@ export function clasificarIam(v: number): { clasificacion: string; interpretacio
   };
 }
 
+// ── Masa ósea (Rocha / Von Döbeln, 1975) ──
+export function masaOsea(heightCm: number, wristMm?: number | null, femurMm?: number | null): number | null {
+  if (!heightCm || !wristMm || !femurMm || wristMm <= 0 || femurMm <= 0) return null;
+  const hM = heightCm / 100;
+  const wM = wristMm / 1000;
+  const fM = femurMm / 1000;
+  const val = 3.02 * Math.pow(hM * hM * wM * fM * 400, 0.712);
+  return Number.isFinite(val) && val > 0 ? val : null;
+}
+
+// ── Índice músculo / óseo ──
+export function clasificarImo(v: number): { clasificacion: string; interpretacion: string } {
+  let clasificacion: string;
+  if (v < 2.01) clasificacion = "Muy bajo";
+  else if (v < 2.11) clasificacion = "Bajo";
+  else if (v <= 2.78) clasificacion = "Promedio";
+  else if (v <= 2.96) clasificacion = "Alto";
+  else clasificacion = "Muy alto";
+  return {
+    clasificacion,
+    interpretacion: "Expresa los kg de tejido muscular en función de la estructura ósea.",
+  };
+}
+
+// ── Masa grasa bicompartimental (Yuhasz 6 pliegues) ──
+export function masaGrasaYuhaszPct(s6mm: number | null, gender: Gender): number | null {
+  if (s6mm == null || s6mm <= 0) return null;
+  const pct = gender === "FEMALE" ? s6mm * 0.1548 + 3.58 : s6mm * 0.1051 + 2.585;
+  return Number.isFinite(pct) && pct > 0 && pct < 75 ? pct : null;
+}
+
 // ── Interpretaciones de salud ──
 function saludRiesgoCintura(waistCm: number, gender: Gender): HealthIndex {
   const threshold = gender === "FEMALE" ? 80 : 94;
@@ -328,10 +381,16 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
   // Fraccionamiento tisular (5 componentes)
   const masaAdiposaKg = masaAdiposa(inputs);
   const masaMuscularKg = masamuscular(inputs);
+  const masaOseaKg = masaOsea(talla, inputs.biStyloidWrist, inputs.femurBreadth);
   let otrosTejidosKg: number | null = null;
   if (masaAdiposaKg != null && masaMuscularKg != null) {
     otrosTejidosKg = peso - masaAdiposaKg - masaMuscularKg;
   }
+
+  // Bicompartimental (Yuhasz)
+  const masaGrasaPct = masaGrasaYuhaszPct(s6, inputs.gender);
+  const masaGrasaKg = masaGrasaPct != null && peso > 0 ? (peso * masaGrasaPct) / 100 : null;
+  const masaLibreGrasaKg = masaGrasaKg != null && peso > 0 ? Math.max(0, peso - masaGrasaKg) : null;
 
   // Distribución adiposo-muscular (perímetros corregidos)
   const brazoCorregido =
@@ -344,6 +403,59 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
       : null;
   const piernaCorregida =
     inputs.calf != null && inputs.calfSF != null ? corregirPerimetro(inputs.calf, inputs.calfSF) : null;
+
+  // Distribución por zonas
+  let adiposoZonas: IsakResult["zonas"]["adiposo"] = {
+    superiorPct: null,
+    centralPct: null,
+    inferiorPct: null,
+    predominante: null,
+  };
+  if (
+    inputs.tricepsSF != null &&
+    inputs.subscapSF != null &&
+    inputs.suprailiacSF != null &&
+    inputs.abdominalSF != null &&
+    inputs.thighSF != null &&
+    inputs.calfSF != null
+  ) {
+    const sup = inputs.tricepsSF + inputs.subscapSF;
+    const cen = inputs.suprailiacSF + inputs.abdominalSF;
+    const inf = inputs.thighSF + inputs.calfSF;
+    const tot = sup + cen + inf;
+    if (tot > 0) {
+      const superiorPct = round((sup / tot) * 100, 2);
+      const centralPct = round((cen / tot) * 100, 2);
+      const inferiorPct = round((inf / tot) * 100, 2);
+      const maxZone = [
+        { name: "Superior", val: superiorPct ?? 0 },
+        { name: "Central", val: centralPct ?? 0 },
+        { name: "Inferior", val: inferiorPct ?? 0 },
+      ].sort((a, b) => b.val - a.val)[0];
+      adiposoZonas = { superiorPct, centralPct, inferiorPct, predominante: maxZone.name };
+    }
+  }
+
+  let muscularZonas: IsakResult["zonas"]["muscular"] = {
+    brazoPct: null,
+    musloPct: null,
+    piernaPct: null,
+    predominante: null,
+  };
+  if (brazoCorregido != null && musloCorregido != null && piernaCorregida != null) {
+    const totMusc = brazoCorregido + musloCorregido + piernaCorregida;
+    if (totMusc > 0) {
+      const brazoPct = round((brazoCorregido / totMusc) * 100, 2);
+      const musloPct = round((musloCorregido / totMusc) * 100, 2);
+      const piernaPct = round((piernaCorregida / totMusc) * 100, 2);
+      const maxMusc = [
+        { name: "Brazo", val: brazoPct ?? 0 },
+        { name: "Muslo", val: musloPct ?? 0 },
+        { name: "Pierna", val: piernaPct ?? 0 },
+      ].sort((a, b) => b.val - a.val)[0];
+      muscularZonas = { brazoPct, musloPct, piernaPct, predominante: maxMusc.name };
+    }
+  }
 
   // Pliegues individuales (mostrados en mm)
   const porPliegue = [
@@ -365,6 +477,18 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
     const v = masaAdiposaKg / masaMuscularKg;
     const c = clasificarIam(v);
     iam = { valor: round(v), ...c };
+  }
+
+  // Índice músculo / óseo
+  let imo: { valor: number | null; clasificacion: string; interpretacion: string } = {
+    valor: null,
+    clasificacion: "-",
+    interpretacion: "Expresa los kg de tejido muscular en función de la estructura ósea.",
+  };
+  if (masaMuscularKg != null && masaOseaKg != null && masaOseaKg > 0) {
+    const v = masaMuscularKg / masaOseaKg;
+    const c = clasificarImo(v);
+    imo = { valor: round(v), ...c };
   }
 
   // Gasto energético
@@ -414,10 +538,21 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
     fraccionamiento: {
       masaAdiposaKg: masaAdiposaKg != null ? round(masaAdiposaKg) : null,
       masaMuscularKg: masaMuscularKg != null ? round(masaMuscularKg) : null,
+      masaOseaKg: masaOseaKg != null ? round(masaOseaKg) : null,
       otrosTejidosKg: otrosTejidosKg != null ? round(otrosTejidosKg) : null,
       masaAdiposaPct: masaAdiposaKg != null ? round((masaAdiposaKg / peso) * 100, 1) : null,
       masaMuscularPct: masaMuscularKg != null ? round((masaMuscularKg / peso) * 100, 1) : null,
+      masaOseaPct: masaOseaKg != null && peso > 0 ? round((masaOseaKg / peso) * 100, 1) : null,
       otrosPct: otrosTejidosKg != null ? round((otrosTejidosKg / peso) * 100, 1) : null,
+    },
+    bicompartimental: {
+      masaGrasaKg: masaGrasaKg != null ? round(masaGrasaKg) : null,
+      masaGrasaPct: masaGrasaPct != null ? round(masaGrasaPct, 1) : null,
+      masaLibreGrasaKg: masaLibreGrasaKg != null ? round(masaLibreGrasaKg) : null,
+    },
+    zonas: {
+      adiposo: adiposoZonas,
+      muscular: muscularZonas,
     },
     distribucion: {
       brazoCorregido: brazoCorregido != null ? round(brazoCorregido) : null,
@@ -444,6 +579,7 @@ export function computeIsak(inputs: IsakInputs): IsakResult {
       piernaCorregida: piernaCorregida != null ? round(piernaCorregida) : null,
     },
     indiceAdiposoMuscular: iam,
+    indiceMusculoOseo: imo,
     gastoEnergetico: {
       metodo: "Harris & Benedict (1919)",
       nivelActividad: palEntry?.label ?? inputs.activityLevel ?? "No especificado",

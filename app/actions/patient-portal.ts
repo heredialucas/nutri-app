@@ -30,7 +30,14 @@ export async function getMyProfile() {
 
 export async function getMyAnamnesis() {
     const { patient } = await requirePatient();
-    return serializePrisma(await prisma.patientAnamnesis.findUnique({ where: { patientId: patient.id } }));
+    const anamnesis = await prisma.patientAnamnesis.findUnique({ where: { patientId: patient.id } });
+    if (!anamnesis) {
+        return patient.occupation ? { occupation: patient.occupation } : null;
+    }
+    return serializePrisma({
+        ...anamnesis,
+        occupation: anamnesis.occupation || patient.occupation || "",
+    });
 }
 
 export async function saveMyAnamnesis(data: AnamnesisInput) {
@@ -41,7 +48,14 @@ export async function saveMyAnamnesis(data: AnamnesisInput) {
         create: { patientId: patient.id, ...rest, nextControl: nextControl ? new Date(nextControl) : undefined, status: "SUBMITTED", completedAt: new Date() },
         update: { ...rest, nextControl: nextControl ? new Date(nextControl) : null, status: "SUBMITTED", completedAt: new Date() },
     });
+    if (typeof rest.occupation === "string" && rest.occupation.trim()) {
+        await prisma.patient.update({
+            where: { id: patient.id },
+            data: { occupation: rest.occupation.trim() },
+        });
+    }
     revalidatePath("/paciente/dashboard/anamnesis");
+    revalidatePath(`/dashboard/pacientes/${patient.id}`);
     return serializePrisma(result);
 }
 

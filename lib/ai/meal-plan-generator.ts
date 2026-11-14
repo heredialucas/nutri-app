@@ -12,6 +12,8 @@ const openai = new OpenAI({
 export interface PlanOptions {
     calorieTarget: number;
     mealsPerDay: number;
+    mealLabels?: string[];
+    fastingProtocol?: string;
     dietaryType: string[];
     restrictions: string[];
     includeFoods: string;
@@ -118,6 +120,7 @@ export function buildPatientContext(patient: any): string {
     if (patient.anamnesis) {
         const a = patient.anamnesis;
         const fields = [
+            ["Ocupación", a.occupation], ["Tiempo y horario de trabajo", a.workSchedule], ["Antecedentes clínicos", a.clinicalHistory], ["Medicación actual (anamnesis)", a.currentMedications],
             ["Motivo de consulta", a.consultationReason], ["Objetivo principal", a.mainObjective], ["Comidas por día", a.mealsPerDay], ["Agua diaria", a.waterIntake],
             ["Desayuno habitual", a.breakfast], ["Almuerzo habitual", a.lunch], ["Merienda habitual", a.snack], ["Cena habitual", a.dinner], ["Colaciones y bebidas", a.snacksDrinks],
             ["Alimentos preferidos", a.likedFoods], ["Alimentos que no consume", a.dislikedFoods], ["Alimentos difíciles de controlar", a.difficultFoods], ["Come fuera de casa", a.eatsOut == null ? null : a.eatsOut ? "Sí" : "No"], ["Frecuencia de comidas fuera", a.eatsOutFrequency],
@@ -212,7 +215,7 @@ Reglas estrictas:
 - Para cada alimento, indicá en "equivalence" la medida casera equivalente a la cantidad métrica, entendible para el paciente (ej: "170 g" → "1 vaso", "150 g de manzana" → "1 unidad mediana", "30 g de avena" → "4 cucharadas", "120 g de arroz crudo" → "3/4 taza"). Si el alimento ya se expresa en unidades caseras (unidades, tazas, cucharadas), la equivalencia puede repetir o aclarar esa medida (ej: "1 taza" → "1 taza del tamaño de un puño").
 - Las porciones deben ser realistas y específicas.
 - Generá exactamente 7 días (de Lunes a Domingo).
-- Cada día debe tener 5 comidas: Desayuno, Media mañana, Almuerzo, Merienda, Cena.
+- Cada día debe incluir EXACTAMENTE las comidas indicadas en la configuración del plan (respetando sus nombres y orden, sin agregar comidas no solicitadas, especialmente si el paciente realiza ayuno intermitente).
 - Cada comida debe tener entre 3 y 6 alimentos.
 - Para cada comida, indicá en "title" un nombre corto y apetitoso del plato o preparación principal (2 a 6 palabras, sin el nombre de la comida). Ejemplos: "Fajitas integrales rellenas", "Bowl de avena con frutos rojos", "Pollo al horno con batatas", "Tostadas con palta y huevo". Si la comida combina varios alimentos sin un plato definido, resumila igualmente (ej. "Yogur con frutas y granola").
 - Incluí variaciones entre los días para no ser monótono.
@@ -230,12 +233,16 @@ function buildUserPrompt(
     customPrompt?: string
 ): string {
     const mealLabels: Record<number, string[]> = {
+        1: ["Almuerzo"],
+        2: ["Almuerzo", "Cena"],
         3: ["Almuerzo", "Merienda", "Cena"],
         4: ["Desayuno", "Almuerzo", "Merienda", "Cena"],
         5: ["Desayuno", "Media mañana", "Almuerzo", "Merienda", "Cena"],
         6: ["Desayuno", "Media mañana", "Almuerzo", "Merienda", "Cena", "Colación"],
     };
-    const meals = mealLabels[options.mealsPerDay] || mealLabels[5];
+    const meals = options.mealLabels && options.mealLabels.length > 0
+        ? options.mealLabels
+        : (mealLabels[options.mealsPerDay] || mealLabels[5]);
 
     const restrictionsText = options.dietaryType.length > 0
         ? `Tipo de dieta: ${options.dietaryType.join(", ")}`
@@ -277,7 +284,7 @@ ${followUpContext}
 
 CONFIGURACIÓN DEL PLAN:
 - Duración: 7 días (Lunes a Domingo)
-- Comidas por día: ${options.mealsPerDay} (${meals.join(", ")})
+- Comidas por día: ${meals.length} (${meals.join(", ")})${options.fastingProtocol ? `\n- Protocolo de ayuno / distribución: ${options.fastingProtocol}` : ""}
 - Calorías objetivo: ${options.calorieTarget} kcal/día${macroPresetText}
 ${restrictionsText ? `- ${restrictionsText}` : ""}
 ${allergiesText ? `- ${allergiesText}` : ""}

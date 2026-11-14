@@ -30,7 +30,15 @@ export function AnamnesisForm({ patientId, initialData, patientMode = false, onS
 
   return <form onSubmit={submit} className="space-y-5">
     <Card className="border-emerald-100 bg-emerald-50/40"><CardContent className="p-4 text-sm leading-relaxed text-emerald-950">Completá la información por partes. No hace falta responder todo de una vez. Estos datos ayudan a personalizar tu acompañamiento nutricional.</CardContent></Card>
-    <Accordion type="multiple" defaultValue={["consulta", "preferencias"]} className="space-y-3">
+    <Accordion type="multiple" defaultValue={["laboral", "consulta", "preferencias"]} className="space-y-3">
+      <Section value="laboral" title="Ocupación, rutina laboral y salud clínica" description="Trabajo, horarios, antecedentes médicos y medicación habitual">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Ocupación / trabajo actual" value={String(form.occupation ?? "")} set={(v) => set("occupation", v)} />
+          <Field label="Tiempo y horario de trabajo" value={String(form.workSchedule ?? "")} set={(v) => set("workSchedule", v)} />
+          <TextField label="Antecedentes clínicos (personales, familiares, patologías)" placeholder="Ej: Hipotiroidismo, hipertensión, diabetes familiar, cirugías..." value={form.clinicalHistory} set={(v) => set("clinicalHistory", v)} />
+          <TextField label="Medicación actual" placeholder="Nombre, dosis y horario aproximado (si tomás alguna)" value={form.currentMedications} set={(v) => set("currentMedications", v)} />
+        </div>
+      </Section>
       <Section value="consulta" title="Consulta y alimentación" description="Motivo, objetivos y rutina alimentaria habitual">
         <div className="grid gap-4 md:grid-cols-2"><TextField label="Motivo principal de consulta" value={form.consultationReason} set={(v) => set("consultationReason", v)} /><TextField label="Objetivo principal" value={form.mainObjective} set={(v) => set("mainObjective", v)} /><Field label="Comidas por día" value={String(form.mealsPerDay ?? "")} set={(v) => set("mealsPerDay", v)} /><Field label="Agua aproximada (L/día)" value={String(form.waterIntake ?? "")} set={(v) => set("waterIntake", v)} /></div>
         <div className="mt-4 grid gap-4 md:grid-cols-2">{[["breakfast", "Desayuno habitual", "¿Qué solés desayunar?"], ["lunch", "Almuerzo habitual", "¿Qué comés normalmente?"], ["snack", "Merienda habitual", "¿Qué solés merendar?"], ["dinner", "Cena habitual", "¿Qué solés cenar?"], ["snacksDrinks", "Colaciones, picoteos y bebidas", "Incluí bebidas, dulces o picoteos"]].map(([key, label, placeholder]) => <TextField key={key} label={label} placeholder={placeholder} value={form[key as keyof AnamnesisInput]} set={(v) => set(key as keyof AnamnesisInput, v)} />)}</div>

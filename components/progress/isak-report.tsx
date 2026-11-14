@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -39,6 +40,7 @@ function Row({ label, value, strong }: { label: string; value: React.ReactNode; 
 }
 
 export function IsakReport({ result, paciente, fecha, evaluador, assessmentId, publishedToPatientAt, evolutionData = [] }: IsakReportProps) {
+  const [compareDate, setCompareDate] = useState<string | undefined>(undefined);
   const fechaTexto = fecha ? format(new Date(fecha), "dd/MM/yyyy", { locale: es }) : "";
   const publish = async () => {
     if (!assessmentId) return;
@@ -56,14 +58,14 @@ export function IsakReport({ result, paciente, fecha, evaluador, assessmentId, p
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-           <IsakPdfButton result={result} paciente={paciente} fecha={fechaTexto} evaluador={evaluador} evolutionData={evolutionData} />
+           <IsakPdfButton result={result} paciente={paciente} fecha={fechaTexto} evaluador={evaluador} currentDate={fecha ?? undefined} compareWithDate={compareDate} evolutionData={evolutionData} />
           {assessmentId && <Button onClick={publish} variant={publishedToPatientAt ? "outline" : "default"} size="sm"><span className="mr-2">{publishedToPatientAt ? <EyeOff className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}</span>{publishedToPatientAt ? "Retirar del portal" : "Mostrar al paciente"}</Button>}
         </div>
       </div>
 
       {publishedToPatientAt && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Este informe está visible en el portal del paciente.</div>}
 
-      {evolutionData.length > 0 && <IsakVisuals data={evolutionData} />}
+      {evolutionData.length > 0 && <IsakVisuals data={evolutionData} currentDate={fecha ?? undefined} compareWithDate={compareDate} onCompareDateChange={setCompareDate} />}
 
       <Card className="border-emerald-100 bg-gradient-to-br from-emerald-50/80 to-white">
         <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
